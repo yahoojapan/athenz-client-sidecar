@@ -1,0 +1,29 @@
+---
+version: v1.0.0
+logger:
+  log_path: /var/log/hcc/server.log
+server:
+  port: 443
+  health_check_port: 8080
+  health_check_path: /healthz
+  timeout: 5s
+  shutdown_duration: 5s
+  tls:
+    enabled: true
+    cert_key: cert
+    key_key: key
+    ca_key: ca
+udb:
+  auth_header: Yahoo-Principal-Auth
+  url: https://zts.athenz.yahoo.co.jp/zts/v1
+  timeout: 5s
+token:
+  athenz_domain: _athenz_domain_
+  service_name: _athenz_service_
+  ntoken_path: /tmp/ntoken
+  private_key_env_name: privateKEY
+  validate_token: false
+  refresh_duration: 10s
+  key_version: v1.0
+  expiration: 5s
+

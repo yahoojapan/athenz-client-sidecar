@@ -1,0 +1,16 @@
+jobs:
+  build:
+    requires: [ ~pr, ~commit ]
+    template: docker/build@stable
+  publish:
+    requires: [ build ]
+    template: docker/publish@stable
+
+shared:
+  environment:
+    TZ: Asia/Tokyo
+    REPO_NAME: athenz
+    IMAGE_NAME: hcc
+    VERIFY_ENTRYPOINT: "/go/bin/hcc"
+    VERIFY_CMD: |
+        -version

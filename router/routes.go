@@ -16,12 +16,37 @@ type Route struct {
 func NewRoutes(h handler.Handler) []Route {
 	return []Route{
 		{
-			"Demographic Handler",
+			"NToken Handler",
 			[]string{
 				http.MethodGet,
 			},
+			"/ntoken",
+			h.NToken,
+		},
+		{
+			"NToken proxy Handler",
+			[]string{
+				"*",
+			},
+			"/ntoken/proxy",
+			h.NTokenProxy,
+		},
+		{
+			"HCC Handler",
+			[]string{
+				http.MethodGet,
+				http.MethodPost,
+			},
 			"/hcc",
-			h.Demographic,
+			h.HCC,
+		},
+		{
+			"UDB",
+			[]string{
+				"*",
+			},
+			"/udb",
+			h.UDB,
 		},
 	}
 }

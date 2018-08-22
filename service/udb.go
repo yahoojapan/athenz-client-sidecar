@@ -19,15 +19,15 @@ type UDB interface {
 }
 
 type udb struct {
-	yca   YCA
+	hcc   CertProvider
 	host  string
 	keys  string
 	appID string
 }
 
-func NewUDBClient(cfg config.UDB, yca YCA) UDB {
+func NewUDBClient(cfg config.UDB, hcc CertProvider) UDB {
 	return &udb{
-		yca:   yca,
+		hcc:   hcc,
 		host:  fmt.Sprintf("%s://%s:%d/%s/%s", cfg.Scheme, cfg.Host, cfg.Port, cfg.Version, "users"),
 		appID: cfg.AppID,
 		keys:  strings.Join(cfg.Keys, ","),
@@ -48,7 +48,7 @@ func (u *udb) doRequest(method, url, cookie string, body io.Reader) (map[string]
 		return nil, err
 	}
 
-	cert, err := u.yca.GetCertificate(u.appID)
+	cert, err := u.hcc(u.appID)
 	if err != nil {
 		return nil, err
 	}

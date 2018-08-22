@@ -27,7 +27,7 @@
 
 [[constraint]]
   branch = "master"
-  name = "git.corp.yahoo.co.jp/go/ycaclient"
+  name = "ghe.corp.yahoo.co.jp/yusukato/gocred"
 
 [[constraint]]
   name = "github.com/kpango/glg"
@@ -39,7 +39,7 @@
 
 [[constraint]]
   name = "github.com/yahoo/athenz"
-  version = "1.7.51"
+  version = "1.7.52"
 
 [[constraint]]
   branch = "master"

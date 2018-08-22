@@ -13,7 +13,7 @@ type Config struct {
 	Server  Server `yaml:"server"`
 	Token   Token  `yaml:"token"`
 	UDB     UDB    `yaml:"udb"`
-	YCA     YCA    `yaml:"yca"`
+	HCC     HCC    `yaml:"hcc"`
 	Cookie  Cookie `yaml:"cookie"`
 }
 
@@ -51,7 +51,7 @@ type UDB struct {
 	Keys    []string `yaml:"keys"`
 }
 
-type YCA struct {
+type HCC struct {
 	Hostname string `yaml:"hostname"`
 	IP       string `yaml:"ip"`
 }

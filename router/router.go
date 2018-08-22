@@ -37,7 +37,7 @@ func New(cfg config.Server, h handler.Handler) *http.ServeMux {
 func routing(m []string, t time.Duration, h handler.Func) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		for _, method := range m {
-			if strings.EqualFold(r.Method, method) {
+			if strings.EqualFold(r.Method, method) || method == "*" {
 
 				ctx, cancel := context.WithTimeout(r.Context(), t)
 				defer cancel()

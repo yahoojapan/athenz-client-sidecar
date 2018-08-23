@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"ghe.corp.yahoo.co.jp/athenz/hcc-k8s/config"
 	"ghe.corp.yahoo.co.jp/athenz/hcc-k8s/model"
 	"ghe.corp.yahoo.co.jp/athenz/hcc-k8s/service"
 	"ghe.corp.yahoo.co.jp/yusukato/gocred"
@@ -14,8 +13,8 @@ import (
 
 type Handler interface {
 	NToken(http.ResponseWriter, *http.Request) error
-	HCC(http.ResponseWriter, *http.Request) error
 	NTokenProxy(http.ResponseWriter, *http.Request) error
+	HCC(http.ResponseWriter, *http.Request) error
 	UDB(http.ResponseWriter, *http.Request) error
 }
 
@@ -24,7 +23,6 @@ type Func func(http.ResponseWriter, *http.Request) error
 type handler struct {
 	udb   service.UDB
 	token service.TokenProvider
-	cfg   config.Cookie
 	crt   service.CertProvider
 }
 
@@ -36,10 +34,9 @@ const (
 	tcookie         = "T"
 )
 
-func New(u service.UDB, cfg config.Cookie, token service.TokenProvider, crt service.CertProvider) Handler {
+func New(u service.UDB, token service.TokenProvider, crt service.CertProvider) Handler {
 	return &handler{
 		udb:   u,
-		cfg:   cfg,
 		token: token,
 		crt:   crt,
 	}
@@ -56,6 +53,10 @@ func (h *handler) NToken(w http.ResponseWriter, r *http.Request) error {
 	}{
 		NToken: tok,
 	})
+}
+
+func (h *handler) NTokenProxy(w http.ResponseWriter, r *http.Request) error {
+	return nil
 }
 
 func (h *handler) HCC(w http.ResponseWriter, r *http.Request) error {
@@ -84,10 +85,6 @@ func (h *handler) HCC(w http.ResponseWriter, r *http.Request) error {
 	})
 }
 
-func (h *handler) NTokenProxy(w http.ResponseWriter, r *http.Request) error {
-	return nil
-}
-
 func (h *handler) UDB(w http.ResponseWriter, r *http.Request) error {
 	defer func() {
 		if r.Body != nil {
@@ -107,7 +104,7 @@ func (h *handler) UDB(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	res, err := h.udb.GetByGUID(cred.GUID())
+	res, err := h.udb.GetByGUID(data.AppID, cred.GUID())
 	if err != nil {
 		return err
 	}

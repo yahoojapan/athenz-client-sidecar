@@ -9,16 +9,10 @@ import (
 
 type Config struct {
 	Version string `yaml:"version"`
-	Logger  Logger `yaml:"logger"`
 	Server  Server `yaml:"server"`
 	Token   Token  `yaml:"token"`
 	UDB     UDB    `yaml:"udb"`
 	HCC     HCC    `yaml:"hcc"`
-	Cookie  Cookie `yaml:"cookie"`
-}
-
-type Logger struct {
-	//TODO ログをコンフィグからいじれるようにする
 }
 
 type Server struct {
@@ -37,18 +31,13 @@ type TLS struct {
 	CA      string `yaml:"ca"`
 }
 
-type Cookie struct {
-	KeyID   string `yaml:"key_id"`
-	KeyData string `yaml:"key_data"`
-}
-
 type UDB struct {
-	Scheme  string   `yaml:"scheme"`
-	Host    string   `yaml:"host"`
-	Port    int      `yaml:"port"`
-	Version string   `yaml:"version"`
-	AppID   string   `yaml:"app_id"`
-	Keys    []string `yaml:"keys"`
+	URL string `yaml:"url"`
+	// Scheme  string   `yaml:"scheme"`
+	// Host    string   `yaml:"host"`
+	// Port    int      `yaml:"port"`
+	// Version string   `yaml:"version"`
+	Keys []string `yaml:"keys"`
 }
 
 type HCC struct {

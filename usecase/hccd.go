@@ -43,7 +43,7 @@ func New(cfg config.Config) (HCC, error) {
 		hcc:   hcc,
 		server: service.NewServer(cfg.Server,
 			router.New(cfg.Server,
-				handler.New(u, cfg.Cookie, token.GetTokenProvider(), hcc.GetCertProvider()))),
+				handler.New(u, token.GetTokenProvider(), hcc.GetCertProvider()))),
 	}, nil
 }
 

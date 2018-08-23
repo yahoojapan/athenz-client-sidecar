@@ -15,40 +15,39 @@ import (
 )
 
 type UDB interface {
-	GetByGUID(guid string) (map[string]string, error)
+	GetByGUID(appID, guid string) (map[string]string, error)
 }
 
 type udb struct {
-	hcc   CertProvider
-	host  string
-	keys  string
-	appID string
+	hcc  CertProvider
+	host string
+	keys string
 }
 
 func NewUDBClient(cfg config.UDB, hcc CertProvider) UDB {
 	return &udb{
-		hcc:   hcc,
-		host:  fmt.Sprintf("%s://%s:%d/%s/%s", cfg.Scheme, cfg.Host, cfg.Port, cfg.Version, "users"),
-		appID: cfg.AppID,
-		keys:  strings.Join(cfg.Keys, ","),
+		hcc: hcc,
+		// host: fmt.Sprintf("%s://%s:%d/%s/%s", cfg.Scheme, config.GetValue(cfg.Host), cfg.Port, config.GetValue(cfg.Version), "users"),
+		host: cfg.URL,
+		keys: strings.Join(cfg.Keys, ","),
 	}
 }
 
 //GetByGUID get data by GUID
-func (u *udb) GetByGUID(guid string) (map[string]string, error) {
-	return u.doRequest(http.MethodGet,
+func (u *udb) GetByGUID(appID, guid string) (map[string]string, error) {
+	return u.doRequest(appID, http.MethodGet,
 		fmt.Sprintf("%s/%s?fields=%s", u.host, guid, u.keys),
 		"",
 		nil)
 }
 
-func (u *udb) doRequest(method, url, cookie string, body io.Reader) (map[string]string, error) {
+func (u *udb) doRequest(appID, method, url, cookie string, body io.Reader) (map[string]string, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
 	}
 
-	cert, err := u.hcc(u.appID)
+	cert, err := u.hcc(appID)
 	if err != nil {
 		return nil, err
 	}
@@ -64,7 +63,6 @@ func (u *udb) doRequest(method, url, cookie string, body io.Reader) (map[string]
 		req.Header.Set("Cookie", cookie)
 	}
 
-	// TODO 別のクライアントにする
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return nil, err

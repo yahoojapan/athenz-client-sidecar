@@ -46,7 +46,7 @@ type CertProvider func(string) (string, error)
 
 const (
 	zts                   = "zts.athenz.yahoo.co.jp:4443/wsca/v1"
-	defaultCertExpireTime = 30 * time.Minute // sentinel for when no certs are returned
+	defaultCertExpireTime = 30 * time.Minute // maxExpiry for when no certs are returned
 )
 
 var (
@@ -56,8 +56,8 @@ var (
 func NewHCC(cfg config.HCC, prov TokenProvider) (HCC, error) {
 	return &hcc{
 		certs:         sync.Map{},
-		ip:            cfg.IP,
-		hostname:      cfg.Hostname,
+		ip:            config.GetValue(cfg.IP),
+		hostname:      config.GetValue(cfg.Hostname),
 		token:         prov,
 		nextExpire:    time.Now(),
 		lastRefreshed: time.Now(),
@@ -78,7 +78,7 @@ func (h *hcc) getCertificate(appID string) (string, error) {
 }
 
 func (h *hcc) update() error {
-	u := fmt.Sprintf("https://%s/caontainercerts/mh/%s?d=%d&ip=%s", zts, h.hostname, time.Hour/time.Second, url.QueryEscape(h.ip))
+	u := fmt.Sprintf("https://%s/containercerts/mh/%s?d=%d&ip=%s", zts, h.hostname, time.Hour/time.Second, url.QueryEscape(h.ip))
 	req, err := http.NewRequest(http.MethodGet, u, nil)
 	if err != nil {
 		return err
@@ -112,8 +112,8 @@ func (h *hcc) update() error {
 		return err
 	}
 
-	sentinel := time.Now().Add(365 * 24 * time.Hour)
-	earliestExpiry := sentinel
+	maxExpiry := time.Now().Add(365 * 24 * time.Hour)
+	earliestExpiry := maxExpiry
 	for _, cert := range certs.Certificates {
 		exp, err := h.checkExpire(cert.Cert)
 		if err != nil {
@@ -125,7 +125,7 @@ func (h *hcc) update() error {
 		h.certs.Store(cert.AppID, cert.Cert)
 	}
 
-	if earliestExpiry != sentinel {
+	if earliestExpiry != maxExpiry {
 		h.nextExpire = earliestExpiry
 	} else {
 		h.nextExpire = time.Now().Add(defaultCertExpireTime)
@@ -152,16 +152,19 @@ func (h *hcc) checkExpire(cert string) (time.Time, error) {
 func (h *hcc) StartCertUpdater(ctx context.Context) {
 	go func() {
 		var err error
+		tick := time.NewTicker(time.Second)
 		for {
 			select {
 			case <-ctx.Done():
 				return
-			default:
-				if time.Now().After(h.nextExpire) {
-					err = h.update()
-					if err != nil {
-						glg.Error(err)
-					}
+			case <-tick.C:
+				err = h.update()
+				tick.Stop()
+				if err != nil {
+					glg.Error(err)
+					tick = time.NewTicker(time.Second)
+				} else {
+					tick = time.NewTicker(h.nextExpire.Sub(time.Now()))
 				}
 			}
 		}

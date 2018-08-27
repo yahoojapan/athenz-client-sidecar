@@ -22,6 +22,7 @@ type TokenVerifier interface {
 	SetHostname(host string) error
 	SetIPAddr(ip string) error
 }
+
 type token struct {
 	tokenFilePath   string
 	token           *atomic.Value

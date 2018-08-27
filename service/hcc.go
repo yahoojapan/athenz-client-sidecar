@@ -138,8 +138,8 @@ func (h *hcc) update() error {
 
 func (h *hcc) checkExpire(cert string) (time.Time, error) {
 	for _, part := range strings.Split(cert, ";") {
-		if strings.HasPrefix(part, "t=") {
-			v, err := strconv.ParseInt(strings.TrimPrefix(part, "t="), 10, 64)
+		if strings.HasPrefix(part, "k=") {
+			v, err := strconv.ParseInt(strings.TrimPrefix(part, "k="), 10, 64)
 			if err != nil {
 				return time.Time{}, err
 			}

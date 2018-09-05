@@ -22,11 +22,6 @@ token:
   expiration: 20m
 udb:
   url: https://api.udb.yahoo.co.jp:4443/v2/users
-  keys:
-  - v
-  - sx
-  - y
-  - pc
 hcc:
   hostname: auction.zcp.athenz.corp.yahoo.co.jp
   ip: 172.16.23.222

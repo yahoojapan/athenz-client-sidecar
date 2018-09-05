@@ -15,13 +15,12 @@ import (
 )
 
 type UDB interface {
-	GetByGUID(appID, guid string) (map[string]string, error)
+	GetByGUID(appID, guid string, keys []string) (map[string]string, error)
 }
 
 type udb struct {
 	hcc  CertProvider
 	host string
-	keys string
 }
 
 func NewUDBClient(cfg config.UDB, hcc CertProvider) UDB {
@@ -29,14 +28,13 @@ func NewUDBClient(cfg config.UDB, hcc CertProvider) UDB {
 		hcc: hcc,
 		// host: fmt.Sprintf("%s://%s:%d/%s/%s", cfg.Scheme, config.GetValue(cfg.Host), cfg.Port, config.GetValue(cfg.Version), "users"),
 		host: cfg.URL,
-		keys: strings.Join(cfg.Keys, ","),
 	}
 }
 
 //GetByGUID get data by GUID
-func (u *udb) GetByGUID(appID, guid string) (map[string]string, error) {
+func (u *udb) GetByGUID(appID, guid string, keys []string) (map[string]string, error) {
 	return u.doRequest(appID, http.MethodGet,
-		fmt.Sprintf("%s/%s?fields=%s", u.host, guid, u.keys),
+		fmt.Sprintf("%s/%s?fields=%s", u.host, guid, strings.Join(keys, ",")),
 		"",
 		nil)
 }

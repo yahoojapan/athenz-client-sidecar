@@ -5,9 +5,10 @@ type HCCRequest struct {
 }
 
 type UDBRequest struct {
-	AppID   string `json:"app_id"`
-	NCookie string `json:"n_cookie"`
-	TCookie string `json:"t_cookie"`
-	KeyID   string `json:"key_id"`
-	KeyData string `json:"key_data"`
+	AppID   string   `json:"app_id"`
+	NCookie string   `json:"n_cookie"`
+	TCookie string   `json:"t_cookie"`
+	KeyID   string   `json:"key_id"`
+	KeyData string   `json:"key_data"`
+	Keys    []string `json:"keys"`
 }

@@ -160,7 +160,7 @@ func (h *handler) UDB(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	res, err := h.udb.GetByGUID(data.AppID, cred.GUID())
+	res, err := h.udb.GetByGUID(data.AppID, cred.GUID(), data.Keys)
 	if err != nil {
 		return err
 	}

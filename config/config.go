@@ -38,8 +38,7 @@ type Proxy struct {
 }
 
 type UDB struct {
-	URL  string   `yaml:"url"`
-	Keys []string `yaml:"keys"`
+	URL string `yaml:"url"`
 }
 
 type HCC struct {

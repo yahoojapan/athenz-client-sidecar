@@ -27,9 +27,9 @@ bpctl-login:
 	bpctl auth login --idp-ca-certificate ~/.bp/ca.pem
 
 docker-push:
-	sudo docker build --pull=true --file=Dockerfile -t cd.docker-registry.corp.yahoo.co.jp:4443/athenz/hcc-k8s:latest .
-	sudo docker push cd.docker-registry.corp.yahoo.co.jp:4443/athenz/hcc-k8s:latest
+	sudo docker build --pull=true --file=Dockerfile -t cd.docker-registry.corp.yahoo.co.jp:4443/athenz/athenz-tenant-sidecar:latest .
+	sudo docker push cd.docker-registry.corp.yahoo.co.jp:4443/athenz/athenz-tenant-sidecar:latest
 
 docker-push-dev:
-	sudo docker build --pull=true --file=Dockerfile -t cd.sandbox.docker-registry.corp.yahoo.co.jp:4443/athenz/hcc-k8s:latest .
-	sudo docker push cd.sandbox.docker-registry.corp.yahoo.co.jp:4443/athenz/hcc-k8s:latest
+	sudo docker build --pull=true --file=Dockerfile -t cd.sandbox.docker-registry.corp.yahoo.co.jp:4443/athenz/athenz-tenant-sidecar:latest .
+	sudo docker push cd.sandbox.docker-registry.corp.yahoo.co.jp:4443/athenz/athenz-tenant-sidecar:latest

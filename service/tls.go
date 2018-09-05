@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 
-	"ghe.corp.yahoo.co.jp/athenz/hcc-k8s/config"
+	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/config"
 	"github.com/pkg/errors"
 )
 

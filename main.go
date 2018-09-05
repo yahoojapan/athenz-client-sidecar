@@ -9,8 +9,8 @@ import (
 	"runtime"
 	"syscall"
 
-	"ghe.corp.yahoo.co.jp/athenz/hcc-k8s/config"
-	"ghe.corp.yahoo.co.jp/athenz/hcc-k8s/usecase"
+	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/config"
+	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/usecase"
 	"github.com/kpango/glg"
 	"github.com/pkg/errors"
 )
@@ -25,12 +25,12 @@ func parseParams() (*params, error) {
 	f := flag.NewFlagSet(filepath.Base(os.Args[0]), flag.ContinueOnError)
 	f.StringVar(&p.configFilePath,
 		"f",
-		"/etc/hcc/config.yaml",
-		"hcc config yaml file path")
+		"/etc/athenz/tenant/config.yaml",
+		"tenant config yaml file path")
 	f.BoolVar(&p.showVersion,
 		"version",
 		false,
-		"show hcc version")
+		"show athenz tenantd version")
 
 	err := f.Parse(os.Args[1:])
 	if err != nil {
@@ -59,7 +59,7 @@ func run(cfg config.Config) error {
 		select {
 		case <-sigCh:
 			close(sigCh)
-			glg.Warn("hcc server shutdown...")
+			glg.Warn("athenz tenant server shutdown...")
 			return daemon.Stop(ctx)
 		case err = <-ech:
 			close(ech)
@@ -88,7 +88,7 @@ func main() {
 	}
 
 	if p.showVersion {
-		glg.Infof("hcc version -> %s", config.GetVersion())
+		glg.Infof("athenz tenantd version -> %s", config.GetVersion())
 		return
 	}
 
@@ -99,7 +99,7 @@ func main() {
 	}
 
 	if cfg.Version != config.GetVersion() {
-		glg.Fatal(errors.New("invalid hccaphic proxy configuration version"))
+		glg.Fatal(errors.New("invalid athenz tenant proxy configuration version"))
 		return
 	}
 

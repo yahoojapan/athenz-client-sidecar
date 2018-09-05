@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"ghe.corp.yahoo.co.jp/athenz/hcc-k8s/config"
+	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/config"
 	"github.com/kpango/glg"
 	"github.com/pkg/errors"
 )

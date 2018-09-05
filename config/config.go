@@ -13,6 +13,7 @@ type Config struct {
 	Token   Token  `yaml:"token"`
 	UDB     UDB    `yaml:"udb"`
 	HCC     HCC    `yaml:"hcc"`
+	Proxy   Proxy  `yaml:"proxy"`
 }
 
 type Server struct {
@@ -31,12 +32,13 @@ type TLS struct {
 	CA      string `yaml:"ca"`
 }
 
+type Proxy struct {
+	AuthHeader     string `yaml:"auth_header"`
+	BodyBufferSize int64  `yaml:"buffer_size"`
+}
+
 type UDB struct {
-	URL string `yaml:"url"`
-	// Scheme  string   `yaml:"scheme"`
-	// Host    string   `yaml:"host"`
-	// Port    int      `yaml:"port"`
-	// Version string   `yaml:"version"`
+	URL  string   `yaml:"url"`
 	Keys []string `yaml:"keys"`
 }
 

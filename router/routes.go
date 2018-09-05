@@ -3,7 +3,7 @@ package router
 import (
 	"net/http"
 
-	"ghe.corp.yahoo.co.jp/athenz/hcc-k8s/handler"
+	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/handler"
 )
 
 type Route struct {

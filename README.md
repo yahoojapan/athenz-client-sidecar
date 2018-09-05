@@ -1,2 +1,2 @@
-# hcc-k8s
+# athenz-tenant-sidecar
 Host Certificate Client for Kubernetes

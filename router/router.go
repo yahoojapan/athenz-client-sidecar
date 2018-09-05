@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"ghe.corp.yahoo.co.jp/athenz/hcc-k8s/config"
-	"ghe.corp.yahoo.co.jp/athenz/hcc-k8s/handler"
+	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/config"
+	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/handler"
 	"github.com/kpango/glg"
 )
 

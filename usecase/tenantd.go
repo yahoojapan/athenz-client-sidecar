@@ -3,18 +3,18 @@ package usecase
 import (
 	"context"
 
-	"ghe.corp.yahoo.co.jp/athenz/hcc-k8s/config"
-	"ghe.corp.yahoo.co.jp/athenz/hcc-k8s/handler"
-	"ghe.corp.yahoo.co.jp/athenz/hcc-k8s/router"
-	"ghe.corp.yahoo.co.jp/athenz/hcc-k8s/service"
+	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/config"
+	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/handler"
+	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/router"
+	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/service"
 )
 
-type HCC interface {
+type Tenant interface {
 	Start(ctx context.Context) chan error
 	Stop(ctx context.Context) error
 }
 
-type hccd struct {
+type tenantd struct {
 	cfg    config.Config
 	token  service.TokenVerifier
 	udb    service.UDB
@@ -22,7 +22,7 @@ type hccd struct {
 	server service.Server
 }
 
-func New(cfg config.Config) (HCC, error) {
+func New(cfg config.Config) (Tenant, error) {
 	token, err := service.NewTokenService(cfg.Token)
 	if err != nil {
 		return nil, err
@@ -36,23 +36,23 @@ func New(cfg config.Config) (HCC, error) {
 	}
 
 	u := service.NewUDBClient(cfg.UDB, hcc.GetCertProvider())
-	return &hccd{
+	return &tenantd{
 		cfg:   cfg,
 		token: token,
 		udb:   u,
 		hcc:   hcc,
 		server: service.NewServer(cfg.Server,
 			router.New(cfg.Server,
-				handler.New(u, token.GetTokenProvider(), hcc.GetCertProvider()))),
+				handler.New(cfg.Proxy, u, token.GetTokenProvider(), hcc.GetCertProvider()))),
 	}, nil
 }
 
-func (h *hccd) Start(ctx context.Context) chan error {
-	h.token.StartTokenUpdater(ctx)
-	h.hcc.StartCertUpdater(ctx)
-	return h.server.ListenAndServe(ctx)
+func (t *tenantd) Start(ctx context.Context) chan error {
+	t.token.StartTokenUpdater(ctx)
+	t.hcc.StartCertUpdater(ctx)
+	return t.server.ListenAndServe(ctx)
 }
 
-func (h *hccd) Stop(ctx context.Context) error {
-	return h.server.Shutdown(ctx)
+func (t *tenantd) Stop(ctx context.Context) error {
+	return t.server.Shutdown(ctx)
 }

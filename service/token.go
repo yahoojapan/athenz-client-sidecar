@@ -50,7 +50,7 @@ func NewTokenService(cfg config.Token) (TokenVerifier, error) {
 		return nil, fmt.Errorf("invalid token expiration %s, %v", cfg.Expiration, err)
 	}
 
-	keyData, err := ioutil.ReadFile(config.GetValue(cfg.PrivateKeyEnvName))
+	keyData, err := ioutil.ReadFile(config.GetValue(cfg.PrivateKeyPath))
 	if err != nil && keyData == nil {
 		if cfg.NTokenPath == "" {
 			return nil, fmt.Errorf("invalid token certificate %v", err)

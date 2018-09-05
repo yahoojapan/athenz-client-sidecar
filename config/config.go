@@ -4,7 +4,7 @@ import (
 	"os"
 	"strings"
 
-	"gopkg.in/yaml.v2"
+	yaml "gopkg.in/yaml.v2"
 )
 
 type Config struct {
@@ -33,8 +33,8 @@ type TLS struct {
 }
 
 type Proxy struct {
-	AuthHeader     string `yaml:"auth_header"`
-	BodyBufferSize int64  `yaml:"buffer_size"`
+	AuthHeader string `yaml:"auth_header"`
+	BufferSize int64  `yaml:"buffer_size"`
 }
 
 type UDB struct {
@@ -48,14 +48,14 @@ type HCC struct {
 }
 
 type Token struct {
-	AthenzDomain      string `yaml:"athenz_domain"`
-	ServiceName       string `yaml:"service_name"`
-	NTokenPath        string `yaml:"ntoken_path"`
-	PrivateKeyEnvName string `yaml:"private_key_env_name"`
-	ValidateToken     bool   `yaml:"validate_token"`
-	RefreshDuration   string `yaml:"refresh_duration"`
-	KeyVersion        string `yaml:"key_version"`
-	Expiration        string `yaml:"expiration"`
+	AthenzDomain    string `yaml:"athenz_domain"`
+	ServiceName     string `yaml:"service_name"`
+	NTokenPath      string `yaml:"ntoken_path"`
+	PrivateKeyPath  string `yaml:"private_key_path"`
+	ValidateToken   bool   `yaml:"validate_token"`
+	RefreshDuration string `yaml:"refresh_duration"`
+	KeyVersion      string `yaml:"key_version"`
+	Expiration      string `yaml:"expiration"`
 }
 
 const (

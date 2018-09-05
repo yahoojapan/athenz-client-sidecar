@@ -1,29 +1,36 @@
 ---
 version: v1.0.0
-logger:
-  log_path: /var/log/hcc/server.log
 server:
-  port: 443
-  health_check_port: 8080
+  port: 8080
+  health_check_port: 80
   health_check_path: /healthz
-  timeout: 5s
+  timeout: 10s
   shutdown_duration: 5s
   tls:
     enabled: true
-    cert_key: cert
-    key_key: key
-    ca_key: ca
-udb:
-  auth_header: Yahoo-Principal-Auth
-  url: https://zts.athenz.yahoo.co.jp/zts/v1
-  timeout: 5s
+    cert: _cert_
+    key: _key_
+    ca: _ca_
 token:
-  athenz_domain: _athenz_domain_
-  service_name: _athenz_service_
-  ntoken_path: /tmp/ntoken
-  private_key_env_name: privateKEY
+  athenz_domain:  _athenz_domain_
+  service_name: _service_name_
+  ntoken_path: ""
+  private_key_path: _athenz_private_key_
   validate_token: false
-  refresh_duration: 10s
+  refresh_duration: 30m
   key_version: v1.0
-  expiration: 5s
+  expiration: 20m
+udb:
+  url: https://api.udb.yahoo.co.jp:4443/v2/users
+  keys:
+  - v
+  - sx
+  - y
+  - pc
+hcc:
+  hostname: auction.zcp.athenz.corp.yahoo.co.jp
+  ip: 172.16.23.222
+proxy:
+  auth_header: Athenz-Principal-Auth
+  buffer_size: 1024
 

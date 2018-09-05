@@ -77,7 +77,7 @@ func (b *buffer) Put(buf []byte) {
 func New(cfg config.Proxy, u service.UDB, token service.TokenProvider, crt service.CertProvider) Handler {
 	return &handler{
 		proxy: &httputil.ReverseProxy{
-			BufferPool: newBuffer(cfg.BodyBufferSize),
+			BufferPool: newBuffer(cfg.BufferSize),
 		},
 		udb:   u,
 		token: token,

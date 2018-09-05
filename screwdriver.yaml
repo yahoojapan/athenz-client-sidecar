@@ -10,7 +10,7 @@ shared:
   environment:
     TZ: Asia/Tokyo
     REPO_NAME: athenz
-    IMAGE_NAME: hcc
-    VERIFY_ENTRYPOINT: "/go/bin/hcc"
+    IMAGE_NAME: athenz-tenant-sidecar
+    VERIFY_ENTRYPOINT: "/go/bin/athenz-tenant-sidecar"
     VERIFY_CMD: |
         -version

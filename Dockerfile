@@ -1,6 +1,6 @@
 FROM golang:1.10-alpine AS builder
 
-ENV APP_NAME hcc
+ENV APP_NAME athenz-tenant-sidecar
 
 RUN set -eux \
     && apk --no-cache add ca-certificates \
@@ -31,7 +31,7 @@ FROM scratch
 # FROM alpine:latest
 LABEL maintainer "yusukato <yusukato@yahoo-corp.jp>"
 
-ENV APP_NAME hcc
+ENV APP_NAME athenz-tenant-sidecar
 
 # Copy certificates for SSL/TLS
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
@@ -40,4 +40,4 @@ COPY --from=builder /etc/passwd /etc/passwd
 # Copy our static executable
 COPY --from=builder /usr/bin/${APP_NAME} /go/bin/${APP_NAME}
 
-ENTRYPOINT ["/go/bin/hcc"]
+ENTRYPOINT ["/go/bin/athenz-tenant-sidecar"]

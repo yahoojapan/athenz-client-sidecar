@@ -24,12 +24,14 @@ type HCC interface {
 }
 
 type hcc struct {
-	certs         sync.Map
-	ip            string
-	hostname      string
-	token         TokenProvider
-	nextExpire    time.Time
-	lastRefreshed time.Time
+	certs            sync.Map
+	ip               string
+	hostname         string
+	token            TokenProvider
+	nextExpire       time.Time
+	lastRefreshed    time.Time
+	certExpire       time.Duration
+	certExpireMargin time.Duration
 }
 
 type certificate struct {
@@ -45,8 +47,9 @@ type certificates struct {
 type CertProvider func(string) (string, error)
 
 const (
-	zts                   = "zts.athenz.yahoo.co.jp:4443/wsca/v1"
-	defaultCertExpireTime = 30 * time.Minute // maxExpiry for when no certs are returned
+	zts                     = "zts.athenz.yahoo.co.jp:4443/wsca/v1"
+	defaultCertExpireTime   = 30 * time.Minute // maxExpiry for when no certs are returned
+	defaultCertExpireMargin = time.Minute      // maxExpiry for when no certs are returned
 )
 
 var (
@@ -54,13 +57,23 @@ var (
 )
 
 func NewHCC(cfg config.HCC, prov TokenProvider) (HCC, error) {
+	exp, err := time.ParseDuration(cfg.CertExpire)
+	if err != nil {
+		exp = defaultCertExpireTime
+	}
+	m, err := time.ParseDuration(cfg.CertExpireMargin)
+	if err != nil {
+		m = defaultCertExpireMargin
+	}
 	return &hcc{
-		certs:         sync.Map{},
-		ip:            config.GetValue(cfg.IP),
-		hostname:      config.GetValue(cfg.Hostname),
-		token:         prov,
-		nextExpire:    time.Now(),
-		lastRefreshed: time.Now(),
+		certs:            sync.Map{},
+		ip:               config.GetValue(cfg.IP),
+		hostname:         config.GetValue(cfg.Hostname),
+		token:            prov,
+		nextExpire:       time.Now(),
+		lastRefreshed:    time.Now(),
+		certExpire:       exp,
+		certExpireMargin: m,
 	}, nil
 }
 
@@ -128,7 +141,7 @@ func (h *hcc) update() error {
 	if earliestExpiry != maxExpiry {
 		h.nextExpire = earliestExpiry
 	} else {
-		h.nextExpire = time.Now().Add(defaultCertExpireTime)
+		h.nextExpire = time.Now().Add(h.certExpire)
 	}
 
 	h.lastRefreshed = time.Now()
@@ -164,7 +177,7 @@ func (h *hcc) StartCertUpdater(ctx context.Context) {
 					glg.Error(err)
 					tick = time.NewTicker(time.Second)
 				} else {
-					tick = time.NewTicker(h.nextExpire.Sub(time.Now()))
+					tick = time.NewTicker(h.nextExpire.Sub(time.Now().Add(h.certExpireMargin)))
 				}
 			}
 		}

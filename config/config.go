@@ -42,8 +42,10 @@ type UDB struct {
 }
 
 type HCC struct {
-	Hostname string `yaml:"hostname"`
-	IP       string `yaml:"ip"`
+	Hostname         string `yaml:"hostname"`
+	IP               string `yaml:"ip"`
+	CertExpire       string `yaml:"cert_expire"`
+	CertExpireMargin string `yaml:"cert_expire_margin"`
 }
 
 type Token struct {

@@ -21,9 +21,9 @@ ntoken:
   key_version: v1.0
   expiration: 20m
 roletoken:
-  athenz_url: _zts_url
+  athenz_url: https://alpha.zts.athenz.yahoo.co.jp:4443/zts/v1
   expiration: 30m
-  proxy_principal:
+  proxy_principal: ""
 udb:
   url: https://api.udb.yahoo.co.jp:4443/v2/users
 hc:

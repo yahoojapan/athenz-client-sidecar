@@ -64,8 +64,8 @@ type Token struct {
 
 type Role struct {
 	AthenzURL      string `yaml:"athenz_url"`
-	ProxyPrincipal string
-	TokenExpiry    string
+	ProxyPrincipal string `yaml:"proxy_principal"`
+	TokenExpiry    string `yaml:"expiration"`
 }
 
 const (

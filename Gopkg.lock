@@ -30,12 +30,20 @@
   version = "v3.2.0"
 
 [[projects]]
+  branch = "master"
+  digest = "1:1d8bdf0fd7254230685c4689a2324a22a703d39043ce336d3fca02f3abaff238"
+  name = "github.com/kpango/fastime"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "82016693c65e776e8c440ebbf8fe615bfc978dbc"
+
+[[projects]]
   branch = "shards"
-  digest = "1:b945216608766969dc07d1109ba0f1c22ed5c97645a9b5689c3ce20d779509c6"
+  digest = "1:cfc93e091aae37c5504d29018f32327aac3269715ea59b4873c16c8db9cd13d7"
   name = "github.com/kpango/gache"
   packages = ["."]
   pruneopts = "UT"
-  revision = "779822357fe9aae4cce06d0c10d22c963a15f9d6"
+  revision = "0703a4f670a0b48f0282bc415e4c2d413d772375"
 
 [[projects]]
   digest = "1:0183b82d6da0c674f4499f837d510c3384737188e1b12fb594661e11e8d6c311"
@@ -93,11 +101,13 @@
   analyzer-version = 1
   input-imports = [
     "ghe.corp.yahoo.co.jp/yusukato/gocred",
+    "github.com/kpango/fastime",
     "github.com/kpango/gache",
     "github.com/kpango/glg",
     "github.com/pkg/errors",
     "github.com/yahoo/athenz/libs/go/zmssvctoken",
     "golang.org/x/sync/errgroup",
+    "golang.org/x/sync/singleflight",
     "gopkg.in/yaml.v2",
   ]
   solver-name = "gps-cdcl"

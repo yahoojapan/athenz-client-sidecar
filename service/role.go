@@ -30,6 +30,7 @@ type role struct {
 	athenzPrincipleHeader string
 	domainRoleCache       gache.Gache
 	group                 singleflight.Group
+	expiry                time.Duration
 }
 
 type cacheData struct {
@@ -50,24 +51,29 @@ type RoleProvider func(context.Context, string, string, string, time.Duration, t
 
 var (
 	ErrRoleTokenRequestFailed = errors.New("Failed to fetch RoleToken")
-	DefaultExpiry             = time.Minute * 120 // https://github.com/yahoo/athenz/blob/master/utils/zts-roletoken/zts-roletoken.go#L42
+	defaultExpiry             = time.Minute * 120 // https://github.com/yahoo/athenz/blob/master/utils/zts-roletoken/zts-roletoken.go#L42
 )
 
 func NewRoleService(cfg config.Role, token TokenProvider) Role {
+	dur, err := time.ParseDuration(cfg.TokenExpiry)
+	if err != nil {
+		dur = defaultExpiry
+	}
 	return &role{
 		cfg:                   cfg,
 		token:                 token,
 		athenzURL:             cfg.AthenzURL,
 		athenzPrincipleHeader: "Yahoo-Principal-Auth",
 		domainRoleCache:       gache.New(),
+		expiry:                dur,
 	}
 }
 
 func (r *role) StartRoleUpdater(ctx context.Context) Role {
 	r.domainRoleCache.EnableExpiredHook().SetExpiredHook(func(fctx context.Context, key string) {
-		domain, role, principal := decode(key)
-		r.updateRoleToken(fctx, domain, role, principal, DefaultExpiry, DefaultExpiry)
-	}).StartExpired(ctx, DefaultExpiry/5)
+		domain, role := decode(key)
+		r.updateRoleToken(fctx, domain, role, "", r.expiry, r.expiry)
+	}).StartExpired(ctx, r.expiry/5)
 	return r
 }
 
@@ -85,7 +91,8 @@ func (r *role) getRoleToken(ctx context.Context, domain, role, proxyForPrincipal
 
 func (r *role) updateRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry time.Duration) (*RoleToken, error) {
 
-	tok, err, _ := r.group.Do(encode(domain, role, proxyForPrincipal), func() (interface{}, error) {
+	tok, err, _ := r.group.Do(encode(domain, role), func() (interface{}, error) {
+
 		u := fmt.Sprintf("%s/domain/%s/token?role=%s",
 			r.athenzURL, domain, url.QueryEscape(role))
 
@@ -136,7 +143,7 @@ func (r *role) updateRoleToken(ctx context.Context, domain, role, proxyForPrinci
 			return nil, err
 		}
 
-		r.domainRoleCache.SetWithExpire(encode(domain, role, proxyForPrincipal), &cacheData{
+		r.domainRoleCache.SetWithExpire(encode(domain, role), &cacheData{
 			token:             data,
 			domain:            domain,
 			role:              role,
@@ -154,24 +161,20 @@ func (r *role) updateRoleToken(ctx context.Context, domain, role, proxyForPrinci
 	return tok.(*RoleToken), nil
 }
 
-// TODO domain role 単位でのキャッシュにする
-func encode(domain, role, principal string) string {
-	return fmt.Sprintf("%s-%s-%s", domain, role, principal)
+func encode(domain, role string) string {
+	return fmt.Sprintf("%s-%s", domain, role)
 }
 
-func decode(key string) (string, string, string) {
+func decode(key string) (string, string) {
 	keys := strings.SplitN(key, "-", 3)
 	if len(keys) < 2 {
-		return key, "", ""
+		return key, ""
 	}
-	if len(keys) < 3 {
-		return keys[0], keys[1], ""
-	}
-	return keys[0], keys[1], keys[2]
+	return keys[0], keys[1]
 }
 
 func (r *role) getCache(domain, role, principal string) (*RoleToken, bool) {
-	val, ok := r.domainRoleCache.Get(encode(domain, role, principal))
+	val, ok := r.domainRoleCache.Get(encode(domain, role))
 	if !ok {
 		return nil, false
 	}

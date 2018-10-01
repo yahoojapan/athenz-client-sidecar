@@ -21,6 +21,7 @@ ntoken:
   key_version: v1.0
   expiration: 20m
 roletoken:
+  athenz_url: _zts_url
   expiration: 30m
   proxy_principal:
 udb:

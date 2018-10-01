@@ -10,9 +10,10 @@ import (
 type Config struct {
 	Version string `yaml:"version"`
 	Server  Server `yaml:"server"`
-	Token   Token  `yaml:"token"`
+	Token   Token  `yaml:"ntoken"`
+	Role    Role   `yaml:"roletoken"`
 	UDB     UDB    `yaml:"udb"`
-	HCC     HCC    `yaml:"hcc"`
+	HC      HC     `yaml:"hc"`
 	Proxy   Proxy  `yaml:"proxy"`
 }
 
@@ -33,7 +34,8 @@ type TLS struct {
 }
 
 type Proxy struct {
-	AuthHeader string `yaml:"auth_header"`
+	AuthHeader string `yaml:"auth_header_key"`
+	RoleHeader string `yaml:"role_header_key"`
 	BufferSize int64  `yaml:"buffer_size"`
 }
 
@@ -41,7 +43,8 @@ type UDB struct {
 	URL string `yaml:"url"`
 }
 
-type HCC struct {
+type HC struct {
+	AthenzURL        string `yaml:"athenz_url"`
 	Hostname         string `yaml:"hostname"`
 	IP               string `yaml:"ip"`
 	CertExpire       string `yaml:"cert_expire"`
@@ -57,6 +60,12 @@ type Token struct {
 	RefreshDuration string `yaml:"refresh_duration"`
 	KeyVersion      string `yaml:"key_version"`
 	Expiration      string `yaml:"expiration"`
+}
+
+type Role struct {
+	AthenzURL      string `yaml:"athenz_url"`
+	ProxyPrincipal string
+	TokenExpiry    string
 }
 
 const (

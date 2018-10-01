@@ -30,6 +30,10 @@
   name = "ghe.corp.yahoo.co.jp/yusukato/gocred"
 
 [[constraint]]
+  branch = "shards"
+  name = "github.com/kpango/gache"
+
+[[constraint]]
   name = "github.com/kpango/glg"
   version = "1.2.1"
 
@@ -39,7 +43,7 @@
 
 [[constraint]]
   name = "github.com/yahoo/athenz"
-  version = "1.7.54"
+  version = "1.7.55"
 
 [[constraint]]
   branch = "master"

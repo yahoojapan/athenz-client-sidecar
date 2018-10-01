@@ -1,4 +1,4 @@
-FROM golang:1.10-alpine AS builder
+FROM golang:1.11-alpine AS builder
 
 ENV APP_NAME athenz-tenant-sidecar
 
@@ -6,7 +6,7 @@ RUN set -eux \
     && apk --no-cache add ca-certificates \
     && apk --no-cache add --virtual build-dependencies cmake g++ make unzip curl upx git
 
-WORKDIR ${GOPATH}/src/ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar
+WORKDIR ${GOPATH}/src/ghe.corp.yahoo.co.jp/athenz/${APP_NAME}
 
 RUN go get -v -u github.com/golang/dep/cmd/dep
 

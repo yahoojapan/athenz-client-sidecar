@@ -24,21 +24,37 @@ func NewRoutes(h handler.Handler) []Route {
 			h.NToken,
 		},
 		{
+			"RoleToken Handler",
+			[]string{
+				http.MethodPost,
+			},
+			"/roletoken",
+			h.RoleToken,
+		},
+		{
+			"RoleToken proxy Handler",
+			[]string{
+				"*",
+			},
+			"/proxy/roletoken",
+			h.RoleTokenProxy,
+		},
+		{
 			"NToken proxy Handler",
 			[]string{
 				"*",
 			},
-			"/ntoken/proxy",
+			"/proxy/ntoken",
 			h.NTokenProxy,
 		},
 		{
-			"HCC Handler",
+			"HC Handler",
 			[]string{
 				http.MethodGet,
 				http.MethodPost,
 			},
-			"/hcc",
-			h.HCC,
+			"/hc",
+			h.HC,
 		},
 		{
 			"UDB",

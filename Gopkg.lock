@@ -14,12 +14,28 @@
   revision = "1f297e7361422559e40861408069be3d86601554"
 
 [[projects]]
+  digest = "1:4c69f3f6b7b2f6481f858db3cb7a84c7a5958287be33ec05ce4814ea49ef555d"
+  name = "github.com/cespare/xxhash"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "569f7c8abf1f58d9043ab804d364483cb1c853b6"
+  version = "v1.1.0"
+
+[[projects]]
   digest = "1:76dc72490af7174349349838f2fe118996381b31ea83243812a97e5a0fd5ed55"
   name = "github.com/dgrijalva/jwt-go"
   packages = ["."]
   pruneopts = "UT"
   revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
   version = "v3.2.0"
+
+[[projects]]
+  branch = "shards"
+  digest = "1:b945216608766969dc07d1109ba0f1c22ed5c97645a9b5689c3ce20d779509c6"
+  name = "github.com/kpango/gache"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "779822357fe9aae4cce06d0c10d22c963a15f9d6"
 
 [[projects]]
   digest = "1:0183b82d6da0c674f4499f837d510c3384737188e1b12fb594661e11e8d6c311"
@@ -38,12 +54,12 @@
   version = "v0.8.0"
 
 [[projects]]
-  digest = "1:1937b1079c481dbf363d5704d0b610c6578a0fefd425f62b7b8cbbf86a204181"
+  digest = "1:b365c6e729151e9ad0c1205709b2bb40f192d1cbc247a52cfac77472e12f5162"
   name = "github.com/yahoo/athenz"
   packages = ["libs/go/zmssvctoken"]
   pruneopts = "UT"
-  revision = "7f2611663ab616bfd58e0dcc625d56521bf8b264"
-  version = "v1.7.54"
+  revision = "b08b2bb43b0e33df2d3a12e549a37d939fd170a7"
+  version = "v1.7.55"
 
 [[projects]]
   branch = "master"
@@ -51,13 +67,16 @@
   name = "golang.org/x/net"
   packages = ["context"]
   pruneopts = "UT"
-  revision = "8a410e7b638dca158bf9e766925842f6651ff828"
+  revision = "26e67e76b6c3f6ce91f7c52def5af501b4e0f3a2"
 
 [[projects]]
   branch = "master"
-  digest = "1:39ebcc2b11457b703ae9ee2e8cca0f68df21969c6102cb3b705f76cca0ea0239"
+  digest = "1:33bc276bce48c71255132cca14981fa8ced4844f35ec0399b0390c591c178a0a"
   name = "golang.org/x/sync"
-  packages = ["errgroup"]
+  packages = [
+    "errgroup",
+    "singleflight",
+  ]
   pruneopts = "UT"
   revision = "1d60e4601c6fd243af51cc01ddf169918a5407ca"
 
@@ -74,6 +93,7 @@
   analyzer-version = 1
   input-imports = [
     "ghe.corp.yahoo.co.jp/yusukato/gocred",
+    "github.com/kpango/gache",
     "github.com/kpango/glg",
     "github.com/pkg/errors",
     "github.com/yahoo/athenz/libs/go/zmssvctoken",

@@ -1,7 +1,9 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"math"
@@ -19,7 +21,9 @@ import (
 type Handler interface {
 	NToken(http.ResponseWriter, *http.Request) error
 	NTokenProxy(http.ResponseWriter, *http.Request) error
-	HCC(http.ResponseWriter, *http.Request) error
+	RoleToken(http.ResponseWriter, *http.Request) error
+	RoleTokenProxy(http.ResponseWriter, *http.Request) error
+	HC(http.ResponseWriter, *http.Request) error
 	UDB(http.ResponseWriter, *http.Request) error
 }
 
@@ -30,6 +34,7 @@ type handler struct {
 	udb   service.UDB
 	token service.TokenProvider
 	crt   service.CertProvider
+	role  service.RoleProvider
 	cfg   config.Proxy
 }
 
@@ -74,13 +79,14 @@ func (b *buffer) Put(buf []byte) {
 	b.pool.Put(buf[:0])
 }
 
-func New(cfg config.Proxy, u service.UDB, token service.TokenProvider, crt service.CertProvider) Handler {
+func New(cfg config.Proxy, u service.UDB, token service.TokenProvider, role service.RoleProvider, crt service.CertProvider) Handler {
 	return &handler{
 		proxy: &httputil.ReverseProxy{
 			BufferPool: newBuffer(cfg.BufferSize),
 		},
 		udb:   u,
 		token: token,
+		role:  role,
 		crt:   crt,
 		cfg:   cfg,
 	}
@@ -115,7 +121,45 @@ func (h *handler) NTokenProxy(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-func (h *handler) HCC(w http.ResponseWriter, r *http.Request) error {
+func (h *handler) RoleToken(w http.ResponseWriter, r *http.Request) error {
+	switch r.Method {
+	case http.MethodGet:
+		fmt.Println(r.RequestURI)
+	default:
+	}
+	var data model.RoleRequest
+	err := json.NewDecoder(r.Body).Decode(data)
+	if err != nil {
+		return err
+	}
+	tok, err := h.role(context.Background(), data.Domain, data.Role, data.ProxyForPrincipal, data.MinExpiry, data.MaxExpiry)
+	if err != nil {
+		return err
+	}
+
+	return json.NewEncoder(w).Encode(tok)
+}
+
+func (h *handler) RoleTokenProxy(w http.ResponseWriter, r *http.Request) error {
+	defer func() {
+		if r.Body != nil {
+			io.Copy(ioutil.Discard, r.Body)
+			r.Body.Close()
+		}
+	}()
+	role := r.Header.Get("Athenz-Role-Auth")
+	domain := r.Header.Get("Athenz-Domain-Auth")
+	principal := r.Header.Get("Athenz-Proxy-Principal-Auth")
+	tok, err := h.role(context.Background(), domain, role, principal, 0, 0)
+	if err != nil {
+		return err
+	}
+	r.Header.Set(h.cfg.RoleHeader, tok.Token)
+	h.proxy.ServeHTTP(w, r)
+	return nil
+}
+
+func (h *handler) HC(w http.ResponseWriter, r *http.Request) error {
 	defer func() {
 		if r.Body != nil {
 			io.Copy(ioutil.Discard, r.Body)
@@ -123,7 +167,7 @@ func (h *handler) HCC(w http.ResponseWriter, r *http.Request) error {
 		}
 	}()
 
-	var data model.HCCRequest
+	var data model.HCRequest
 	err := json.NewDecoder(r.Body).Decode(&data)
 	if err != nil {
 		return err

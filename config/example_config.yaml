@@ -11,7 +11,7 @@ server:
     cert: _cert_
     key: _key_
     ca: _ca_
-token:
+ntoken:
   athenz_domain:  _athenz_domain_
   service_name: _service_name_
   ntoken_path: ""
@@ -20,12 +20,25 @@ token:
   refresh_duration: 30m
   key_version: v1.0
   expiration: 20m
+roletoken:
+  expiration: 30m
+  proxy_principal:
 udb:
   url: https://api.udb.yahoo.co.jp:4443/v2/users
-hcc:
-  hostname: auction.zcp.athenz.corp.yahoo.co.jp
-  ip: 172.16.23.222
+hc:
+  # prod ssk
+  hostname: bp.caas.ing.bp.pssk01.caas.ssk.zcp.yahoo.co.jp
+  # dev ssk
+  # hostname: bp.caas.ing.bp.dssk01.caas.ssk.zcp.yahoo.co.jp
+  # tool ssk
+  # hostname: bp.caas.ing.bp.tssk01.caas.ssk.zcp.yahoo.co.jp
+  # prod kks
+  # hostname: bp.caas.ing.bp.pkks01.caas.kks.zcp.yahoo.co.jp
+  # tool kks
+  # hostname: bp.caas.ing.bp.tkks01.caas.kks.zcp.yahoo.co.jp
+  ip: _MY_HOST_IP_
 proxy:
-  auth_header: Athenz-Principal-Auth
+  auth_header_key: Athenz-Principal-Auth
+  role_header_key: Athenz-Role-Auth
   buffer_size: 1024
 

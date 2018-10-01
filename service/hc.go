@@ -18,20 +18,22 @@ import (
 	"github.com/pkg/errors"
 )
 
-type HCC interface {
+type HC interface {
 	StartCertUpdater(ctx context.Context)
 	GetCertProvider() CertProvider
 }
 
-type hcc struct {
-	certs            sync.Map
-	ip               string
-	hostname         string
-	token            TokenProvider
-	nextExpire       time.Time
-	lastRefreshed    time.Time
-	certExpire       time.Duration
-	certExpireMargin time.Duration
+type hc struct {
+	certs                 sync.Map
+	ip                    string
+	hostname              string
+	token                 TokenProvider
+	athenzURL             string
+	athenzPrincipleHeader string
+	nextExpire            time.Duration
+	lastRefreshed         time.Time
+	certExpire            time.Duration
+	certExpireMargin      time.Duration
 }
 
 type certificate struct {
@@ -56,7 +58,7 @@ var (
 	ErrCertNotFound = errors.New("certification not found")
 )
 
-func NewHCC(cfg config.HCC, prov TokenProvider) (HCC, error) {
+func NewHC(cfg config.HC, prov TokenProvider) (HC, error) {
 	exp, err := time.ParseDuration(cfg.CertExpire)
 	if err != nil {
 		exp = defaultCertExpireTime
@@ -65,23 +67,25 @@ func NewHCC(cfg config.HCC, prov TokenProvider) (HCC, error) {
 	if err != nil {
 		m = defaultCertExpireMargin
 	}
-	return &hcc{
-		certs:            sync.Map{},
-		ip:               config.GetValue(cfg.IP),
-		hostname:         config.GetValue(cfg.Hostname),
-		token:            prov,
-		nextExpire:       time.Now(),
-		lastRefreshed:    time.Now(),
-		certExpire:       exp,
-		certExpireMargin: m,
+	return &hc{
+		certs:                 sync.Map{},
+		ip:                    config.GetValue(cfg.IP),
+		hostname:              config.GetValue(cfg.Hostname),
+		token:                 prov,
+		athenzURL:             cfg.AthenzURL,
+		athenzPrincipleHeader: "Yahoo-Principal-Auth",
+		nextExpire:            defaultCertExpireTime,
+		lastRefreshed:         time.Now(),
+		certExpire:            exp,
+		certExpireMargin:      m,
 	}, nil
 }
 
-func (h *hcc) GetCertProvider() CertProvider {
+func (h *hc) GetCertProvider() CertProvider {
 	return h.getCertificate
 }
 
-func (h *hcc) getCertificate(appID string) (string, error) {
+func (h *hc) getCertificate(appID string) (string, error) {
 	cert, ok := h.certs.Load(appID)
 	if !ok {
 		return "", ErrCertNotFound
@@ -90,8 +94,8 @@ func (h *hcc) getCertificate(appID string) (string, error) {
 	return cert.(string), nil
 }
 
-func (h *hcc) update() error {
-	u := fmt.Sprintf("https://%s/containercerts/mh/%s?d=%d&ip=%s", zts, h.hostname, time.Hour/time.Second, url.QueryEscape(h.ip))
+func (h *hc) update() error {
+	u := fmt.Sprintf("https://%s/containercerts/mh/%s?d=%d&ip=%s", h.athenzURL, h.hostname, time.Hour/time.Second, url.QueryEscape(h.ip))
 	req, err := http.NewRequest(http.MethodGet, u, nil)
 	if err != nil {
 		return err
@@ -101,7 +105,7 @@ func (h *hcc) update() error {
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Yahoo-Principal-Auth", token)
+	req.Header.Set(h.athenzPrincipleHeader, token)
 
 	res, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -139,9 +143,9 @@ func (h *hcc) update() error {
 	}
 
 	if earliestExpiry != maxExpiry {
-		h.nextExpire = earliestExpiry
+		h.nextExpire = earliestExpiry.Sub(time.Now())
 	} else {
-		h.nextExpire = time.Now().Add(h.certExpire)
+		h.nextExpire = h.certExpire
 	}
 
 	h.lastRefreshed = time.Now()
@@ -149,7 +153,7 @@ func (h *hcc) update() error {
 	return nil
 }
 
-func (h *hcc) checkExpire(cert string) (time.Time, error) {
+func (h *hc) checkExpire(cert string) (time.Time, error) {
 	for _, part := range strings.Split(cert, ";") {
 		if strings.HasPrefix(part, "t=") {
 			v, err := strconv.ParseInt(strings.TrimPrefix(part, "t="), 10, 64)
@@ -162,7 +166,7 @@ func (h *hcc) checkExpire(cert string) (time.Time, error) {
 	return time.Time{}, nil
 }
 
-func (h *hcc) StartCertUpdater(ctx context.Context) {
+func (h *hc) StartCertUpdater(ctx context.Context) {
 	go func() {
 		var err error
 		tick := time.NewTicker(time.Second)
@@ -177,7 +181,7 @@ func (h *hcc) StartCertUpdater(ctx context.Context) {
 					glg.Error(err)
 					tick = time.NewTicker(time.Second)
 				} else {
-					tick = time.NewTicker(h.nextExpire.Sub(time.Now().Add(h.certExpireMargin)))
+					tick = time.NewTicker(h.nextExpire - h.certExpireMargin)
 				}
 			}
 		}

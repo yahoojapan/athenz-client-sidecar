@@ -20,6 +20,10 @@ clean:
 	rm -rf ./*.svg
 	rm -rf ./*.log
 
+deps:
+	rm -rf Gopkg.* vendor
+	dep init
+
 test:
 	go test --race ./...
 

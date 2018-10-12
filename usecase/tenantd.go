@@ -28,8 +28,14 @@ func New(cfg config.Config) (Tenant, error) {
 	if err != nil {
 		return nil, err
 	}
-	token.SetHostname(cfg.HC.Hostname)
-	token.SetIPAddr(cfg.HC.IP)
+	err = token.SetHostname(config.GetValue(cfg.HC.Hostname))
+	if err != nil {
+		return nil, err
+	}
+	err = token.SetIPAddr(config.GetValue(cfg.HC.IP))
+	if err != nil {
+		return nil, err
+	}
 
 	role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
 

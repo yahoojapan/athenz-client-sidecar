@@ -20,7 +20,7 @@ type tenantd struct {
 	udb    service.UDB
 	hc     service.HC
 	server service.Server
-	role   service.Role
+	role   service.RoleService
 }
 
 func New(cfg config.Config) (Tenant, error) {

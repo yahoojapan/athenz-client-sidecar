@@ -18,12 +18,14 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-type Role interface {
-	StartRoleUpdater(context.Context) Role
+// RoleService represent a interface to automatically refresh the role token, and a role token provider function pointer.
+type RoleService interface {
+	StartRoleUpdater(context.Context) RoleService
 	GetRoleProvider() RoleProvider
 }
 
-type role struct {
+// roleService represent the implementation of athenz RoleService
+type roleService struct {
 	cfg                   config.Role
 	token                 TokenProvider
 	athenzURL             string
@@ -31,6 +33,7 @@ type role struct {
 	domainRoleCache       gache.Gache
 	group                 singleflight.Group
 	expiry                time.Duration
+	httpClient            *http.Client
 }
 
 type cacheData struct {
@@ -42,46 +45,57 @@ type cacheData struct {
 	maxExpiry         time.Duration
 }
 
+// RoleToken represent the basic information of the role token.
 type RoleToken struct {
 	Token      string `json:"token"`
 	ExpiryTime int64  `json:"expiryTime"`
 }
 
-type RoleProvider func(context.Context, string, string, string, time.Duration, time.Duration) (*RoleToken, error)
+// RoleProvider represent a function pointer to get the role token.
+type RoleProvider func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (*RoleToken, error)
 
 var (
+	// ErrRoleTokenRequestFailed represent an error when failed to fetch the role token from RoleProvider.
 	ErrRoleTokenRequestFailed = errors.New("Failed to fetch RoleToken")
-	defaultExpiry             = time.Minute * 120 // https://github.com/yahoo/athenz/blob/master/utils/zts-roletoken/zts-roletoken.go#L42
+
+	// defaultExpiry represent the default token expiry time.
+	defaultExpiry = time.Minute * 120 // https://github.com/yahoo/athenz/blob/master/utils/zts-roletoken/zts-roletoken.go#L42
+
+	athenzPrincipleHeader = "Yahoo-Principal-Auth"
 )
 
-func NewRoleService(cfg config.Role, token TokenProvider) Role {
+// NewRoleService returns a RoleService to update and get the role token from athenz.
+func NewRoleService(cfg config.Role, token TokenProvider) RoleService {
 	dur, err := time.ParseDuration(cfg.TokenExpiry)
 	if err != nil {
 		dur = defaultExpiry
 	}
-	return &role{
+	return &roleService{
 		cfg:                   cfg,
 		token:                 token,
 		athenzURL:             cfg.AthenzURL,
-		athenzPrincipleHeader: "Yahoo-Principal-Auth",
+		athenzPrincipleHeader: athenzPrincipleHeader,
 		domainRoleCache:       gache.New(),
 		expiry:                dur,
+		httpClient:            http.DefaultClient,
 	}
 }
 
-func (r *role) StartRoleUpdater(ctx context.Context) Role {
-	r.domainRoleCache.EnableExpiredHook().SetExpiredHook(func(fctx context.Context, key string) {
-		domain, role := decode(key)
-		r.updateRoleToken(fctx, domain, role, "", r.expiry, r.expiry)
-	}).StartExpired(ctx, r.expiry/5)
+// StartRoleUpdater returns RoleService.
+// This function will setup a expiry hook to role token caches, and refresh the role token when it needs.
+func (r *roleService) StartRoleUpdater(ctx context.Context) RoleService {
+	r.domainRoleCache.EnableExpiredHook().SetExpiredHook(r.handleExpiredHook).StartExpired(ctx, r.expiry/5)
 	return r
 }
 
-func (r *role) GetRoleProvider() RoleProvider {
+// GetRoleProvider returns a function pointer to get the role token.
+func (r *roleService) GetRoleProvider() RoleProvider {
 	return r.getRoleToken
 }
 
-func (r *role) getRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry time.Duration) (*RoleToken, error) {
+// getRoleToken returns RoleToken struct or error.
+// This function will return the role token stored inside the cache, or fetch the role token from athenz when corresponding role token cannot be found in the cache.
+func (r *roleService) getRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry time.Duration) (*RoleToken, error) {
 	tok, ok := r.getCache(domain, role, proxyForPrincipal)
 	if !ok {
 		return r.updateRoleToken(ctx, domain, role, proxyForPrincipal, minExpiry, maxExpiry)
@@ -89,37 +103,35 @@ func (r *role) getRoleToken(ctx context.Context, domain, role, proxyForPrincipal
 	return tok, nil
 }
 
-func (r *role) updateRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry time.Duration) (*RoleToken, error) {
+// handleExpiredHook is a handler function for gache expired hook
+func (r *roleService) handleExpiredHook(fctx context.Context, key string) {
+	domain, role := decode(key)
+	r.updateRoleToken(fctx, domain, role, "", r.expiry, r.expiry)
+}
+
+// updateRoleToken returns RoleToken struct or error.
+// This function ask athenz to generate role token and return, or return any error when generating the role token.
+func (r *roleService) updateRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry time.Duration) (*RoleToken, error) {
 
 	tok, err, _ := r.group.Do(encode(domain, role), func() (interface{}, error) {
-
-		u := fmt.Sprintf("%s/domain/%s/token?role=%s",
-			r.athenzURL, domain, url.QueryEscape(role))
-
-		switch {
-		case minExpiry > 0:
-			u += fmt.Sprintf("&minExpiryTime=%d", minExpiry)
-			fallthrough
-		case maxExpiry > 0:
-			u += fmt.Sprintf("&maxExpiryTime=%d", maxExpiry)
-			fallthrough
-		case proxyForPrincipal != "":
-			u += fmt.Sprintf("&proxyForPrincipal=%s", proxyForPrincipal)
+		// get the role token
+		tok, err := r.token()
+		if err != nil {
+			return nil, err
 		}
+
+		// concat URL string and url parameters
+		u := getRoleTokenAthenzURL(r.athenzURL, domain, role, minExpiry, maxExpiry, proxyForPrincipal)
 
 		req, err := http.NewRequest(http.MethodGet, u, nil)
 		if err != nil {
 			return nil, err
 		}
 
-		tok, err := r.token()
-		if err != nil {
-			return nil, err
-		}
+		req.Header.Set(r.athenzPrincipleHeader, tok)
 
-		req.Header.Set("Yahoo-Principal-Auth", tok)
-
-		res, err := http.DefaultClient.Do(req.WithContext(ctx))
+		// send http request
+		res, err := r.httpClient.Do(req.WithContext(ctx))
 
 		if err != nil {
 			return nil, err
@@ -137,12 +149,14 @@ func (r *role) updateRoleToken(ctx context.Context, domain, role, proxyForPrinci
 			return nil, ErrRoleTokenRequestFailed
 		}
 
+		// decode the token as a role token
 		var data *RoleToken
 		err = json.NewDecoder(res.Body).Decode(&data)
 		if err != nil {
 			return nil, err
 		}
 
+		// set the token into cache
 		r.domainRoleCache.SetWithExpire(encode(domain, role), &cacheData{
 			token:             data,
 			domain:            domain,
@@ -161,6 +175,14 @@ func (r *role) updateRoleToken(ctx context.Context, domain, role, proxyForPrinci
 	return tok.(*RoleToken), nil
 }
 
+func (r *roleService) getCache(domain, role, principal string) (*RoleToken, bool) {
+	val, ok := r.domainRoleCache.Get(encode(domain, role))
+	if !ok {
+		return nil, false
+	}
+	return val.(*cacheData).token, ok
+}
+
 func encode(domain, role string) string {
 	return fmt.Sprintf("%s-%s", domain, role)
 }
@@ -173,10 +195,19 @@ func decode(key string) (string, string) {
 	return keys[0], keys[1]
 }
 
-func (r *role) getCache(domain, role, principal string) (*RoleToken, bool) {
-	val, ok := r.domainRoleCache.Get(encode(domain, role))
-	if !ok {
-		return nil, false
+func getRoleTokenAthenzURL(athenzURL, domain, role string, minExpiry, maxExpiry time.Duration, proxyForPrincipal string) string {
+	u := fmt.Sprintf("%s/domain/%s/token?role=%s", athenzURL, domain, url.QueryEscape(role))
+
+	switch {
+	case minExpiry > 0:
+		u += fmt.Sprintf("&minExpiryTime=%d", minExpiry)
+		fallthrough
+	case maxExpiry > 0:
+		u += fmt.Sprintf("&maxExpiryTime=%d", maxExpiry)
+		fallthrough
+	case proxyForPrincipal != "":
+		u += fmt.Sprintf("&proxyForPrincipal=%s", proxyForPrincipal)
 	}
-	return val.(*cacheData).token, ok
+
+	return u
 }

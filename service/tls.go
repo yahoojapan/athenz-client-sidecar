@@ -4,6 +4,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
+	"os"
 
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/config"
 	"github.com/pkg/errors"
@@ -14,9 +15,10 @@ var (
 )
 
 func NewTLSConfig(cfg config.TLS) (*tls.Config, error) {
-	cert := config.GetValue(cfg.Cert)
-	key := config.GetValue(cfg.Key)
-	ca := config.GetValue(cfg.CA)
+	cert := os.Getenv(cfg.CertKey)
+	key := os.Getenv(cfg.KeyKey)
+	ca := os.Getenv(cfg.CAKey)
+
 	t := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 		CurvePreferences: []tls.CurveID{

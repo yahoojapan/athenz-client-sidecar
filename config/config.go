@@ -17,20 +17,43 @@ type Config struct {
 	Proxy   Proxy  `yaml:"proxy"`
 }
 
+// Server represent tenant sidecar server and health check server configuration.
 type Server struct {
-	Port             int    `yaml:"port"`
-	HealthzPort      int    `yaml:"health_check_port"`
-	HealthzPath      string `yaml:"health_check_path"`
-	Timeout          string `yaml:"timeout"`
+	// Port represent tenant sidecar server port.
+	Port int `yaml:"port"`
+
+	// HealthzPort represent health check server port for K8s.
+	HealthzPort int `yaml:"health_check_port"`
+
+	// HealthzPath represent the server path (pattern) for health check server.
+	HealthzPath string `yaml:"health_check_path"`
+
+	// Timeout represent the tenant sidecar server timeout value.
+	Timeout string `yaml:"timeout"`
+
+	// ShutdownDuration represent the parse duration before the server shutdown.
 	ShutdownDuration string `yaml:"shutdown_duration"`
-	TLS              TLS    `yaml:"tls"`
+
+	// ProbeWaitTime represent the parse duration between health check server and tenant sidecar server shutdown.
+	ProbeWaitTime string `yaml:"probe_wait_time"`
+
+	// TLS represent the TLS configuration for tenant sidecar server.
+	TLS TLS `yaml:"tls"`
 }
 
+// TLS represent the TLS configuration for tenant sidecar server.
 type TLS struct {
-	Enabled bool   `yaml:"enabled"`
-	Cert    string `yaml:"cert"`
-	Key     string `yaml:"key"`
-	CA      string `yaml:"ca"`
+	// Enable represent the tenant sidecar server enable TLS or not.
+	Enabled bool `yaml:"enabled"`
+
+	// CertKey represent the certificate environment variable key used to start tenant sidecar server.
+	CertKey string `yaml:"cert_key"`
+
+	// KeyKey represent the private key environment variable key used to start tenant sidecar server.
+	KeyKey string `yaml:"key_key"`
+
+	// CAKey represent the CA certificate environment variable key used to start tenant sidecar server.
+	CAKey string `yaml:"ca_key"`
 }
 
 type Proxy struct {

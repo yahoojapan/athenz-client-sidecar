@@ -10,8 +10,7 @@ import (
 )
 
 type Tenant interface {
-	Start(ctx context.Context) chan error
-	Stop(ctx context.Context) error
+	Start(ctx context.Context) chan []error
 }
 
 type tenantd struct {
@@ -57,13 +56,9 @@ func New(cfg config.Config) (Tenant, error) {
 	}, nil
 }
 
-func (t *tenantd) Start(ctx context.Context) chan error {
+func (t *tenantd) Start(ctx context.Context) chan []error {
 	t.token.StartTokenUpdater(ctx)
 	t.role.StartRoleUpdater(ctx)
 	t.hc.StartCertUpdater(ctx)
 	return t.server.ListenAndServe(ctx)
-}
-
-func (t *tenantd) Stop(ctx context.Context) error {
-	return t.server.Shutdown(ctx)
 }

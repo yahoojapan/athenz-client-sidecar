@@ -40,13 +40,13 @@ func parseParams() (*params, error) {
 	return p, nil
 }
 
-func run(cfg config.Config) error {
+func run(cfg config.Config) []error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	daemon, err := usecase.New(cfg)
 	if err != nil {
-		return err
+		return []error{err}
 	}
 
 	ech := daemon.Start(ctx)
@@ -58,12 +58,10 @@ func run(cfg config.Config) error {
 	for {
 		select {
 		case <-sigCh:
-			close(sigCh)
+			cancel()
 			glg.Warn("athenz tenant server shutdown...")
-			return daemon.Stop(ctx)
-		case err = <-ech:
-			close(ech)
-			return err
+		case errs := <-ech:
+			return errs
 		}
 	}
 }
@@ -103,9 +101,9 @@ func main() {
 		return
 	}
 
-	err = run(*cfg)
-	if err != nil {
-		glg.Fatal(err)
+	errs := run(*cfg)
+	if errs != nil && len(errs) > 0 {
+		glg.Fatal(errs)
 		return
 	}
 }

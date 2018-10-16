@@ -2,124 +2,239 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/config"
 	"github.com/kpango/glg"
-	"github.com/pkg/errors"
-	"golang.org/x/sync/errgroup"
 )
 
+// Server represents a garm server behavior
 type Server interface {
-	ListenAndServe(context.Context) chan error
-	Shutdown(context.Context) error
+	ListenAndServe(context.Context) chan []error
 }
 
 type server struct {
-	srv   *http.Server
-	hcsrv *http.Server
-	cfg   config.Server
+	// tenant sidecar server
+	srv        *http.Server
+	srvRunning bool
+
+	// Health Check server
+	hcsrv     *http.Server
+	hcrunning bool
+
+	cfg config.Server
+
+	// ProbeWaitTime
+	pwt time.Duration
+
+	// ShutdownDuration
+	sddur time.Duration
+
+	// mutext lock variable
+	mu sync.RWMutex
 }
 
 const (
+	// ContentType represents a HTTP header name "Content-Type"
 	ContentType = "Content-Type"
-	TextPlain   = "text/plain"
+
+	// TextPlain represents a HTTP content type "text/plain"
+	TextPlain = "text/plain"
+
+	// CharsetUTF8 represents a UTF-8 charset for HTTP response "charset=UTF-8"
 	CharsetUTF8 = "charset=UTF-8"
 )
 
 var (
+	// ErrContextClosed represents a error that the context is closed
 	ErrContextClosed = errors.New("context Closed")
 )
 
+// NewServer returns a Server interface, which includes tenant sidecar server and health check server structs.
+// The tenant sidecar server is a http.Server instance, which the port number is read from "config.Server.Port"
+// , and set the handler as this function argument "handler".
+//
+// The health check server is a http.Server instance, which the port number is read from "config.Server.HealthzPort"
+// , and the handler is as follow - Handle HTTP GET request and always return HTTP Status OK (200) response.
 func NewServer(cfg config.Server, h http.Handler) Server {
 	srv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Port),
 		Handler: h,
 	}
 	srv.SetKeepAlivesEnabled(true)
-	mux := http.NewServeMux()
-	mux.HandleFunc(cfg.HealthzPath, func(w http.ResponseWriter, r *http.Request) {
-		if r.Method == http.MethodGet {
-			w.WriteHeader(http.StatusOK)
-			w.Header().Set(ContentType, fmt.Sprintf("%s;%s", TextPlain, CharsetUTF8))
-			_, err := fmt.Fprint(w, http.StatusText(http.StatusOK))
-			if err != nil {
-				glg.Fatal(err)
-			}
-		}
-	})
+
 	hcsrv := &http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.HealthzPort),
-		Handler: mux,
+		Handler: createHealthCheckServiceMux(cfg.HealthzPath),
 	}
 	hcsrv.SetKeepAlivesEnabled(true)
-	return &server{
-		srv:   srv,
-		hcsrv: hcsrv,
-		cfg:   cfg,
-	}
-}
 
-func (s *server) ListenAndServe(ctx context.Context) chan error {
-	echan := make(chan error, 1)
-	go func() {
-		defer func() {
-			err := s.hcsrv.Close()
-			if err != nil {
-				glg.Fatal(err)
-			}
-			err = s.srv.Close()
-			if err != nil {
-				glg.Fatal(err)
-			}
-		}()
-
-		eg := new(errgroup.Group)
-		eg.Go(func() error {
-			cfg, err := NewTLSConfig(s.cfg.TLS)
-			if err == nil && cfg != nil {
-				s.srv.TLSConfig = cfg
-			} else {
-				return s.srv.ListenAndServe()
-			}
-			return s.srv.ListenAndServeTLS("", "")
-		})
-
-		eg.Go(func() error {
-			return s.hcsrv.ListenAndServe()
-		})
-
-		eg.Go(func() error {
-			<-ctx.Done()
-			return ctx.Err()
-		})
-
-		echan <- eg.Wait()
-	}()
-	return echan
-}
-
-func (s *server) Shutdown(ctx context.Context) error {
-	dur, err := time.ParseDuration(s.cfg.ShutdownDuration)
+	dur, err := time.ParseDuration(cfg.ShutdownDuration)
 	if err != nil {
 		dur = time.Second * 5
 	}
 
-	eg := new(errgroup.Group)
+	pwt, err := time.ParseDuration(cfg.ProbeWaitTime)
+	if err != nil {
+		pwt = time.Second * 3
+	}
 
-	eg.Go(func() error {
-		sctx, scancel := context.WithTimeout(ctx, dur)
-		defer scancel()
-		return s.srv.Shutdown(sctx)
-	})
+	return &server{
+		srv:   srv,
+		hcsrv: hcsrv,
+		cfg:   cfg,
+		pwt:   pwt,
+		sddur: dur,
+	}
+}
 
-	eg.Go(func() error {
-		hctx, hcancel := context.WithTimeout(ctx, dur)
-		defer hcancel()
-		return s.hcsrv.Shutdown(hctx)
-	})
+// ListenAndServe returns a error channel, which includes error returned from tenant sidecar server.
+// This function start both health check and tenant sidecar server, and the server will close whenever the context receive a Done signal.
+// Whenever the server closed, the tenant sidecar server will shutdown after a defined duration (cfg.ProbeWaitTime), while the health check server will shutdown immediately
+func (s *server) ListenAndServe(ctx context.Context) chan []error {
+	echan := make(chan []error, 1)
+	go func() {
+		// error channels to keep track server status
+		sech := make(chan error, 1)
+		hech := make(chan error, 1)
 
-	return eg.Wait()
+		appendErr := func(errs []error, err error) []error {
+			if err != nil {
+				return append(errs, err)
+			}
+			return errs
+		}
+
+		// start both tenant sidecar server and health check server
+		go func() {
+			s.mu.Lock()
+			s.srvRunning = true
+			s.mu.Unlock()
+
+			sech <- s.listenAndServeAPI()
+			close(sech)
+
+			s.mu.Lock()
+			s.srvRunning = false
+			s.mu.Unlock()
+		}()
+		go func() {
+			s.mu.Lock()
+			s.hcrunning = true
+			s.mu.Unlock()
+
+			hech <- s.hcsrv.ListenAndServe()
+			close(hech)
+
+			s.mu.Lock()
+			s.hcrunning = false
+			s.mu.Unlock()
+		}()
+
+		errs := make([]error, 0, 3)
+		for {
+			select {
+			case <-ctx.Done(): // when context receive done signal, close running servers and return any error
+				s.mu.RLock()
+				if s.hcrunning {
+					errs = appendErr(errs, s.hcShutdown(ctx))
+				}
+				if s.srvRunning {
+					errs = appendErr(errs, s.apiShutdown(ctx))
+				}
+				s.mu.RUnlock()
+
+				echan <- appendErr(errs, ctx.Err())
+				return
+
+			case err := <-sech: // when tenant sidecar server returns, close running health check server and return any error
+				if err != nil {
+					errs = appendErr(errs, err)
+				}
+
+				s.mu.RLock()
+				if s.hcrunning {
+					s.mu.RUnlock()
+					echan <- appendErr(errs, s.hcShutdown(ctx))
+					return
+				}
+				s.mu.RUnlock()
+
+			case err := <-hech: // when health check server returns, close running tenant sidecar server and return any error
+				if err != nil {
+					errs = append(errs, err)
+				}
+
+				s.mu.RLock()
+				if s.srvRunning {
+					s.mu.RUnlock()
+					echan <- appendErr(errs, s.apiShutdown(ctx))
+					return
+				}
+				s.mu.RUnlock()
+
+			default: // whenever tenant sidecar server and health check server is not running, return any error
+				s.mu.RLock()
+				if !s.srvRunning && !s.hcrunning {
+					s.mu.RUnlock()
+					echan <- errs
+					return
+				}
+				s.mu.RUnlock()
+			}
+		}
+	}()
+
+	return echan
+}
+
+func (s *server) hcShutdown(ctx context.Context) error {
+	hctx, hcancel := context.WithTimeout(ctx, s.sddur)
+	defer hcancel()
+	return s.hcsrv.Shutdown(hctx)
+}
+
+// apiShutdown returns any error when shutdown the tenant sidecar server.
+// Before shutdown the tenant sidecar server, it will sleep config.ProbeWaitTime to prevent any issue from K8s
+func (s *server) apiShutdown(ctx context.Context) error {
+	time.Sleep(s.pwt)
+	sctx, scancel := context.WithTimeout(ctx, s.sddur)
+	defer scancel()
+	return s.srv.Shutdown(sctx)
+}
+
+// createHealthCheckServiceMux return a *http.ServeMux object
+// The function will register the health check server handler for given pattern, and return
+func createHealthCheckServiceMux(pattern string) *http.ServeMux {
+	mux := http.NewServeMux()
+	mux.HandleFunc(pattern, handleHealthCheckRequest)
+	return mux
+}
+
+// handleHealthCheckRequest is a handler function for and health check request, which always a HTTP Status OK (200) result
+func handleHealthCheckRequest(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set(ContentType, fmt.Sprintf("%s;%s", TextPlain, CharsetUTF8))
+		_, err := fmt.Fprint(w, http.StatusText(http.StatusOK))
+		if err != nil {
+			glg.Fatal(err)
+		}
+	}
+}
+
+// listenAndServeAPI return any error occurred when start a HTTPS server, including any error when loading TLS certificate
+func (s *server) listenAndServeAPI() error {
+	cfg, err := NewTLSConfig(s.cfg.TLS)
+	if err == nil && cfg != nil {
+		s.srv.TLSConfig = cfg
+	}
+	if err != nil {
+		glg.Error(err)
+	}
+	return s.srv.ListenAndServeTLS("", "")
 }

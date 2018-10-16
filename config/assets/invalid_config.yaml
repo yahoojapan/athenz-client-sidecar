@@ -1,0 +1,49 @@
+---
+versi
+on: v1.0.0
+server:
+  port: 8080
+  health_check_port: 80
+  health_check_path: /healthz
+  timeout: 10s
+  shutdown_duration: 5s
+  tls:
+    enabled: true
+    cert: _cert_
+    key: _key_
+    ca: _ca_
+ntoken:
+  athenz_domain:  _athenz_domain_
+  service_name: _service_name_
+  ntoken_path: "/tmp/ntoken"
+  private_key_path: _athenz_private_key_
+  validate_token: false
+  refresh_duration: 30m
+  key_version: v1.0
+  expiration: 20m
+roletoken:
+  athenz_url: https://alpha.zts.athenz.yahoo.co.jp:4443/zts/v1
+  expiration: 30m
+  proxy_principal: ""
+udb:
+  url: https://api.udb.yahoo.co.jp:4443/v2/users
+hc:
+  # prod ssk
+  hostname: bp.caas.ing.bp.pssk01.caas.ssk.zcp.yahoo.co.jp
+  # dev ssk
+  # hostname: bp.caas.ing.bp.dssk01.caas.ssk.zcp.yahoo.co.jp
+  # tool ssk
+  # hostname: bp.caas.ing.bp.tssk01.caas.ssk.zcp.yahoo.co.jp
+  # prod kks
+  # hostname: bp.caas.ing.bp.pkks01.caas.kks.zcp.yahoo.co.jp
+  # tool kks
+  # hostname: bp.caas.ing.bp.tkks01.caas.kks.zcp.yahoo.co.jp
+  ip: _MY_HOST_IP_
+  athenz_url: alpha.zts.athenz.yahoo.co.jp:4443/wsca/v1
+  cert_expire: 30m
+  cert_expire_margin: 10m
+proxy:
+  auth_header_key: Athenz-Principal-Auth
+  role_header_key: Athenz-Role-Auth
+  buffer_size: 1024
+

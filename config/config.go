@@ -7,14 +7,28 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+// Config represents the configuration of tenant sidecar application.
 type Config struct {
+	// Version represent the tenant sidecar application version.
 	Version string `yaml:"version"`
-	Server  Server `yaml:"server"`
-	Token   Token  `yaml:"ntoken"`
-	Role    Role   `yaml:"roletoken"`
-	UDB     UDB    `yaml:"udb"`
-	HC      HC     `yaml:"hc"`
-	Proxy   Proxy  `yaml:"proxy"`
+
+	// Server represent the tenant sidecar and health check server configuration.
+	Server Server `yaml:"server"`
+
+	// Token represent the configuration to generate N-token to connect to athenz.
+	Token Token `yaml:"ntoken"`
+
+	// Role represent the configuration to generate role token from athenz server.
+	Role Role `yaml:"roletoken"`
+
+	// UDB represent the configuration of user database server.
+	UDB UDB `yaml:"udb"`
+
+	// HC represent the configuration of generate host certificate(YCA) from athenz server.
+	HC HC `yaml:"hc"`
+
+	// Proxy represent the configuration of the reverse proxy server to connect to athenz to get N-token and role token.
+	Proxy Proxy `yaml:"proxy"`
 }
 
 // Server represent tenant sidecar server and health check server configuration.

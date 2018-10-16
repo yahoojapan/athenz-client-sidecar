@@ -14,31 +14,36 @@ import (
 	"github.com/pkg/errors"
 )
 
+// UDB represents the interface to get user information from User Database.
 type UDB interface {
 	GetByGUID(appID, guid string, keys []string) (map[string]string, error)
 }
 
 type udb struct {
-	hc   CertProvider
-	host string
+	hc         CertProvider
+	host       string
+	httpClient *http.Client
 }
 
+// NewUDBClient returns the UDB interface to get user information from User Database.
 func NewUDBClient(cfg config.UDB, hc CertProvider) UDB {
 	return &udb{
 		hc: hc,
 		// host: fmt.Sprintf("%s://%s:%d/%s/%s", cfg.Scheme, config.GetValue(cfg.Host), cfg.Port, config.GetValue(cfg.Version), "users"),
-		host: cfg.URL,
+		host:       cfg.URL,
+		httpClient: http.DefaultClient,
 	}
 }
 
-//GetByGUID get data by GUID
+// GetByGUID returns user details from User Database, and any error return from User Database server.
+// This function get users data by GUID and return.
 func (u *udb) GetByGUID(appID, guid string, keys []string) (map[string]string, error) {
-	return u.doRequest(appID, http.MethodGet,
-		fmt.Sprintf("%s/%s?fields=%s", u.host, guid, strings.Join(keys, ",")),
-		"",
-		nil)
+	url := fmt.Sprintf("%s/%s?fields=%s", u.host, guid, strings.Join(keys, ","))
+	return u.doRequest(appID, http.MethodGet, url, "", nil)
 }
 
+// doRequest returns user details from User Database, or any error return from User Database server.
+// This function send a HTTP request to specified UDB url, append the authorization header, decode the result, and return to user.
 func (u *udb) doRequest(appID, method, url, cookie string, body io.Reader) (map[string]string, error) {
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
@@ -50,6 +55,7 @@ func (u *udb) doRequest(appID, method, url, cookie string, body io.Reader) (map[
 		return nil, err
 	}
 
+	// set request headers
 	req.Header.Del("Yahoo-App-Auth")
 	req.Header.Set("Yahoo-App-Auth", cert)
 
@@ -61,7 +67,8 @@ func (u *udb) doRequest(appID, method, url, cookie string, body io.Reader) (map[
 		req.Header.Set("Cookie", cookie)
 	}
 
-	res, err := http.DefaultClient.Do(req)
+	// fire HTTP request
+	res, err := u.httpClient.Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -76,6 +83,7 @@ func (u *udb) doRequest(appID, method, url, cookie string, body io.Reader) (map[
 		return nil, errors.New("Error: response status " + strconv.Itoa(res.StatusCode))
 	}
 
+	// decode response body
 	var data map[string]string
 	err = json.NewDecoder(res.Body).Decode(&data)
 	if err != nil {

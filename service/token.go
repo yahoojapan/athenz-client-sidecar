@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -16,30 +17,40 @@ import (
 	"github.com/yahoo/athenz/libs/go/zmssvctoken"
 )
 
-type TokenVerifier interface {
-	StartTokenUpdater(context.Context) TokenVerifier
+// TokenService represent a interface for user to get the token, and automatically update the token
+type TokenService interface {
+	StartTokenUpdater(context.Context) TokenService
+	GetToken() (string, error)
 	GetTokenProvider() TokenProvider
-	SetHostname(host string) error
-	SetIPAddr(ip string) error
 }
 
 type token struct {
 	tokenFilePath   string
 	token           *atomic.Value
 	validateToken   bool
-	started         bool
 	tokenExpiration time.Duration
 	refreshDuration time.Duration
 	builder         zmssvctoken.TokenBuilder
 }
 
+type rawToken struct {
+	domain     string
+	name       string
+	signature  string
+	expiration time.Time
+}
+
+// TokenProvider represents a token provider function to get the role token
 type TokenProvider func() (string, error)
 
 var (
+	// ErrTokenNotFound represent a error the the token is not found
 	ErrTokenNotFound = errors.New("Error:\ttoken not found")
 )
 
-func NewTokenService(cfg config.Token) (TokenVerifier, error) {
+// NewTokenService return TokenService
+// This function will initialize information the required to generate the token (for example, RefreshDuration, Expiration, PrivateKey, etc).
+func NewTokenService(cfg config.Token, hcCfg config.HC) (TokenService, error) {
 	dur, err := time.ParseDuration(cfg.RefreshDuration)
 	if err != nil {
 		return nil, fmt.Errorf("invalid token refresh duration %s, %v", cfg.RefreshDuration, err)
@@ -50,7 +61,7 @@ func NewTokenService(cfg config.Token) (TokenVerifier, error) {
 		return nil, fmt.Errorf("invalid token expiration %s, %v", cfg.Expiration, err)
 	}
 
-	keyData, err := ioutil.ReadFile(config.GetValue(cfg.PrivateKeyPath))
+	keyData, err := ioutil.ReadFile(os.Getenv(cfg.PrivateKeyEnvName))
 	if err != nil && keyData == nil {
 		if cfg.NTokenPath == "" {
 			return nil, fmt.Errorf("invalid token certificate %v", err)
@@ -59,36 +70,33 @@ func NewTokenService(cfg config.Token) (TokenVerifier, error) {
 
 	athenzDomain := config.GetValue(cfg.AthenzDomain)
 	serviceName := config.GetValue(cfg.ServiceName)
-	builder, err := zmssvctoken.NewTokenBuilder(
-		athenzDomain,
-		serviceName,
-		keyData,
-		cfg.KeyVersion)
+	hostname := config.GetValue(hcCfg.Hostname)
+	ipAddr := config.GetValue(hcCfg.IP)
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to create ZMS SVC Token Builder\nAthenzDomain:\t%s\nServiceName:\t%s\nKeyVersion:\t%s\nError: %v", athenzDomain, serviceName, cfg.KeyVersion, err)
-	}
-
-	return &token{
+	return (&token{
 		token:           new(atomic.Value),
 		tokenFilePath:   cfg.NTokenPath,
 		validateToken:   cfg.ValidateToken,
 		tokenExpiration: exp,
 		refreshDuration: dur,
-		builder:         builder,
-	}, nil
+	}).createTokenBuilder(athenzDomain, serviceName, cfg.KeyVersion, keyData, hostname, ipAddr)
 }
 
-func (t *token) StartTokenUpdater(ctx context.Context) TokenVerifier {
+// StartTokenUpdater return TokenService
+// This function will start a goroutine to update the token periodically, and store the token into memory
+func (t *token) StartTokenUpdater(ctx context.Context) TokenService {
 	go func() {
-		t.started = true
 		var err error
+		err = t.update()
+		if err != nil {
+			glg.Error(err)
+		}
+
 		ticker := time.NewTicker(t.refreshDuration)
 		for {
 			select {
 			case <-ctx.Done():
 				ticker.Stop()
-				t.started = false
 				return
 			case <-ticker.C:
 				err = t.update()
@@ -101,11 +109,14 @@ func (t *token) StartTokenUpdater(ctx context.Context) TokenVerifier {
 	return t
 }
 
+// GetTokenProvider returns a function pointer to get the token.
 func (t *token) GetTokenProvider() TokenProvider {
-	return t.getToken
+	return t.GetToken
 }
 
-func (t *token) getToken() (string, error) {
+// GetToken return a token string or error
+// This function is thread-safe. This function will return the token stored in the atomic variable, or return the error when the token is not initialized or cannot be generated
+func (t *token) GetToken() (string, error) {
 	tok := t.token.Load()
 	if tok == nil {
 		return "", ErrTokenNotFound
@@ -113,26 +124,33 @@ func (t *token) getToken() (string, error) {
 	return tok.(string), nil
 }
 
-func (t *token) SetHostname(host string) error {
-	t.builder.SetHostname(host)
-	if t.started {
-		return t.update()
+// createTokenBuilder return a TokenService or error
+// This function will initialize a token builder with athenz domain, service name, key version and the signature private key
+// , and return a TokenService containing the token builder
+func (t *token) createTokenBuilder(athenzDomain, serviceName, keyVersion string, keyData []byte, hostname, ipAddr string) (TokenService, error) {
+	builder, err := zmssvctoken.NewTokenBuilder(
+		athenzDomain,
+		serviceName,
+		keyData,
+		keyVersion)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create ZMS SVC Token Builder\nAthenzDomain:\t%s\nServiceName:\t%s\nKeyVersion:\t%s\nError: %v", athenzDomain, serviceName, keyVersion, err)
 	}
-	return nil
+
+	builder.SetHostname(hostname)
+	builder.SetIPAddress(ipAddr)
+
+	t.builder = builder
+
+	return t, nil
 }
 
-func (t *token) SetIPAddr(ip string) error {
-	t.builder.SetIPAddress(ip)
-	if t.started {
-		return t.update()
-	}
-	return nil
-}
-
-func (t *token) setToken(token string) {
-	t.token.Store(token)
-}
-
+// loadToken return a n-token string, or error
+// This function return n-token, which is generated with the token builder. If the ntoken_path is set in the yaml (Copper Argos),
+// this function will directly return the token file content.
+// If ntoken_path is not set (k8s secret), the builder will read the private key from environment variable (private_key_env_name), and generate and sign a new token and return.
+// This function can also validate the token generated or read. If validate_token flag is on, this function will verify the token first before this function return.
 func (t *token) loadToken() (ntoken string, err error) {
 	if t.tokenFilePath == "" {
 		// k8s secret
@@ -172,13 +190,12 @@ func (t *token) update() error {
 	return nil
 }
 
-type rawToken struct {
-	domain     string
-	name       string
-	signature  string
-	expiration time.Time
+func (t *token) setToken(token string) {
+	t.token.Store(token)
 }
 
+// newRawToken returns the rawToken pointer.
+// This function parse the token string, and transform to rawToken struct.
 func newRawToken(token string) *rawToken {
 	t := new(rawToken)
 	for _, field := range strings.Split(token, ";") {
@@ -205,6 +222,7 @@ func newRawToken(token string) *rawToken {
 	return t
 }
 
+// isValid returns error from validating the rawToken struct.
 func (r *rawToken) isValid() error {
 	switch {
 	case r.domain == "":

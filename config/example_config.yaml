@@ -15,7 +15,7 @@ ntoken:
   athenz_domain:  _athenz_domain_
   service_name: _service_name_
   ntoken_path: ""
-  private_key_path: _athenz_private_key_
+  private_key_env_name: athenz_private_key
   validate_token: false
   refresh_duration: 30m
   key_version: v1.0

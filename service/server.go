@@ -97,10 +97,48 @@ func NewServer(cfg config.Server, h http.Handler) Server {
 // Whenever the server closed, the tenant sidecar server will shutdown after a defined duration (cfg.ProbeWaitTime), while the health check server will shutdown immediately
 func (s *server) ListenAndServe(ctx context.Context) chan []error {
 	echan := make(chan []error, 1)
+
+	// error channels to keep track server status
+	sech := make(chan error, 1)
+	hech := make(chan error, 1)
+
+	wg := new(sync.WaitGroup)
+	wg.Add(2)
+
+	// start both tenant sidecar server and health check server
 	go func() {
-		// error channels to keep track server status
-		sech := make(chan error, 1)
-		hech := make(chan error, 1)
+		s.mu.Lock()
+		s.srvRunning = true
+		s.mu.Unlock()
+		wg.Done()
+
+		glg.Info("garm api server starting")
+		sech <- s.listenAndServeAPI()
+		close(sech)
+
+		s.mu.Lock()
+		s.srvRunning = false
+		s.mu.Unlock()
+	}()
+
+	go func() {
+		s.mu.Lock()
+		s.hcrunning = true
+		s.mu.Unlock()
+		wg.Done()
+
+		glg.Info("garm health check server starting")
+		hech <- s.hcsrv.ListenAndServe()
+		close(hech)
+
+		s.mu.Lock()
+		s.hcrunning = false
+		s.mu.Unlock()
+	}()
+
+	go func() {
+		// wait for all server running
+		wg.Wait()
 
 		appendErr := func(errs []error, err error) []error {
 			if err != nil {
@@ -109,42 +147,18 @@ func (s *server) ListenAndServe(ctx context.Context) chan []error {
 			return errs
 		}
 
-		// start both tenant sidecar server and health check server
-		go func() {
-			s.mu.Lock()
-			s.srvRunning = true
-			s.mu.Unlock()
-
-			sech <- s.listenAndServeAPI()
-			close(sech)
-
-			s.mu.Lock()
-			s.srvRunning = false
-			s.mu.Unlock()
-		}()
-		go func() {
-			s.mu.Lock()
-			s.hcrunning = true
-			s.mu.Unlock()
-
-			hech <- s.hcsrv.ListenAndServe()
-			close(hech)
-
-			s.mu.Lock()
-			s.hcrunning = false
-			s.mu.Unlock()
-		}()
-
 		errs := make([]error, 0, 3)
 		for {
 			select {
 			case <-ctx.Done(): // when context receive done signal, close running servers and return any error
 				s.mu.RLock()
 				if s.hcrunning {
-					errs = appendErr(errs, s.hcShutdown(ctx))
+					glg.Info("garm health check server will shutdown")
+					errs = appendErr(errs, s.hcShutdown(context.Background()))
 				}
 				if s.srvRunning {
-					errs = appendErr(errs, s.apiShutdown(ctx))
+					glg.Info("garm api server will shutdown")
+					errs = appendErr(errs, s.apiShutdown(context.Background()))
 				}
 				s.mu.RUnlock()
 
@@ -158,11 +172,12 @@ func (s *server) ListenAndServe(ctx context.Context) chan []error {
 
 				s.mu.RLock()
 				if s.hcrunning {
-					s.mu.RUnlock()
-					echan <- appendErr(errs, s.hcShutdown(ctx))
-					return
+					glg.Info("garm health check server will shutdown")
+					errs = appendErr(errs, s.hcShutdown(ctx))
 				}
 				s.mu.RUnlock()
+				echan <- errs
+				return
 
 			case err := <-hech: // when health check server returns, close running tenant sidecar server and return any error
 				if err != nil {
@@ -171,20 +186,12 @@ func (s *server) ListenAndServe(ctx context.Context) chan []error {
 
 				s.mu.RLock()
 				if s.srvRunning {
-					s.mu.RUnlock()
-					echan <- appendErr(errs, s.apiShutdown(ctx))
-					return
+					glg.Info("garm api server will shutdown")
+					errs = appendErr(errs, s.apiShutdown(ctx))
 				}
 				s.mu.RUnlock()
-
-			default: // whenever tenant sidecar server and health check server is not running, return any error
-				s.mu.RLock()
-				if !s.srvRunning && !s.hcrunning {
-					s.mu.RUnlock()
-					echan <- errs
-					return
-				}
-				s.mu.RUnlock()
+				echan <- errs
+				return
 			}
 		}
 	}()

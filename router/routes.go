@@ -50,7 +50,6 @@ func NewRoutes(h handler.Handler) []Route {
 		{
 			"HC Handler",
 			[]string{
-				http.MethodGet,
 				http.MethodPost,
 			},
 			"/hc",

@@ -70,45 +70,83 @@ type TLS struct {
 	CAKey string `yaml:"ca_key"`
 }
 
+// Proxy represent the reverse proxy configuration to connect to Athenz server
 type Proxy struct {
+	// AuthHeader represent the HTTP header key name of the authenication token for N-Token proxy request
 	AuthHeader string `yaml:"auth_header_key"`
+
+	// RoleHeader represent the HTTP header key name of the role token for Role token proxy request
 	RoleHeader string `yaml:"role_header_key"`
-	BufferSize int64  `yaml:"buffer_size"`
+
+	// BufferSize represent the reverse proxy buffer size
+	BufferSize int64 `yaml:"buffer_size"`
 }
 
+// UDB represent the User Database configuration
 type UDB struct {
+	// URL represent the URL of User Database
 	URL string `yaml:"url"`
 }
 
+// HC represent the Host Certificate configuration
 type HC struct {
-	AthenzURL        string `yaml:"athenz_url"`
-	Hostname         string `yaml:"hostname"`
-	IP               string `yaml:"ip"`
-	CertExpire       string `yaml:"cert_expire"`
+	// AthenzURL represent the Athenz server URL to get the Host Certificate
+	AthenzURL string `yaml:"athenz_url"`
+
+	// Hostname represent the Hostname field "h" value of the token, which will append to all of the token generated
+	Hostname string `yaml:"hostname"`
+
+	// IP represent the IP field "i" value of the token, which will append to all of the token generated
+	IP string `yaml:"ip"`
+
+	// CertExpire represent the host certificate expiration preiod, it is recommanded that the value should be the same as Athenz
+	CertExpire string `yaml:"cert_expire"`
+
+	// CertExpireMargin represent the host certificate refresh preiod margin, it represent the time duration before the certificate expiry
 	CertExpireMargin string `yaml:"cert_expire_margin"`
 }
 
+// Token represent the N-token detail to get the host certificate and role token
 type Token struct {
-	AthenzDomain      string `yaml:"athenz_domain"`
-	ServiceName       string `yaml:"service_name"`
-	NTokenPath        string `yaml:"ntoken_path"`
-	PrivateKeyEnvName string `yaml:"private_key_env_name"`
-	ValidateToken     bool   `yaml:"validate_token"`
-	RefreshDuration   string `yaml:"refresh_duration"`
-	KeyVersion        string `yaml:"key_version"`
-	Expiration        string `yaml:"expiration"`
+	// AthenzDomain represent the athenz domain value to generate the N-token.
+	AthenzDomain string `yaml:"athenz_domain"`
+
+	// ServiceName represent the athenz service name value to generate the N-token.
+	ServiceName string `yaml:"service_name"`
+
+	// NTokenPath represent the N-token path, this field is only for Copper Argos.
+	NTokenPath string `yaml:"ntoken_path"`
+
+	// PrivateKeyEnvName represent the private key environment name to sign the token.
+	PrivateKeyPath string `yaml:"private_key_path"`
+
+	// ValidateToken represent to validate the token or not, this should be set to true when the NTokenPath is set.
+	ValidateToken bool `yaml:"validate_token"`
+
+	// RefreshDuration represent the token refresh duration, weather it is generated, or it is Copper Argos.
+	RefreshDuration string `yaml:"refresh_duration"`
+
+	// KeyVersion represent the key version on the N-token.
+	KeyVersion string `yaml:"key_version"`
+
+	// Expiration represent the duration of the expiration.
+	Expiration string `yaml:"expiration"`
 }
 
+// Role represent the Role token configuration
 type Role struct {
-	AthenzURL      string `yaml:"athenz_url"`
-	ProxyPrincipal string `yaml:"proxy_principal"`
-	TokenExpiry    string `yaml:"expiration"`
+	// AthenzURL represent the athenz URL to get the role token
+	AthenzURL string `yaml:"athenz_url"`
+
+	// TokenExpiry represent the duration of the expiration
+	TokenExpiry string `yaml:"expiration"`
 }
 
 const (
 	currentVersion = "v1.0.0"
 )
 
+// New returns *Config or error when decode the configuration file to actually *Config struct.
 func New(path string) (*Config, error) {
 	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDONLY, 0600)
 	if err != nil {
@@ -122,10 +160,12 @@ func New(path string) (*Config, error) {
 	return cfg, nil
 }
 
+// GetVersion returns the current version of the tenant sidecar version.
 func GetVersion() string {
 	return currentVersion
 }
 
+// GetValue returns the environment variable value if the val has prefix and suffix "_", otherwise the val will directly return.
 func GetValue(cfg string) string {
 	if checkPrefixAndSuffix(cfg, "_", "_") {
 		return os.Getenv(strings.TrimPrefix(strings.TrimSuffix(cfg, "_"), "_"))
@@ -133,6 +173,7 @@ func GetValue(cfg string) string {
 	return cfg
 }
 
+// checkPrefixAndSuffix checks if the str has prefix and suffix
 func checkPrefixAndSuffix(str, pref, suf string) bool {
 	return strings.HasPrefix(str, pref) && strings.HasSuffix(str, suf)
 }

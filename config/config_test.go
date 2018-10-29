@@ -54,9 +54,9 @@ func TestNew(t *testing.T) {
 					ShutdownDuration: "5s",
 					TLS: TLS{
 						Enabled: true,
-						Cert:    "_cert_",
-						Key:     "_key_",
-						CA:      "_ca_",
+						CertKey: "cert",
+						KeyKey:  "key",
+						CAKey:   "ca",
 					},
 				},
 				Token: Token{
@@ -70,9 +70,8 @@ func TestNew(t *testing.T) {
 					Expiration:      "20m",
 				},
 				Role: Role{
-					AthenzURL:      "https://alpha.zts.athenz.yahoo.co.jp:4443/zts/v1",
-					ProxyPrincipal: "",
-					TokenExpiry:    "30m",
+					AthenzURL:   "https://alpha.zts.athenz.yahoo.co.jp:4443/zts/v1",
+					TokenExpiry: "30m",
 				},
 				UDB: UDB{
 					URL: "https://api.udb.yahoo.co.jp:4443/v2/users",

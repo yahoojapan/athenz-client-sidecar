@@ -8,9 +8,9 @@ server:
   shutdown_duration: 5s
   tls:
     enabled: true
-    cert: _cert_
-    key: _key_
-    ca: _ca_
+    cert_key: cert
+    key_key: key
+    ca_key: ca
 ntoken:
   athenz_domain:  _athenz_domain_
   service_name: _service_name_

@@ -79,7 +79,7 @@ type Proxy struct {
 	RoleHeader string `yaml:"role_header_key"`
 
 	// BufferSize represent the reverse proxy buffer size
-	BufferSize int64 `yaml:"buffer_size"`
+	BufferSize uint64 `yaml:"buffer_size"`
 }
 
 // UDB represent the User Database configuration

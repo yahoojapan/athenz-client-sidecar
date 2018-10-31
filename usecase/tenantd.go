@@ -5,6 +5,7 @@ import (
 
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/config"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/handler"
+	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/infra"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/router"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/service"
 )
@@ -44,7 +45,7 @@ func New(cfg config.Config) (Tenant, error) {
 	// create UDB client
 	u := service.NewUDBClient(cfg.UDB, hc.GetCertProvider())
 
-	serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, u, token.GetTokenProvider(), role.GetRoleProvider(), hc.GetCertProvider()))
+	serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), u, token.GetTokenProvider(), role.GetRoleProvider(), hc.GetCertProvider()))
 
 	return &tenantd{
 		cfg:    cfg,

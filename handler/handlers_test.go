@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/config"
+	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/infra"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/service"
 	"ghe.corp.yahoo.co.jp/yusukato/gocred/cookie"
 )
@@ -72,6 +73,7 @@ func (udb *udbMock) GetByGUID(appID, guid string, keys []string) (map[string]str
 func TestNew(t *testing.T) {
 	type args struct {
 		cfg   config.Proxy
+		bp    httputil.BufferPool
 		u     service.UDB
 		token service.TokenProvider
 		role  service.RoleProvider
@@ -91,6 +93,7 @@ func TestNew(t *testing.T) {
 					BufferSize: 72,
 					AuthHeader: "auth-header-73",
 				},
+				bp: infra.NewBuffer(uint64(75)),
 				u: &udbMock{
 					getByGUIDMock: func(appID, guid string, keys []string) (map[string]string, error) {
 						kvMap := map[string]string{
@@ -179,8 +182,7 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-
-			got := New(tt.args.cfg, tt.args.u, tt.args.token, tt.args.role, tt.args.crt)
+			got := New(tt.args.cfg, tt.args.bp, tt.args.u, tt.args.token, tt.args.role, tt.args.crt)
 			if err := tt.checkFunc(got.(*handler), tt.want); err != nil {
 				t.Errorf("New() %v", err)
 				return

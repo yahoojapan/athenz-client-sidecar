@@ -58,9 +58,9 @@ func TestNewTokenService(t *testing.T) {
 				args: func() args {
 					return args{
 						cfg: config.Token{
-							RefreshDuration:   "1m",
-							Expiration:        "1m",
-							PrivateKeyEnvName: keyKey,
+							RefreshDuration: "1m",
+							Expiration:      "1m",
+							PrivateKeyPath:  "_" + keyKey + "_",
 						},
 					}
 				}(),
@@ -83,10 +83,10 @@ func TestNewTokenService(t *testing.T) {
 
 					return args{
 						cfg: config.Token{
-							RefreshDuration:   "1m",
-							Expiration:        "1m",
-							PrivateKeyEnvName: keyKey,
-							NTokenPath:        "",
+							RefreshDuration: "1m",
+							Expiration:      "1m",
+							PrivateKeyPath:  "_" + keyKey + "_",
+							NTokenPath:      "",
 						},
 					}
 				}(),
@@ -103,22 +103,22 @@ func TestNewTokenService(t *testing.T) {
 			keyKey := "dummyKey"
 			key := "./assets/dummyServer.key"
 			cfg := config.Token{
-				AthenzDomain:      keyKey,
-				ServiceName:       keyKey,
-				NTokenPath:        "",
-				PrivateKeyEnvName: keyKey,
-				ValidateToken:     false,
-				RefreshDuration:   "1s",
-				KeyVersion:        "1",
-				Expiration:        "1s",
+				AthenzDomain:    keyKey,
+				ServiceName:     keyKey,
+				NTokenPath:      "",
+				PrivateKeyPath:  "_" + keyKey + "_",
+				ValidateToken:   false,
+				RefreshDuration: "1s",
+				KeyVersion:      "1",
+				Expiration:      "1s",
 			}
 			hcCfg := config.HC{
 				Hostname: "",
 				IP:       "",
 			}
 			keyData, _ := ioutil.ReadFile(key)
-			athenzDomain := config.GetValue(cfg.AthenzDomain)
-			serviceName := config.GetValue(cfg.ServiceName)
+			athenzDomain := config.GetActualValue(cfg.AthenzDomain)
+			serviceName := config.GetActualValue(cfg.ServiceName)
 			hostname := os.Getenv(hcCfg.Hostname)
 			ipAddr := os.Getenv(hcCfg.IP)
 

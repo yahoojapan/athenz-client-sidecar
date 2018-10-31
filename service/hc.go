@@ -75,8 +75,6 @@ type certificates struct {
 type CertProvider func(string) (string, error)
 
 const (
-	// zts is zts URL.
-	zts = "zts.athenz.yahoo.co.jp:4443/wsca/v1"
 	// defaultCertExpireTime is the default certificate expiry time.
 	defaultCertExpireTime = 30 * time.Minute
 	// defaultCertExpireMargin is the default certificate expiry margin.
@@ -111,8 +109,8 @@ func NewHC(cfg config.HC, prov TokenProvider) (HC, error) {
 
 	h := &hc{
 		certs:                 gache.New(),
-		ip:                    config.GetValue(cfg.IP),
-		hostname:              config.GetValue(cfg.Hostname),
+		ip:                    config.GetActualValue(cfg.IP),
+		hostname:              config.GetActualValue(cfg.Hostname),
 		token:                 prov,
 		athenzURL:             cfg.AthenzURL,
 		athenzPrincipleHeader: cfg.AuthHeader,

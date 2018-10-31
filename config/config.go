@@ -90,7 +90,7 @@ type UDB struct {
 
 // HC represent the Host Certificate configuration
 type HC struct {
-  // AuthHeader is the HTTP header name for holding the n-token.
+	// AuthHeader is the HTTP header name for holding the n-token.
 	AuthHeader string `yaml:"auth_header_key"`
 
 	// AthenzURL represent the Athenz server URL to get the Host Certificate
@@ -120,7 +120,7 @@ type Token struct {
 	// NTokenPath represent the N-token path, this field is only for Copper Argos.
 	NTokenPath string `yaml:"ntoken_path"`
 
-	// PrivateKeyEnvName represent the private key environment name to sign the token.
+	// PrivateKeyPath represent the private key environment name to sign the token.
 	PrivateKeyPath string `yaml:"private_key_path"`
 
 	// ValidateToken represent to validate the token or not, this should be set to true when the NTokenPath is set.
@@ -138,7 +138,7 @@ type Token struct {
 
 // Role represent the Role token configuration
 type Role struct {
-  // AuthHeader is the HTTP header name for holding the n-token.
+	// AuthHeader is the HTTP header name for holding the n-token.
 	AuthHeader string `yaml:"auth_header_key"`
 
 	// AthenzURL represent the athenz URL to get the role token
@@ -171,12 +171,12 @@ func GetVersion() string {
 	return currentVersion
 }
 
-// GetValue returns the environment variable value if the val has prefix and suffix "_", otherwise the val will directly return.
-func GetValue(cfg string) string {
-	if checkPrefixAndSuffix(cfg, "_", "_") {
-		return os.Getenv(strings.TrimPrefix(strings.TrimSuffix(cfg, "_"), "_"))
+// GetActualValue returns the environment variable value if the val has prefix and suffix "_", otherwise the val will directly return.
+func GetActualValue(val string) string {
+	if checkPrefixAndSuffix(val, "_", "_") {
+		return os.Getenv(strings.TrimPrefix(strings.TrimSuffix(val, "_"), "_"))
 	}
-	return cfg
+	return val
 }
 
 // checkPrefixAndSuffix checks if the str has prefix and suffix

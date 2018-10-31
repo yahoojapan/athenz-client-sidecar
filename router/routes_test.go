@@ -27,7 +27,7 @@ func TestNewRoutes(t *testing.T) {
 				RoleHeader: "X-test-role-header",
 				BufferSize: 1024,
 			}
-			h := handler.New(proxyConfig, nil, nil, nil, nil)
+			h := handler.New(proxyConfig, nil, nil, nil, nil, nil)
 
 			return test{
 				name: "Run NewRoutes successfully",
@@ -70,7 +70,6 @@ func TestNewRoutes(t *testing.T) {
 					{
 						"HC Handler",
 						[]string{
-							http.MethodGet,
 							http.MethodPost,
 						},
 						"/hc",

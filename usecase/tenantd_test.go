@@ -10,6 +10,7 @@ import (
 
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/config"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/handler"
+	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/infra"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/router"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/service"
 )
@@ -42,14 +43,14 @@ func TestNew(t *testing.T) {
 			key := "./assets/dummyServer.key"
 			cfg := config.Config{
 				Token: config.Token{
-					AthenzDomain:      keyKey,
-					ServiceName:       keyKey,
-					PrivateKeyEnvName: keyKey,
-					ValidateToken:     false,
-					RefreshDuration:   "1m",
-					KeyVersion:        "1",
-					Expiration:        "1m",
-					NTokenPath:        "",
+					AthenzDomain:    keyKey,
+					ServiceName:     keyKey,
+					PrivateKeyPath:  "_" + keyKey + "_",
+					ValidateToken:   false,
+					RefreshDuration: "1m",
+					KeyVersion:      "1",
+					Expiration:      "1m",
+					NTokenPath:      "",
 				},
 				Server: config.Server{
 					HealthzPath: "/dummyPath",
@@ -75,7 +76,7 @@ func TestNew(t *testing.T) {
 					udb := service.NewUDBClient(cfg.UDB, hc.GetCertProvider())
 					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
 
-					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, udb, token.GetTokenProvider(), role.GetRoleProvider(), hc.GetCertProvider()))
+					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), udb, token.GetTokenProvider(), role.GetRoleProvider(), hc.GetCertProvider()))
 					server := service.NewServer(cfg.Server, serveMux)
 
 					return &tenantd{
@@ -151,14 +152,14 @@ func Test_tenantd_Start(t *testing.T) {
 
 			cfg := config.Config{
 				Token: config.Token{
-					AthenzDomain:      keyKey,
-					ServiceName:       keyKey,
-					PrivateKeyEnvName: keyKey,
-					ValidateToken:     false,
-					RefreshDuration:   "1m",
-					KeyVersion:        "1",
-					Expiration:        "1m",
-					NTokenPath:        "",
+					AthenzDomain:    keyKey,
+					ServiceName:     keyKey,
+					PrivateKeyPath:  "_" + keyKey + "_",
+					ValidateToken:   false,
+					RefreshDuration: "1m",
+					KeyVersion:      "1",
+					Expiration:      "1m",
+					NTokenPath:      "",
 				},
 				Server: config.Server{
 					HealthzPath: "/dummyPath",
@@ -189,7 +190,7 @@ func Test_tenantd_Start(t *testing.T) {
 					udb := service.NewUDBClient(cfg.UDB, hc.GetCertProvider())
 					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
 
-					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, udb, token.GetTokenProvider(), role.GetRoleProvider(), hc.GetCertProvider()))
+					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), udb, token.GetTokenProvider(), role.GetRoleProvider(), hc.GetCertProvider()))
 					server := service.NewServer(cfg.Server, serveMux)
 
 					return fields{

@@ -29,7 +29,7 @@ type udb struct {
 func NewUDBClient(cfg config.UDB, hc CertProvider) UDB {
 	return &udb{
 		hc: hc,
-		// host: fmt.Sprintf("%s://%s:%d/%s/%s", cfg.Scheme, config.GetValue(cfg.Host), cfg.Port, config.GetValue(cfg.Version), "users"),
+		// host: fmt.Sprintf("%s://%s:%d/%s/%s", cfg.Scheme, config.GetActualValue(cfg.Host), cfg.Port, config.GetActualValue(cfg.Version), "users"),
 		host:       cfg.URL,
 		httpClient: http.DefaultClient,
 	}

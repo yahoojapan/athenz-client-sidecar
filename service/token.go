@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -61,17 +60,17 @@ func NewTokenService(cfg config.Token, hcCfg config.HC) (TokenService, error) {
 		return nil, fmt.Errorf("invalid token expiration %s, %v", cfg.Expiration, err)
 	}
 
-	keyData, err := ioutil.ReadFile(os.Getenv(cfg.PrivateKeyEnvName))
+	keyData, err := ioutil.ReadFile(config.GetActualValue(cfg.PrivateKeyPath))
 	if err != nil && keyData == nil {
 		if cfg.NTokenPath == "" {
 			return nil, fmt.Errorf("invalid token certificate %v", err)
 		}
 	}
 
-	athenzDomain := config.GetValue(cfg.AthenzDomain)
-	serviceName := config.GetValue(cfg.ServiceName)
-	hostname := config.GetValue(hcCfg.Hostname)
-	ipAddr := config.GetValue(hcCfg.IP)
+	athenzDomain := config.GetActualValue(cfg.AthenzDomain)
+	serviceName := config.GetActualValue(cfg.ServiceName)
+	hostname := config.GetActualValue(hcCfg.Hostname)
+	ipAddr := config.GetActualValue(hcCfg.IP)
 
 	return (&token{
 		token:           new(atomic.Value),

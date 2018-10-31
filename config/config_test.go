@@ -70,6 +70,7 @@ func TestNew(t *testing.T) {
 					Expiration:      "20m",
 				},
 				Role: Role{
+					AuthHeader:  "Yahoo-Principal-Auth",
 					AthenzURL:   "https://alpha.zts.athenz.yahoo.co.jp:4443/zts/v1",
 					TokenExpiry: "30m",
 				},
@@ -77,6 +78,7 @@ func TestNew(t *testing.T) {
 					URL: "https://api.udb.yahoo.co.jp:4443/v2/users",
 				},
 				HC: HC{
+					AuthHeader:       "Yahoo-Principal-Auth",
 					AthenzURL:        "alpha.zts.athenz.yahoo.co.jp:4443/wsca/v1",
 					Hostname:         "bp.caas.ing.bp.pssk01.caas.ssk.zcp.yahoo.co.jp",
 					IP:               "_MY_HOST_IP_",
@@ -125,7 +127,7 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestGetValue(t *testing.T) {
+func TestGetActualValue(t *testing.T) {
 	type args struct {
 		cfg string
 	}
@@ -166,8 +168,8 @@ func TestGetValue(t *testing.T) {
 			if tt.afterFunc != nil {
 				defer tt.afterFunc()
 			}
-			if got := GetValue(tt.args.cfg); got != tt.want {
-				t.Errorf("GetValue() = %v, want %v", got, tt.want)
+			if got := GetActualValue(tt.args.cfg); got != tt.want {
+				t.Errorf("GetActualValue() = %v, want %v", got, tt.want)
 			}
 		})
 	}

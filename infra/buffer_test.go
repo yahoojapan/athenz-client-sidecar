@@ -3,13 +3,26 @@ package infra
 import (
 	"testing"
 
+	"fmt"
 	"reflect"
 	"sync"
 )
 
+// NotEqualError reports the name of the field having different value and their values.
+type NotEqualError struct {
+	Field string
+	Got   interface{}
+	Want  interface{}
+}
+
+// Error formats NotEqualError.
+func (e *NotEqualError) Error() string {
+	return fmt.Sprintf("%s got = %v, want %v", e.Field, e.Got, e.Want)
+}
+
 func TestNewBuffer(t *testing.T) {
 	type args struct {
-		size int64
+		size uint64
 	}
 	type testcase struct {
 		name      string
@@ -57,7 +70,7 @@ func TestNewBuffer(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			got := newBuffer(tt.args.size)
+			got := NewBuffer(tt.args.size)
 
 			if got == nil && tt.want == nil {
 				// skip on both nil

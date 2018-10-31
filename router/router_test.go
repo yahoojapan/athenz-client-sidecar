@@ -24,7 +24,7 @@ func TestNew(t *testing.T) {
 		RoleHeader: "X-test-role-header",
 		BufferSize: 1024,
 	}
-	h := handler.New(proxyConfig, nil, nil, nil, nil)
+	h := handler.New(proxyConfig, nil, nil, nil, nil, nil)
 
 	type args struct {
 		cfg config.Server

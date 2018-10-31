@@ -60,8 +60,6 @@ var (
 
 	// defaultExpiry represent the default token expiry time.
 	defaultExpiry = time.Minute * 120 // https://github.com/yahoo/athenz/blob/master/utils/zts-roletoken/zts-roletoken.go#L42
-
-	athenzPrincipleHeader = "Yahoo-Principal-Auth"
 )
 
 // NewRoleService returns a RoleService to update and get the role token from athenz.
@@ -74,7 +72,7 @@ func NewRoleService(cfg config.Role, token TokenProvider) RoleService {
 		cfg:                   cfg,
 		token:                 token,
 		athenzURL:             cfg.AthenzURL,
-		athenzPrincipleHeader: athenzPrincipleHeader,
+		athenzPrincipleHeader: cfg.AuthHeader,
 		domainRoleCache:       gache.New(),
 		expiry:                dur,
 		httpClient:            http.DefaultClient,

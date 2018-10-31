@@ -39,11 +39,11 @@
 
 [[projects]]
   branch = "shards"
-  digest = "1:cfc93e091aae37c5504d29018f32327aac3269715ea59b4873c16c8db9cd13d7"
+  digest = "1:3152546d3fcb02f6b4b71627808dfdf367a21fd746ba4bc1f62b8cf86767a47b"
   name = "github.com/kpango/gache"
   packages = ["."]
   pruneopts = "UT"
-  revision = "0703a4f670a0b48f0282bc415e4c2d413d772375"
+  revision = "2989a8606f79e4c3e5bf0577a0b78fe7dc451507"
 
 [[projects]]
   digest = "1:0183b82d6da0c674f4499f837d510c3384737188e1b12fb594661e11e8d6c311"
@@ -62,12 +62,12 @@
   version = "v0.8.0"
 
 [[projects]]
-  digest = "1:b365c6e729151e9ad0c1205709b2bb40f192d1cbc247a52cfac77472e12f5162"
+  digest = "1:103c82b3ece3154114b80bc89bcac5625f5601a534cc8ffa5089c58e7c2ee613"
   name = "github.com/yahoo/athenz"
   packages = ["libs/go/zmssvctoken"]
   pruneopts = "UT"
-  revision = "b08b2bb43b0e33df2d3a12e549a37d939fd170a7"
-  version = "v1.7.55"
+  revision = "9b1ddfe22ac3701b39ccc0500fc86956ee8d8dd8"
+  version = "v1.8.3"
 
 [[projects]]
   branch = "master"
@@ -75,7 +75,7 @@
   name = "golang.org/x/net"
   packages = ["context"]
   pruneopts = "UT"
-  revision = "26e67e76b6c3f6ce91f7c52def5af501b4e0f3a2"
+  revision = "49bb7cea24b1df9410e1712aa6433dae904ff66a"
 
 [[projects]]
   branch = "master"

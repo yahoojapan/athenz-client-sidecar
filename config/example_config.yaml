@@ -21,12 +21,14 @@ ntoken:
   key_version: v1.0
   expiration: 20m
 roletoken:
+  auth_header_key: Yahoo-Principal-Auth
   athenz_url: https://alpha.zts.athenz.yahoo.co.jp:4443/zts/v1
   expiration: 30m
   proxy_principal: ""
 udb:
   url: https://api.udb.yahoo.co.jp:4443/v2/users
 hc:
+  auth_header_key: Yahoo-Principal-Auth
   # prod ssk
   hostname: bp.caas.ing.bp.pssk01.caas.ssk.zcp.yahoo.co.jp
   # dev ssk

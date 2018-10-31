@@ -31,6 +31,7 @@ func TestNewRoleService(t *testing.T) {
 				cfg: config.Role{
 					TokenExpiry: "5s",
 					AthenzURL:   "http://dummy",
+					AuthHeader:  "dummyAuthHeader",
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -57,7 +58,7 @@ func TestNewRoleService(t *testing.T) {
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
-					athenzPrincipleHeader: athenzPrincipleHeader,
+					athenzPrincipleHeader: args.cfg.AuthHeader,
 					domainRoleCache:       gache.New(),
 					expiry: func() time.Duration {
 						dur, _ := time.ParseDuration(args.cfg.TokenExpiry)
@@ -69,7 +70,8 @@ func TestNewRoleService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.Role{
-					AthenzURL: "http://dummy",
+					AthenzURL:  "http://dummy",
+					AuthHeader: "dummyAuthHeader",
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -96,7 +98,7 @@ func TestNewRoleService(t *testing.T) {
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
-					athenzPrincipleHeader: athenzPrincipleHeader,
+					athenzPrincipleHeader: args.cfg.AuthHeader,
 					domainRoleCache:       gache.New(),
 					expiry:                time.Minute * 120,
 				},

@@ -90,6 +90,9 @@ type UDB struct {
 
 // HC represent the Host Certificate configuration
 type HC struct {
+  // AuthHeader is the HTTP header name for holding the n-token.
+	AuthHeader string `yaml:"auth_header_key"`
+
 	// AthenzURL represent the Athenz server URL to get the Host Certificate
 	AthenzURL string `yaml:"athenz_url"`
 
@@ -135,6 +138,9 @@ type Token struct {
 
 // Role represent the Role token configuration
 type Role struct {
+  // AuthHeader is the HTTP header name for holding the n-token.
+	AuthHeader string `yaml:"auth_header_key"`
+
 	// AthenzURL represent the athenz URL to get the role token
 	AthenzURL string `yaml:"athenz_url"`
 

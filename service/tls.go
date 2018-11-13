@@ -11,9 +11,14 @@ import (
 )
 
 var (
+	// ErrTLSCertOrKeyNotFound represents an error that TLS cert or key is not found on the specified file path.
 	ErrTLSCertOrKeyNotFound = errors.New("Cert/Key path not found")
 )
 
+// NewTLSConfig returns a *tls.Config struct or error.
+// It reads TLS configuration and initializes *tls.Config struct.
+// It initializes TLS configuration, for example the CA certificate and key to start TLS server.
+// Server and CA Certificate, and private key will be read from files from file paths defined in environment variables.
 func NewTLSConfig(cfg config.TLS) (*tls.Config, error) {
 	cert := os.Getenv(cfg.CertKey)
 	key := os.Getenv(cfg.KeyKey)
@@ -55,6 +60,8 @@ func NewTLSConfig(cfg config.TLS) (*tls.Config, error) {
 	return t, nil
 }
 
+// NewX509CertPool returns *x509.CertPool struct or error.
+// The CertPool will read the certificate from the path, and append the content to the system certificate pool.
 func NewX509CertPool(path string) (*x509.CertPool, error) {
 	var pool *x509.CertPool
 	c, err := ioutil.ReadFile(path)

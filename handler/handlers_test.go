@@ -15,10 +15,10 @@ import (
 	"strings"
 	"time"
 
+	ntokend "ghe.corp.yahoo.co.jp/athenz/athenz-ntokend"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/config"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/infra"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/service"
-	"ghe.corp.yahoo.co.jp/yusukato/gocred/cookie"
 )
 
 // NotEqualError reports the name of the field having different value and their values.
@@ -37,7 +37,7 @@ func (e *NotEqualError) Error() string {
 func EqualResponse(writer http.ResponseWriter, code int, header map[string]string, body []byte) error {
 	recorder, ok := writer.(*httptest.ResponseRecorder)
 	if !ok {
-		fmt.Errorf("expect type: *httptest.ResponseRecorder")
+		return fmt.Errorf("expect type: *httptest.ResponseRecorder")
 	}
 
 	// check code
@@ -60,24 +60,12 @@ func EqualResponse(writer http.ResponseWriter, code int, header map[string]strin
 	return nil
 }
 
-// udbMock is the adapter implementation of UDB interface for mocking.
-type udbMock struct {
-	getByGUIDMock func(appID, guid string, keys []string) (map[string]string, error)
-}
-
-// GetByGUID is just an adapter.
-func (udb *udbMock) GetByGUID(appID, guid string, keys []string) (map[string]string, error) {
-	return udb.getByGUIDMock(appID, guid, keys)
-}
-
 func TestNew(t *testing.T) {
 	type args struct {
 		cfg   config.Proxy
 		bp    httputil.BufferPool
-		u     service.UDB
-		token service.TokenProvider
+		token ntokend.TokenProvider
 		role  service.RoleProvider
-		crt   service.CertProvider
 	}
 	type testcase struct {
 		name      string
@@ -94,15 +82,6 @@ func TestNew(t *testing.T) {
 					AuthHeader: "auth-header-73",
 				},
 				bp: infra.NewBuffer(uint64(75)),
-				u: &udbMock{
-					getByGUIDMock: func(appID, guid string, keys []string) (map[string]string, error) {
-						kvMap := map[string]string{
-							"key-78": "value-78",
-							"key-79": "value-79",
-						}
-						return kvMap, fmt.Errorf("GetByGUID-error-81")
-					},
-				},
 				token: func() (string, error) {
 					return "token-85", fmt.Errorf("get-token-error-85")
 				},
@@ -111,9 +90,6 @@ func TestNew(t *testing.T) {
 						Token:      "role-token-89",
 						ExpiryTime: 90,
 					}, fmt.Errorf("get-role-token-error-91")
-				},
-				crt: func(string) (string, error) {
-					return "certificate-94", fmt.Errorf("get-certificate-error-94")
 				},
 			},
 			want: &handler{
@@ -127,19 +103,6 @@ func TestNew(t *testing.T) {
 				// cfg
 				if !reflect.DeepEqual(got.cfg, want.cfg) {
 					return &NotEqualError{"cfg", got.cfg, want.cfg}
-				}
-
-				// u
-				gotFromGUID, gotError := got.udb.GetByGUID("", "", []string{})
-				wantFromGUID, wantError := map[string]string{
-					"key-78": "value-78",
-					"key-79": "value-79",
-				}, fmt.Errorf("GetByGUID-error-81")
-				if !reflect.DeepEqual(gotFromGUID, wantFromGUID) {
-					return &NotEqualError{"u.GetByGUID()", gotFromGUID, wantFromGUID}
-				}
-				if !reflect.DeepEqual(gotError, wantError) {
-					return &NotEqualError{"u.GetByGUID() err", gotError, wantError}
 				}
 
 				// token
@@ -165,16 +128,6 @@ func TestNew(t *testing.T) {
 					return &NotEqualError{"role() err", gotError, wantError}
 				}
 
-				// crt
-				gotCrt, gotError := got.crt("")
-				wantCrt, wantError := "certificate-94", fmt.Errorf("get-certificate-error-94")
-				if !reflect.DeepEqual(gotCrt, wantCrt) {
-					return &NotEqualError{"crt()", gotCrt, wantCrt}
-				}
-				if !reflect.DeepEqual(gotError, wantError) {
-					return &NotEqualError{"crt() err", gotError, wantError}
-				}
-
 				return nil
 			},
 		},
@@ -182,7 +135,7 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := New(tt.args.cfg, tt.args.bp, tt.args.u, tt.args.token, tt.args.role, tt.args.crt)
+			got := New(tt.args.cfg, tt.args.bp, tt.args.token, tt.args.role)
 			if err := tt.checkFunc(got.(*handler), tt.want); err != nil {
 				t.Errorf("New() %v", err)
 				return
@@ -193,7 +146,7 @@ func TestNew(t *testing.T) {
 
 func Test_handler_NToken(t *testing.T) {
 	type fields struct {
-		token service.TokenProvider
+		token ntokend.TokenProvider
 	}
 	type args struct {
 		w http.ResponseWriter
@@ -314,7 +267,7 @@ func (roundTripper *roundTripperMock) RoundTrip(request *http.Request) (*http.Re
 func Test_handler_NTokenProxy(t *testing.T) {
 	type fields struct {
 		proxy *httputil.ReverseProxy
-		token service.TokenProvider
+		token ntokend.TokenProvider
 		cfg   config.Proxy
 	}
 	type args struct {
@@ -984,311 +937,6 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 				byteRead, err := tt.args.r.Body.Read(make([]byte, 64))
 				if byteRead != 0 || err != io.EOF {
 					t.Errorf("handler.RoleTokenProxy() request not closed, %v bytes read, err %v", byteRead, err)
-				}
-			}
-		})
-	}
-}
-
-func Test_handler_HC(t *testing.T) {
-	type fields struct {
-		crt service.CertProvider
-	}
-	type args struct {
-		w http.ResponseWriter
-		r *http.Request
-	}
-	type want struct {
-		code   int
-		header map[string]string
-		body   []byte
-	}
-	type testcase struct {
-		name      string
-		fields    fields
-		args      args
-		want      want
-		wantError error
-	}
-	tests := []testcase{
-		testcase{
-			name:   "Check handler HC, on decode request body error",
-			fields: fields{},
-			args: args{
-				w: httptest.NewRecorder(),
-				r: httptest.NewRequest(http.MethodGet, "http://url-1016", strings.NewReader("body-1016")),
-			},
-			want: want{
-				code:   http.StatusOK,
-				header: map[string]string{},
-				body:   []byte{},
-			},
-			wantError: fmt.Errorf("invalid character 'b' looking for beginning of value"),
-		},
-		testcase{
-			name: "Check handler HC, on crt error",
-			fields: fields{
-				crt: func(appID string) (string, error) {
-					return "crt-1029", fmt.Errorf("get-crt-error-1029")
-				},
-			},
-			args: args{
-				w: httptest.NewRecorder(),
-				r: httptest.NewRequest(http.MethodGet, "http://url-1034", strings.NewReader(`{}`)),
-			},
-			want: want{
-				code:   http.StatusOK,
-				header: map[string]string{},
-				body:   []byte{},
-			},
-			wantError: fmt.Errorf("get-crt-error-1029"),
-		},
-		testcase{
-			name: "Check handler HC, request got crt token",
-			fields: fields{
-				crt: func(appID string) (string, error) {
-					return "crt-1047" + "-" + appID, nil
-				},
-			},
-			args: args{
-				w: httptest.NewRecorder(),
-				r: httptest.NewRequest(http.MethodGet, "http://url-1052", strings.NewReader(`{"app_id":"app-id-1052"}`)),
-			},
-			want: want{
-				code:   http.StatusOK,
-				header: map[string]string{},
-				body:   []byte(`{"certificate":"crt-1047-app-id-1052"}` + "\n"),
-			},
-		},
-		func() testcase {
-			requestClosed := false
-			return testcase{
-				name:   "Check handler HC, request body closed",
-				fields: fields{},
-				args: args{
-					w: httptest.NewRecorder(),
-					r: httptest.NewRequest(http.MethodGet, "http://url-1067", &readCloserMock{
-						readMock: func(p []byte) (n int, err error) {
-							if !requestClosed {
-								n = copy(p, []byte("body-1070"))
-							} else {
-								n = 0
-							}
-							return n, io.EOF
-						},
-						closeMock: func() error {
-							requestClosed = true
-							return nil
-						},
-					}),
-				},
-				want: want{
-					code:   http.StatusOK,
-					header: map[string]string{},
-					body:   []byte{},
-				},
-				wantError: fmt.Errorf("invalid character 'b' looking for beginning of value"),
-			}
-		}(),
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			var err error
-			h := &handler{
-				crt: tt.fields.crt,
-			}
-
-			gotError := h.HC(tt.args.w, tt.args.r)
-			if !reflect.DeepEqual(gotError, tt.wantError) {
-				if gotError == nil || tt.wantError == nil || gotError.Error() != tt.wantError.Error() {
-					err = &NotEqualError{"error", gotError, tt.wantError}
-				}
-			}
-			if err != nil {
-				t.Errorf("handler.HC() %v", err)
-				return
-			}
-
-			err = EqualResponse(tt.args.w, tt.want.code, tt.want.header, tt.want.body)
-			if err != nil {
-				t.Errorf("handler.HC() %v", err)
-				return
-			}
-
-			// check if the response's body is closed
-			if tt.args.r.Body != nil {
-				byteRead, err := tt.args.r.Body.Read(make([]byte, 64))
-				if byteRead != 0 || err != io.EOF {
-					t.Errorf("handler.HC() request not closed, %v bytes read, err %v", byteRead, err)
-					return
-				}
-			}
-		})
-	}
-}
-
-func Test_handler_UDB(t *testing.T) {
-	type fields struct {
-		udb service.UDB
-	}
-	type args struct {
-		w http.ResponseWriter
-		r *http.Request
-	}
-	type want struct {
-		code   int
-		header map[string]string
-		body   []byte
-	}
-	type testcase struct {
-		name      string
-		fields    fields
-		args      args
-		want      want
-		wantError error
-	}
-	tests := []testcase{
-		testcase{
-			name:   "Check handler UDB, on decode request body error",
-			fields: fields{},
-			args: args{
-				w: httptest.NewRecorder(),
-				r: httptest.NewRequest(http.MethodGet, "http://url-1156", strings.NewReader("body-1156")),
-			},
-			want: want{
-				code:   http.StatusOK,
-				header: map[string]string{},
-				body:   []byte{},
-			},
-			wantError: fmt.Errorf("invalid character 'b' looking for beginning of value"),
-		},
-		testcase{
-			name:   "Check handler UDB, on invalid n-cookie error",
-			fields: fields{},
-			args: args{
-				w: httptest.NewRecorder(),
-				r: httptest.NewRequest(http.MethodGet, "http://url-1170", strings.NewReader(`{}`)),
-			},
-			want: want{
-				code:   http.StatusOK,
-				header: map[string]string{},
-				body:   []byte{},
-			},
-			wantError: cookie.ErrInvalidNCookie,
-		},
-		testcase{
-			name: "Check handler UDB, on get by GUID error",
-			fields: fields{
-				udb: &udbMock{
-					getByGUIDMock: func(appID, guid string, keys []string) (map[string]string, error) {
-						return map[string]string{
-							"key-1185": "value-1185",
-						}, fmt.Errorf("get-by-guid-error-1186")
-					},
-				},
-			},
-			args: args{
-				w: httptest.NewRecorder(),
-				r: httptest.NewRequest(http.MethodGet, "http://url-1192", strings.NewReader(`{
-					"n_cookie": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJndWlkIjoiSFRMTDRJSUhDTExaUUFPWU9ONU03SkVaRUkiLCJpc3MiOiJodHRwczpcL1wvbG9naW4ueWFob28uY28uanAiLCJ0aCI6IkVTV05Ldm9FaVhaWHVPd190WkNSRnciLCJpYXQiOjE1Mzk1Njk4OTgsImV4cCI6MTU0MTk4OTA5OCwianRpIjoiMmY4ZjViMWEtMzE3Zi00NDljLWEyMDktNWMxYTg5YWNjMTVjIiwibGN4Ijp7ImFhdCI6MTUzOTU2OTg5OCwiYW1yIjpbInB3ZCJdfSwidmN4Ijp7ImFhdCI6MTUzOTU2OTg5OCwiYW1yIjpbInB3ZCJdfSwiaGlzdCI6WyJwd2QiXX0.VO-UckbAM4P_6OGHuvmu7gSDjVR8e-fcr3DGaJjYCoIRM89g_IgVsBPP4dw0DmctOTO1Aaa-LUn_Rp3gAZ55tv5bvuAl9fGsZ_3C_P1udYP18wgYPN0zwIwNhVXycqAkHExjEWrjgko8JHh9F7qqfIfa_dtmtXNxu3KDRc-8_jGeOdYhwQZC1fPjNkI04OHMXNvyQLpfOiC9JyoMavPqoFznPdXOlm6a90XZ_HQFyUFTDSIGpIISMMHjp1ML3gZL6qgXFHBuJdwIgcsfLZwK-yPDkhQZzgQqCUj6hAvIPq9L14VfuiGSHkpN3wqNAB8VElBjCmsLXDEuSAvKXvRTEw"
-				}`)),
-			},
-			want: want{
-				code:   http.StatusOK,
-				header: map[string]string{},
-				body:   []byte{},
-			},
-			wantError: fmt.Errorf("get-by-guid-error-1186"),
-		},
-		testcase{
-			name: "Check handler UDB, request got UDB json",
-			fields: fields{
-				udb: &udbMock{
-					getByGUIDMock: func(appID, guid string, keys []string) (map[string]string, error) {
-						return map[string]string{
-							"key-1209": "value-1209",
-							"key-1210": "value-1210",
-						}, nil
-					},
-				},
-			},
-			args: args{
-				w: httptest.NewRecorder(),
-				r: httptest.NewRequest(http.MethodGet, "http://url-1217", strings.NewReader(`{
-					"n_cookie": "eyJhbGciOiJSUzI1NiIsImtpZCI6IjEiLCJ0eXAiOiJKV1QifQ.eyJndWlkIjoiSFRMTDRJSUhDTExaUUFPWU9ONU03SkVaRUkiLCJpc3MiOiJodHRwczpcL1wvbG9naW4ueWFob28uY28uanAiLCJ0aCI6IkVTV05Ldm9FaVhaWHVPd190WkNSRnciLCJpYXQiOjE1Mzk1Njk4OTgsImV4cCI6MTU0MTk4OTA5OCwianRpIjoiMmY4ZjViMWEtMzE3Zi00NDljLWEyMDktNWMxYTg5YWNjMTVjIiwibGN4Ijp7ImFhdCI6MTUzOTU2OTg5OCwiYW1yIjpbInB3ZCJdfSwidmN4Ijp7ImFhdCI6MTUzOTU2OTg5OCwiYW1yIjpbInB3ZCJdfSwiaGlzdCI6WyJwd2QiXX0.VO-UckbAM4P_6OGHuvmu7gSDjVR8e-fcr3DGaJjYCoIRM89g_IgVsBPP4dw0DmctOTO1Aaa-LUn_Rp3gAZ55tv5bvuAl9fGsZ_3C_P1udYP18wgYPN0zwIwNhVXycqAkHExjEWrjgko8JHh9F7qqfIfa_dtmtXNxu3KDRc-8_jGeOdYhwQZC1fPjNkI04OHMXNvyQLpfOiC9JyoMavPqoFznPdXOlm6a90XZ_HQFyUFTDSIGpIISMMHjp1ML3gZL6qgXFHBuJdwIgcsfLZwK-yPDkhQZzgQqCUj6hAvIPq9L14VfuiGSHkpN3wqNAB8VElBjCmsLXDEuSAvKXvRTEw"
-				}`)),
-			},
-			want: want{
-				code:   http.StatusOK,
-				header: map[string]string{},
-				body:   []byte(`{"key-1209":"value-1209","key-1210":"value-1210"}` + "\n"),
-			},
-		},
-		func() testcase {
-			requestClosed := false
-			return testcase{
-				name:   "Check handler UDB, request body closed",
-				fields: fields{},
-				args: args{
-					w: httptest.NewRecorder(),
-					r: httptest.NewRequest(http.MethodGet, "http://url-1234", &readCloserMock{
-						readMock: func(p []byte) (n int, err error) {
-							if !requestClosed {
-								n = copy(p, []byte("body-1237"))
-							} else {
-								n = 0
-							}
-							return n, io.EOF
-						},
-						closeMock: func() error {
-							requestClosed = true
-							return nil
-						},
-					}),
-				},
-				want: want{
-					code:   http.StatusOK,
-					header: map[string]string{},
-					body:   []byte{},
-				},
-				wantError: fmt.Errorf("invalid character 'b' looking for beginning of value"),
-			}
-		}(),
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-
-			var err error
-			h := &handler{
-				udb: tt.fields.udb,
-			}
-
-			gotError := h.UDB(tt.args.w, tt.args.r)
-			if !reflect.DeepEqual(gotError, tt.wantError) {
-				if gotError == nil || tt.wantError == nil || gotError.Error() != tt.wantError.Error() {
-					err = &NotEqualError{"error", gotError, tt.wantError}
-				}
-			}
-			if err != nil {
-				t.Errorf("handler.UDB() %v", err)
-				return
-			}
-
-			err = EqualResponse(tt.args.w, tt.want.code, tt.want.header, tt.want.body)
-			if err != nil {
-				t.Errorf("handler.UDB() %v", err)
-				return
-			}
-
-			// check if the response's body is closed
-			if tt.args.r.Body != nil {
-				byteRead, err := tt.args.r.Body.Read(make([]byte, 64))
-				if byteRead != 0 || err != io.EOF {
-					t.Errorf("handler.UDB() request not closed, %v bytes read, err %v", byteRead, err)
-					return
 				}
 			}
 		})

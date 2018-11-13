@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	ntokend "ghe.corp.yahoo.co.jp/athenz/athenz-ntokend"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/config"
 	"github.com/kpango/gache"
 	"golang.org/x/sync/singleflight"
@@ -17,7 +18,7 @@ import (
 func TestNewRoleService(t *testing.T) {
 	type args struct {
 		cfg   config.Role
-		token TokenProvider
+		token ntokend.TokenProvider
 	}
 	type test struct {
 		name      string
@@ -119,7 +120,7 @@ func TestNewRoleService(t *testing.T) {
 func Test_roleService_StartRoleUpdater(t *testing.T) {
 	type fields struct {
 		cfg                   config.Role
-		token                 TokenProvider
+		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
@@ -241,7 +242,7 @@ func Test_roleService_GetRoleProvider(t *testing.T) {
 func Test_roleService_getRoleToken(t *testing.T) {
 	type fields struct {
 		cfg                   config.Role
-		token                 TokenProvider
+		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
@@ -400,7 +401,7 @@ func Test_roleService_getRoleToken(t *testing.T) {
 func Test_roleService_handleExpiredHook(t *testing.T) {
 	type fields struct {
 		cfg                   config.Role
-		token                 TokenProvider
+		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
@@ -452,7 +453,7 @@ func Test_roleService_handleExpiredHook(t *testing.T) {
 func Test_roleService_updateRoleToken(t *testing.T) {
 	type fields struct {
 		cfg                   config.Role
-		token                 TokenProvider
+		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
@@ -934,7 +935,7 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 func Test_roleService_getCache(t *testing.T) {
 	type fields struct {
 		cfg                   config.Role
-		token                 TokenProvider
+		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache

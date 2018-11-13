@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	ntokend "ghe.corp.yahoo.co.jp/athenz/athenz-ntokend"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/config"
 	"github.com/kpango/fastime"
 	"github.com/kpango/gache"
@@ -27,7 +28,7 @@ type RoleService interface {
 // roleService represent the implementation of athenz RoleService
 type roleService struct {
 	cfg                   config.Role
-	token                 TokenProvider
+	token                 ntokend.TokenProvider
 	athenzURL             string
 	athenzPrincipleHeader string
 	domainRoleCache       gache.Gache
@@ -63,7 +64,7 @@ var (
 )
 
 // NewRoleService returns a RoleService to update and get the role token from athenz.
-func NewRoleService(cfg config.Role, token TokenProvider) RoleService {
+func NewRoleService(cfg config.Role, token ntokend.TokenProvider) RoleService {
 	dur, err := time.ParseDuration(cfg.TokenExpiry)
 	if err != nil {
 		dur = defaultExpiry

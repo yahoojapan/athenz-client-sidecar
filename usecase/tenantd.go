@@ -2,7 +2,11 @@ package usecase
 
 import (
 	"context"
+	"fmt"
+	"io/ioutil"
+	"time"
 
+	ntokend "ghe.corp.yahoo.co.jp/athenz/athenz-ntokend"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/config"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/handler"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/infra"
@@ -17,9 +21,7 @@ type Tenant interface {
 
 type tenantd struct {
 	cfg    config.Config
-	token  service.TokenService
-	udb    service.UDB
-	hc     service.HC
+	token  ntokend.TokenService
 	server service.Server
 	role   service.RoleService
 }
@@ -28,7 +30,7 @@ type tenantd struct {
 // Tenant sidecar daemon contains token service, role token service, host certificate service, user database client and tenant sidecar service.
 func New(cfg config.Config) (Tenant, error) {
 	// create token service
-	token, err := service.NewTokenService(cfg.Token, cfg.HC)
+	token, err := createNtokend(cfg.Token)
 	if err != nil {
 		return nil, err
 	}
@@ -36,22 +38,11 @@ func New(cfg config.Config) (Tenant, error) {
 	// create role service
 	role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
 
-	// create host certificate service
-	hc, err := service.NewHC(cfg.HC, token.GetTokenProvider())
-	if err != nil {
-		return nil, err
-	}
-
-	// create UDB client
-	u := service.NewUDBClient(cfg.UDB, hc.GetCertProvider())
-
-	serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), u, token.GetTokenProvider(), role.GetRoleProvider(), hc.GetCertProvider()))
+	serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider()))
 
 	return &tenantd{
 		cfg:    cfg,
 		token:  token,
-		udb:    u,
-		hc:     hc,
 		role:   role,
 		server: service.NewServer(cfg.Server, serveMux),
 	}, nil
@@ -61,6 +52,37 @@ func New(cfg config.Config) (Tenant, error) {
 func (t *tenantd) Start(ctx context.Context) chan []error {
 	t.token.StartTokenUpdater(ctx)
 	t.role.StartRoleUpdater(ctx)
-	t.hc.StartCertUpdater(ctx)
 	return t.server.ListenAndServe(ctx)
+}
+
+// createNtokend returns a TokenService object or any error
+func createNtokend(cfg config.Token) (ntokend.TokenService, error) {
+	dur, err := time.ParseDuration(cfg.RefreshDuration)
+	if err != nil {
+		return nil, fmt.Errorf("invalid token refresh duration %s, %v", cfg.RefreshDuration, err)
+	}
+
+	exp, err := time.ParseDuration(cfg.Expiration)
+	if err != nil {
+		return nil, fmt.Errorf("invalid token expiration %s, %v", cfg.Expiration, err)
+	}
+
+	keyData, err := ioutil.ReadFile(config.GetActualValue(cfg.PrivateKeyPath))
+	if err != nil && keyData == nil {
+		if cfg.NTokenPath == "" {
+			return nil, fmt.Errorf("invalid token certificate %v", err)
+		}
+	}
+
+	domain := config.GetActualValue(cfg.AthenzDomain)
+	service := config.GetActualValue(cfg.ServiceName)
+
+	ntok, err := ntokend.New(ntokend.RefreshDuration(dur), ntokend.TokenExpiration(exp), ntokend.KeyVersion(cfg.KeyVersion), ntokend.KeyData(keyData), ntokend.TokenFilePath(cfg.NTokenPath),
+		ntokend.AthenzDomain(domain), ntokend.ServiceName(service))
+
+	if err != nil {
+		return nil, err
+	}
+
+	return ntok, nil
 }

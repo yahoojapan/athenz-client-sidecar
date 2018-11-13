@@ -25,21 +25,6 @@ roletoken:
   athenz_url: https://alpha.zts.athenz.yahoo.co.jp:4443/zts/v1
   expiration: 30m
   proxy_principal: ""
-udb:
-  url: https://api.udb.yahoo.co.jp:4443/v2/users
-hc:
-  auth_header_key: Yahoo-Principal-Auth
-  # prod ssk
-  hostname: bp.caas.ing.bp.pssk01.caas.ssk.zcp.yahoo.co.jp
-  # dev ssk
-  # hostname: bp.caas.ing.bp.dssk01.caas.ssk.zcp.yahoo.co.jp
-  # tool ssk
-  # hostname: bp.caas.ing.bp.tssk01.caas.ssk.zcp.yahoo.co.jp
-  # prod kks
-  # hostname: bp.caas.ing.bp.pkks01.caas.kks.zcp.yahoo.co.jp
-  # tool kks
-  # hostname: bp.caas.ing.bp.tkks01.caas.kks.zcp.yahoo.co.jp
-  ip: _MY_HOST_IP_
 proxy:
   auth_header_key: Athenz-Principal-Auth
   role_header_key: Athenz-Role-Auth

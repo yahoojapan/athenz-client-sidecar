@@ -27,7 +27,7 @@ func TestNewRoutes(t *testing.T) {
 				RoleHeader: "X-test-role-header",
 				BufferSize: 1024,
 			}
-			h := handler.New(proxyConfig, nil, nil, nil, nil, nil)
+			h := handler.New(proxyConfig, nil, nil, nil)
 
 			return test{
 				name: "Run NewRoutes successfully",
@@ -66,22 +66,6 @@ func TestNewRoutes(t *testing.T) {
 						},
 						"/proxy/ntoken",
 						h.NTokenProxy,
-					},
-					{
-						"HC Handler",
-						[]string{
-							http.MethodPost,
-						},
-						"/hc",
-						h.HC,
-					},
-					{
-						"UDB",
-						[]string{
-							"*",
-						},
-						"/udb",
-						h.UDB,
 					},
 				},
 			}

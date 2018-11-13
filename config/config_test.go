@@ -74,17 +74,6 @@ func TestNew(t *testing.T) {
 					AthenzURL:   "https://alpha.zts.athenz.yahoo.co.jp:4443/zts/v1",
 					TokenExpiry: "30m",
 				},
-				UDB: UDB{
-					URL: "https://api.udb.yahoo.co.jp:4443/v2/users",
-				},
-				HC: HC{
-					AuthHeader:       "Yahoo-Principal-Auth",
-					AthenzURL:        "alpha.zts.athenz.yahoo.co.jp:4443/wsca/v1",
-					Hostname:         "bp.caas.ing.bp.pssk01.caas.ssk.zcp.yahoo.co.jp",
-					IP:               "_MY_HOST_IP_",
-					CertExpire:       "30m",
-					CertExpireMargin: "10m",
-				},
 				Proxy: Proxy{
 					AuthHeader: "Athenz-Principal-Auth",
 					RoleHeader: "Athenz-Role-Auth",

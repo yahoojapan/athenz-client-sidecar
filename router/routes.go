@@ -47,21 +47,5 @@ func NewRoutes(h handler.Handler) []Route {
 			"/proxy/ntoken",
 			h.NTokenProxy,
 		},
-		{
-			"HC Handler",
-			[]string{
-				http.MethodPost,
-			},
-			"/hc",
-			h.HC,
-		},
-		{
-			"UDB",
-			[]string{
-				"*",
-			},
-			"/udb",
-			h.UDB,
-		},
 	}
 }

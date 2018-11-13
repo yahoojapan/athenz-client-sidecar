@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"net/http/httputil"
 
+	ntokend "ghe.corp.yahoo.co.jp/athenz/athenz-ntokend"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/config"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/model"
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/service"
-	"ghe.corp.yahoo.co.jp/yusukato/gocred"
 )
 
 // Handler for handling a set of HTTP requests.
@@ -23,10 +23,6 @@ type Handler interface {
 	RoleToken(http.ResponseWriter, *http.Request) error
 	// RoleTokenProxy handles proxy requests that require a role token.
 	RoleTokenProxy(http.ResponseWriter, *http.Request) error
-	// HC handles get host certificate requests.
-	HC(http.ResponseWriter, *http.Request) error
-	// UDB handles get UDB data requests.
-	UDB(http.ResponseWriter, *http.Request) error
 }
 
 // Func is http.HandlerFunc with error return.
@@ -35,23 +31,19 @@ type Func func(http.ResponseWriter, *http.Request) error
 // handler is internal implementation of Handler interface.
 type handler struct {
 	proxy *httputil.ReverseProxy
-	udb   service.UDB
-	token service.TokenProvider
-	crt   service.CertProvider
+	token ntokend.TokenProvider
 	role  service.RoleProvider
 	cfg   config.Proxy
 }
 
 // New creates a handler for handling different HTTP requests based on the given services. It also contains a reverse proxy for handling proxy request.
-func New(cfg config.Proxy, bp httputil.BufferPool, u service.UDB, token service.TokenProvider, role service.RoleProvider, crt service.CertProvider) Handler {
+func New(cfg config.Proxy, bp httputil.BufferPool, token ntokend.TokenProvider, role service.RoleProvider) Handler {
 	return &handler{
 		proxy: &httputil.ReverseProxy{
 			BufferPool: bp,
 		},
-		udb:   u,
 		token: token,
 		role:  role,
-		crt:   crt,
 		cfg:   cfg,
 	}
 }
@@ -116,52 +108,6 @@ func (h *handler) RoleTokenProxy(w http.ResponseWriter, r *http.Request) error {
 	r.Header.Set(h.cfg.RoleHeader, tok.Token)
 	h.proxy.ServeHTTP(w, r)
 	return nil
-}
-
-// HC handles host certificate requests and responses the corresponding certificate of the requested app ID. Depends on host certificate service.
-func (h *handler) HC(w http.ResponseWriter, r *http.Request) error {
-	defer flushAndClose(r.Body)
-
-	var data model.HCRequest
-	err := json.NewDecoder(r.Body).Decode(&data)
-	if err != nil {
-		return err
-	}
-	crt, err := h.crt(data.AppID)
-	if err != nil {
-		return err
-	}
-
-	return json.NewEncoder(w).Encode(struct {
-		Certificate string `json:"certificate"`
-	}{
-		Certificate: crt,
-	})
-}
-
-// UDB handles UDB requests and responses the corresponding UDB key-value data as JSON. Depends on UDB service.
-func (h *handler) UDB(w http.ResponseWriter, r *http.Request) error {
-	defer flushAndClose(r.Body)
-
-	var data model.UDBRequest
-	err := json.NewDecoder(r.Body).Decode(&data)
-	if err != nil {
-		return err
-	}
-
-	// parse n-cookie and t-cookie as UDB credential
-	cred, err := gocred.New(data.NCookie, data.TCookie, data.KeyID, data.KeyData)
-	if err != nil {
-		return err
-	}
-
-	// get values of keys UDB server
-	res, err := h.udb.GetByGUID(data.AppID, cred.GUID(), data.Keys)
-	if err != nil {
-		return err
-	}
-
-	return json.NewEncoder(w).Encode(res)
 }
 
 // flushAndClose helps to flush and close a ReadCloser. Used for request body internal.

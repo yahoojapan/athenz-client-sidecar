@@ -12,7 +12,7 @@ import (
 	"github.com/kpango/glg"
 )
 
-// Server represents a garm server behavior
+// Server represents a tenant sidecar server behavior
 type Server interface {
 	ListenAndServe(context.Context) chan []error
 }
@@ -112,7 +112,7 @@ func (s *server) ListenAndServe(ctx context.Context) chan []error {
 		s.mu.Unlock()
 		wg.Done()
 
-		glg.Info("garm api server starting")
+		glg.Info("tenant sidecar api server starting")
 		sech <- s.listenAndServeAPI()
 		close(sech)
 
@@ -127,7 +127,7 @@ func (s *server) ListenAndServe(ctx context.Context) chan []error {
 		s.mu.Unlock()
 		wg.Done()
 
-		glg.Info("garm health check server starting")
+		glg.Info("tenant sidecar health check server starting")
 		hech <- s.hcsrv.ListenAndServe()
 		close(hech)
 
@@ -153,11 +153,11 @@ func (s *server) ListenAndServe(ctx context.Context) chan []error {
 			case <-ctx.Done(): // when context receive done signal, close running servers and return any error
 				s.mu.RLock()
 				if s.hcrunning {
-					glg.Info("garm health check server will shutdown")
+					glg.Info("tenant sidecar health check server will shutdown")
 					errs = appendErr(errs, s.hcShutdown(context.Background()))
 				}
 				if s.srvRunning {
-					glg.Info("garm api server will shutdown")
+					glg.Info("tenant sidecar api server will shutdown")
 					errs = appendErr(errs, s.apiShutdown(context.Background()))
 				}
 				s.mu.RUnlock()
@@ -172,7 +172,7 @@ func (s *server) ListenAndServe(ctx context.Context) chan []error {
 
 				s.mu.RLock()
 				if s.hcrunning {
-					glg.Info("garm health check server will shutdown")
+					glg.Info("tenant sidecar health check server will shutdown")
 					errs = appendErr(errs, s.hcShutdown(ctx))
 				}
 				s.mu.RUnlock()
@@ -186,7 +186,7 @@ func (s *server) ListenAndServe(ctx context.Context) chan []error {
 
 				s.mu.RLock()
 				if s.srvRunning {
-					glg.Info("garm api server will shutdown")
+					glg.Info("tenant sidecar api server will shutdown")
 					errs = appendErr(errs, s.apiShutdown(ctx))
 				}
 				s.mu.RUnlock()

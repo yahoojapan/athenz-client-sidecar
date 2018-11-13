@@ -558,8 +558,8 @@ func Test_server_listenAndServeAPI(t *testing.T) {
 					return nil
 				},
 				afterFunc: func() error {
-					os.Remove(keyKey)
-					os.Remove(certKey)
+					os.Unsetenv(keyKey)
+					os.Unsetenv(certKey)
 					return nil
 				},
 				want: http.ErrServerClosed,

@@ -21,12 +21,6 @@ type Config struct {
 	// Role represent the configuration to generate role token from athenz server.
 	Role Role `yaml:"roletoken"`
 
-	// UDB represent the configuration of user database server.
-	UDB UDB `yaml:"udb"`
-
-	// HC represent the configuration of generate host certificate(YCA) from athenz server.
-	HC HC `yaml:"hc"`
-
 	// Proxy represent the configuration of the reverse proxy server to connect to athenz to get N-token and role token.
 	Proxy Proxy `yaml:"proxy"`
 }
@@ -80,33 +74,6 @@ type Proxy struct {
 
 	// BufferSize represent the reverse proxy buffer size
 	BufferSize uint64 `yaml:"buffer_size"`
-}
-
-// UDB represent the User Database configuration
-type UDB struct {
-	// URL represent the URL of User Database
-	URL string `yaml:"url"`
-}
-
-// HC represent the Host Certificate configuration
-type HC struct {
-	// AuthHeader is the HTTP header name for holding the n-token.
-	AuthHeader string `yaml:"auth_header_key"`
-
-	// AthenzURL represent the Athenz server URL to get the Host Certificate
-	AthenzURL string `yaml:"athenz_url"`
-
-	// Hostname represent the Hostname field "h" value of the token, which will append to all of the token generated
-	Hostname string `yaml:"hostname"`
-
-	// IP represent the IP field "i" value of the token, which will append to all of the token generated
-	IP string `yaml:"ip"`
-
-	// CertExpire represent the host certificate expiration preiod, it is recommanded that the value should be the same as Athenz
-	CertExpire string `yaml:"cert_expire"`
-
-	// CertExpireMargin represent the host certificate refresh preiod margin, it represent the time duration before the certificate expiry
-	CertExpireMargin string `yaml:"cert_expire_margin"`
 }
 
 // Token represent the N-token detail to get the host certificate and role token

@@ -64,7 +64,7 @@ jobs:
           PR_INFO=`curl ${GITHUB_API_URL}/repos/${REPO_NAME}/${IMAGE_NAME}/pulls/${SD_PULL_REQUEST}`
           PR_TITLE=`echo $PR_INFO | sd-cmd exec common/jq@1.5.3 .title -r`
           echo "PR title: $PR_TITLE"
-          VERSION=`git describe --abbrev=0 --tags`
+          VERSION=`git describe --abbrev=0 --tags || true`
           VERSION=${VERSION:-'0.0.0'}
           MAJOR="${VERSION%%.*}"; VERSION="${VERSION#*.}"
           MINOR="${VERSION%%.*}"; VERSION="${VERSION#*.}"

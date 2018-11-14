@@ -1,18 +1,21 @@
-FROM golang:1.11-alpine AS builder
-
-ENV APP_NAME athenz-tenant-sidecar
+FROM golang:1.11-alpine AS base
 
 RUN set -eux \
     && apk --no-cache add ca-certificates \
     && apk --no-cache add --virtual build-dependencies cmake g++ make unzip curl upx git
 
-WORKDIR ${GOPATH}/src/ghe.corp.yahoo.co.jp/athenz/${APP_NAME}
+WORKDIR ${GOPATH}/src/ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar
 
-RUN go get -v -u github.com/golang/dep/cmd/dep
+COPY go.mod .
+COPY go.sum .
+
+RUN GO111MODULE=on go mod download
+
+FROM base AS builder
+
+ENV APP_NAME tenant
 
 COPY . .
-
-RUN "${GOPATH}/bin/dep" ensure
 
 RUN CGO_ENABLED=1 \
     CGO_CXXFLAGS="-g -Ofast -march=native" \
@@ -20,6 +23,7 @@ RUN CGO_ENABLED=1 \
     CGO_LDFLAGS="-g -Ofast -march=native" \
     GOOS=$(go env GOOS) \
     GOARCH=$(go env GOARCH) \
+    GO111MODULE=on \
     go build --ldflags '-s -w -linkmode "external" -extldflags "-static -fPIC -m64 -pthread -std=c++11 -lstdc++"' -a -tags "cgo netgo" -installsuffix "cgo netgo" -o "${APP_NAME}" \
     && upx -9 -o "/usr/bin/${APP_NAME}" "${APP_NAME}"
 
@@ -31,7 +35,7 @@ FROM scratch
 # FROM alpine:latest
 LABEL maintainer "yusukato <yusukato@yahoo-corp.jp>"
 
-ENV APP_NAME athenz-tenant-sidecar
+ENV APP_NAME tenant
 
 # Copy certificates for SSL/TLS
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
@@ -40,4 +44,4 @@ COPY --from=builder /etc/passwd /etc/passwd
 # Copy our static executable
 COPY --from=builder /usr/bin/${APP_NAME} /go/bin/${APP_NAME}
 
-ENTRYPOINT ["/go/bin/athenz-tenant-sidecar"]
+ENTRYPOINT ["/go/bin/tenant"]

@@ -1,14 +1,115 @@
 jobs:
+  pr_test:
+    requires: [ ~pr ]
+    image: golang:1.11
+    steps:
+      - exec: |
+          bash sd-update-coverage.sh pr-coverage PR-${SD_PULL_REQUEST}
+      - push: git push git@ghe.corp.yahoo.co.jp:athenz/athenz-tenant-sidecar
+      - result: exit `meta get test-result`
+  master_test:
+    requires: [ ~commit ]
+    image: golang:1.11
+    steps:
+      - exec: |
+          bash sd-update-coverage.sh coverage
+      - push: git push git@ghe.corp.yahoo.co.jp:athenz/athenz-tenant-sidecar
+      - result: exit `meta get test-result`
+  release_trigger:
+    image: node:8
+    steps:
+      - echo: |
+          SHA=`meta get sha`
+          TAG=`meta get tag`
+          echo "starting release build for:"
+          echo "  REVISION: ${SHA}"
+          echo "  TAG: ${TAG}"
+  release_test:
+    requires: [ release_trigger ]
+    image: golang:1.11
+    steps:
+      - preinit: |
+          SHA=`meta get sha`
+          TAG=`meta get tag`
+          git checkout $SHA
+      - exec: |
+          bash sd-update-coverage.sh release-coverage $TAG
+      - push: git push git@ghe.corp.yahoo.co.jp:athenz/athenz-tenant-sidecar
+      - result: exit `meta get test-result`
   build:
-    requires: [ ~pr, ~commit ]
+    requires: [ ~commit, ~pr, ~release_trigger ]
     template: docker/build@stable
-  publish:
-    requires: [ build ]
+    steps:
+      - preinit: |
+          SHA=`meta get sha`
+          if [ ! -z "$SHA" -a ! "$SHA" = "null" ]; then
+            echo "build revision: ${SHA}"
+            git checkout $SHA
+          fi
+  publish_nightly:
+    requires: [ master_test, build ]
     template: docker/publish@stable
+    steps:
+      - tag_image_as_fixed_tag: |
+          echo "'tag_image_as_fixed_tag' step is disabled"
+      - publish_image_as_fixed_tag: |
+          echo "'publish_image_as_fixed_tag' step is disabled"
+    environment:
+      TAG_NAME: nightly
+  publish_nightly_pr:
+    requires: [ ~pr ]
+    template: docker/publish@stable
+    steps:
+      - precheck_prerequisite: |
+          PR_INFO=`curl ${GITHUB_API_URL}/repos/${REPO_NAME}/${IMAGE_NAME}/pulls/${SD_PULL_REQUEST}`
+          PR_TITLE=`echo $PR_INFO | sd-cmd exec common/jq@1.5.3 .title -r`
+          echo "PR title: $PR_TITLE"
+          VERSION=`git describe --abbrev=0 --tags`
+          VERSION=${VERSION:-'0.0.0'}
+          MAJOR="${VERSION%%.*}"; VERSION="${VERSION#*.}"
+          MINOR="${VERSION%%.*}"; VERSION="${VERSION#*.}"
+          PATCH="${VERSION%%.*}"; VERSION="${VERSION#*.}"
+          if echo $PR_TITLE | grep "\[\(major\|MAJOR\)\]" > /dev/null; then
+            MAJOR=$((MAJOR+1))
+            export TAG_NAME="$MAJOR.$MINOR.$PATCH-nightly"
+          elif echo $PR_TITLE | grep "\[\(minor\|MINOR\)\]" > /dev/null; then
+            MINOR=$((MINOR+1))
+            export TAG_NAME="$MAJOR.$MINOR.$PATCH-nightly"
+          elif echo $PR_TITLE | grep "\[\(patch\|PATCH\)\]" > /dev/null; then
+            PATCH=$((PATCH+1))
+            export TAG_NAME="$MAJOR.$MINOR.$PATCH-nightly"
+          else
+            export TAG_NAME="pr${SD_PULL_REQUEST}-nightly"
+          fi
+      - tag_image_as_fixed_tag: |
+          echo "'tag_image_as_fixed_tag' step is disabled"
+      - publish_image_as_fixed_tag: |
+          echo "'publish_image_as_fixed_tag' step is disabled"
+  publish:
+    requires: [ release_test, build ]
+    template: docker/publish@stable
+    steps:
+      - preinit: |
+          SHA=`meta get sha`
+          if [ ! -z "$SHA" -a ! "$SHA" = "null" ]; then
+            echo "build revision: ${SHA}"
+            git checkout $SHA
+          fi
+          export TAG_NAME=`meta get version`
+          if [ -z "$TAG_NAME" -o "$TAG_NAME" = "null" ]; then
+            export TAG_NAME=`git describe --abbrev=0 --tags`
+          fi
+      - tag_image_as_fixed_tag: |
+          echo "'tag_image_as_fixed_tag' step is overwritten"
+          docker tag $DOCKER_REG/$REPO_NAME/$IMAGE_NAME:$TAG_NAME $PUSH_DOCKER_REG/$REPO_NAME/$IMAGE_NAME:latest
+      - publish_image_as_fixed_tag: |
+          echo "'publish_image_as_fixed_tag' step is overwritten"
+          docker image push $PUSH_DOCKER_REG/$REPO_NAME/$IMAGE_NAME:latest
 
 shared:
   environment:
     TZ: Asia/Tokyo
+    GITHUB_API_URL: "https://ghe.corp.yahoo.co.jp/api/v3"
     REPO_NAME: athenz
     IMAGE_NAME: athenz-tenant-sidecar
     VERIFY_ENTRYPOINT: "/go/bin/athenz-tenant-sidecar"

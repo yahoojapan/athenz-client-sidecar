@@ -1,0 +1,140 @@
+resources:
+  - name: repo
+    type: git
+    source:
+      uri: git@ghe.corp.yahoo.co.jp:athenz/athenz-tenant-sidecar.git
+      branch: master
+      private_key: ((deploy-key))
+      check_every: 8640h
+    webhook_token: athenz-tenant-sidecar
+  - name: gh-release
+    type: github-release
+    source:
+      github_api_url: https://ghe.corp.yahoo.co.jp/api/v3/
+      insecure: true
+      owner: athenz
+      repository: athenz-tenant-sidecar
+      access_token: ((access-token))
+    webhook_token: athenz-tenant-sidecar
+
+jobs:
+  - name: versioning->release
+    plan:
+    - get: repo
+      params:
+        depth: 10
+      trigger: true
+    - task: is versioning commit?
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source:
+            repository: concourse/git-resource
+        inputs:
+          - name: repo
+        outputs:
+          - name: version
+        run:
+          path: bash
+          args:
+            - -c
+            - |
+              cd repo
+              LAST_COMMIT=`git log -1 --pretty=%B`
+              VERSION=`git describe --abbrev=0 --tags`
+              VERSION=${VERSION:-'0.0.0'}
+              MAJOR="${VERSION%%.*}"; VERSION="${VERSION#*.}"
+              MINOR="${VERSION%%.*}"; VERSION="${VERSION#*.}"
+              PATCH="${VERSION%%.*}"; VERSION="${VERSION#*.}"
+              if echo $LAST_COMMIT | grep "\[\(major\|MAJOR\)\]" > /dev/null; then
+                MAJOR=$((MAJOR+1))
+                echo "$MAJOR.$MINOR.$PATCH" > ../version/number
+              elif echo $LAST_COMMIT | grep "\[\(minor\|MINOR\)\]" > /dev/null; then
+                MINOR=$((MINOR+1))
+                echo "$MAJOR.$MINOR.$PATCH" > ../version/number
+              elif echo $LAST_COMMIT | grep "\[\(patch\|PATCH\)\]" > /dev/null; then
+                PATCH=$((PATCH+1))
+                echo "$MAJOR.$MINOR.$PATCH" > ../version/number
+              fi
+    - try:
+        do:
+          - task: tag new version
+            config:
+              platform: linux
+              image_resource:
+                type: docker-image
+                source:
+                  repository: concourse/git-resource
+              inputs:
+                - name: repo
+                - name: version
+              outputs:
+                - name: repo-versioned
+                - name: release-note
+              run:
+                path: bash
+                args:
+                  - -c
+                  - |
+                    if [ ! -f ./version/number ]; then
+                      exit 1
+                    fi
+                    cp -rf ./repo/.git ./repo-versioned/
+                    cd repo-versioned
+                    head -1 ../version/number
+                    git tag `head -1 ../version/number`
+                    PR_NUM=`git log -1 --pretty=%B | grep -o "#\d\+" | sed -e 's/#//'`
+                    if [ -z "${PR_NUM}" ]; then
+                      PR_INFO=`curl ${GITHUB_API_URL}/repos/${ORG_NAME}/${REPO_NAME}/pulls/${PR_NUM}`
+                      PR_BODY=`echo $PR_INFO | jq .body -r`
+                      echo "PR body: ${PR_BODY}"
+                      echo "${PR_BODY}" > ../release-note/body
+                    fi
+                    touch ../release-note/body
+              params:
+                GITHUB_API_URL: https://ghe.corp.yahoo.co.jp/api/v3
+                ORG_NAME: athenz
+                REPO_NAME: athenz-tenant-sidecar
+            on_success:
+              do:
+                - put: repo
+                  params:
+                    repository: repo-versioned
+                - put: gh-release
+                  params:
+                    name: ./version/number
+                    body: ./release-note/body
+                    tag: ./version/number
+  - name: release->screwdriver
+    plan:
+      - get: gh-release
+        trigger: true
+      - task: trigger screwdriver
+        config:
+          platform: linux
+          image_resource:
+            type: docker-image
+            source:
+              repository: concourse/git-resource
+          inputs:
+            - name: gh-release
+          run:
+            path: bash
+            args:
+              - -c
+              - |
+                tag=`cat gh-release/tag`
+                version=`cat gh-release/version`
+                sha=`cat gh-release/commit_sha`
+                JWT=`curl -s "https://api-cd.screwdriver.corp.yahoo.co.jp/v4/auth/token?api_token=${API_TOKEN}" | jq .token -r`
+                PAYLOAD="{ \"pipelineId\": $SD_PIPELINE_ID, \"startFrom\": \"$SD_JOB_NAME\", \"meta\": { \"tag\": \"${tag}\", \"version\": \"${version}\", \"sha\": \"${sha}\" } }"
+                echo "payload: $PAYLOAD"
+                curl -X POST 'https://api-cd.screwdriver.corp.yahoo.co.jp/v4/events' \
+                  -H "Authorization: Bearer ${JWT}" \
+                  -H "Content-Type: application/json" \
+                  -d "$PAYLOAD"
+          params:
+            SD_PIPELINE_ID: 33333
+            SD_JOB_NAME: release_trigger
+            API_TOKEN: ((sd-api-token))

@@ -112,6 +112,6 @@ shared:
     GITHUB_API_URL: "https://ghe.corp.yahoo.co.jp/api/v3"
     REPO_NAME: athenz
     IMAGE_NAME: athenz-tenant-sidecar
-    VERIFY_ENTRYPOINT: "/go/bin/athenz-tenant-sidecar"
+    VERIFY_ENTRYPOINT: "/go/bin/tenant"
     VERIFY_CMD: |
         -version

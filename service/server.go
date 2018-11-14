@@ -236,6 +236,11 @@ func handleHealthCheckRequest(w http.ResponseWriter, r *http.Request) {
 
 // listenAndServeAPI return any error occurred when start a HTTPS server, including any error when loading TLS certificate
 func (s *server) listenAndServeAPI() error {
+
+	if !s.cfg.TLS.Enabled {
+		return s.srv.ListenAndServe()
+	}
+
 	cfg, err := NewTLSConfig(s.cfg.TLS)
 	if err == nil && cfg != nil {
 		s.srv.TLSConfig = cfg

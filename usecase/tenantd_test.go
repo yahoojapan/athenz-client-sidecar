@@ -366,11 +366,11 @@ Error: Unable to create signer: Unable to load private key`),
 					want.StartTokenUpdater(ctx)
 					time.Sleep(time.Millisecond * 50)
 
-					g, err := got.GetToken()
+					g, err := got.GetTokenProvider()()
 					if err != nil {
 						return fmt.Errorf("Got not found, err: %v", err)
 					}
-					w, err := want.GetToken()
+					w, err := want.GetTokenProvider()()
 					if err != nil {
 						return fmt.Errorf("Want not found, err: %v", err)
 					}

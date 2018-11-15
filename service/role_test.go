@@ -560,7 +560,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					token: func() (string, error) {
 						return "", nil
 					},
-					athenzURL:             "http://dummy",
+					athenzURL:             "http://127.0.0.1:9876",
 					athenzPrincipleHeader: "Yahoo-Principal-Auth",
 				},
 				args: args{
@@ -571,7 +571,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					minExpiry:         time.Second,
 					maxExpiry:         time.Second,
 				},
-				wantErr: fmt.Errorf("Get http://dummy/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1000000000&maxExpiryTime=1000000000&proxyForPrincipal=dummyProxy: dial tcp: lookup dummy: no such host"),
+				wantErr: fmt.Errorf("Get http://127.0.0.1:9876/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1000000000&maxExpiryTime=1000000000&proxyForPrincipal=dummyProxy: dial tcp 127.0.0.1:9876: connect: connection refused"),
 			}
 		}(),
 		func() test {

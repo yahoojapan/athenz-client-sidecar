@@ -1,7 +1,7 @@
 module ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar
 
 require (
-	ghe.corp.yahoo.co.jp/athenz/athenz-ntokend v0.0.0-20181113090012-cf989b826f4f
+	ghe.corp.yahoo.co.jp/athenz/athenz-ntokend v0.0.0-20181115060326-36117096062f
 	github.com/kpango/fastime v1.0.0
 	github.com/kpango/gache v1.1.0
 	github.com/kpango/glg v1.2.6

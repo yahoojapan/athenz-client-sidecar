@@ -48,7 +48,7 @@ func TestNew(t *testing.T) {
 				Token: config.Token{
 					AthenzDomain:    keyKey,
 					ServiceName:     keyKey,
-					PrivateKeyPath:  "_" + keyKey + "_",
+					PrivateKeyPath:  key,
 					ValidateToken:   false,
 					RefreshDuration: "1m",
 					KeyVersion:      "1",

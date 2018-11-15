@@ -1,5 +1,5 @@
-ghe.corp.yahoo.co.jp/athenz/athenz-ntokend v0.0.0-20181113090012-cf989b826f4f h1:r0qON5FnVUK36eISNmGzL00Ew5IJo2iUqdaH68ehATo=
-ghe.corp.yahoo.co.jp/athenz/athenz-ntokend v0.0.0-20181113090012-cf989b826f4f/go.mod h1:m0FoJnkgzpJqEgLmqJ9q5+Dr0gqlVmmvi9Nf1PTp+zs=
+ghe.corp.yahoo.co.jp/athenz/athenz-ntokend v0.0.0-20181115060326-36117096062f h1:cH898Lb/yB+hhoKZwD3WXfKv2pDipccns0RwRYA6S+k=
+ghe.corp.yahoo.co.jp/athenz/athenz-ntokend v0.0.0-20181115060326-36117096062f/go.mod h1:m0FoJnkgzpJqEgLmqJ9q5+Dr0gqlVmmvi9Nf1PTp+zs=
 github.com/BurntSushi/toml v0.3.0/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/OrlovEvgeny/go-mcache v0.0.0-20181113222421-bed69649df7d/go.mod h1:HyURA1Z5rjNkt9E7XyiegZk1ZBvvB+1vYzkeu52goIc=

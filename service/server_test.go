@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -99,6 +100,18 @@ func Test_server_ListenAndServe(t *testing.T) {
 		afterFunc  func() error
 		want       error
 	}
+
+	checkSrvRunning := func(addr string) error {
+		res, err := http.DefaultClient.Get(addr)
+		if err != nil {
+			return err
+		}
+		if res.StatusCode != 200 {
+			return fmt.Errorf("Response status code invalid, %v", res.StatusCode)
+		}
+		return nil
+	}
+
 	tests := []test{
 		func() test {
 			ctx, cancelFunc := context.WithCancel(context.Background())
@@ -108,33 +121,37 @@ func Test_server_ListenAndServe(t *testing.T) {
 			certKey := "dummy_cert"
 			cert := "./assets/dummyServer.crt"
 
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(200)
+				fmt.Fprintln(w, "Hello, client")
+			})
+
+			apiSrvPort := 9998
+			hcSrvPort := 9999
+			apiSrvAddr := fmt.Sprintf("https://127.0.0.1:%v", apiSrvPort)
+			hcSrvAddr := fmt.Sprintf("http://127.0.0.1:%v", hcSrvPort)
+
 			return test{
 				name: "Test servers can start and stop",
 				fields: fields{
 					srv: func() *http.Server {
-						srv := &http.Server{
-							Addr: ":9998",
-							Handler: func() http.Handler {
-								return nil
-							}(),
+						s := &http.Server{
+							Addr:    fmt.Sprintf(":%d", apiSrvPort),
+							Handler: handler,
 						}
-
-						srv.SetKeepAlivesEnabled(true)
-						return srv
+						s.SetKeepAlivesEnabled(true)
+						return s
 					}(),
 					hcsrv: func() *http.Server {
-						srv := &http.Server{
-							Addr: ":9999",
-							Handler: func() http.Handler {
-								return nil
-							}(),
+						s := &http.Server{
+							Addr:    fmt.Sprintf(":%d", hcSrvPort),
+							Handler: handler,
 						}
-
-						srv.SetKeepAlivesEnabled(true)
-						return srv
+						s.SetKeepAlivesEnabled(true)
+						return s
 					}(),
 					cfg: config.Server{
-						Port: 9999,
+						Port: apiSrvPort,
 						TLS: config.TLS{
 							Enabled: true,
 							CertKey: certKey,
@@ -146,39 +163,49 @@ func Test_server_ListenAndServe(t *testing.T) {
 					ctx: ctx,
 				},
 				beforeFunc: func() error {
-					err := os.Setenv(keyKey, key)
-					if err != nil {
+					if err := os.Setenv(keyKey, key); err != nil {
 						return err
 					}
-					err = os.Setenv(certKey, cert)
-					if err != nil {
+					if err := os.Setenv(certKey, cert); err != nil {
 						return err
 					}
 					return nil
 				},
 				checkFunc: func(s *server, got chan []error, want error) error {
-					time.Sleep(time.Millisecond * 50)
-					if !s.srvRunning {
-						return fmt.Errorf("Server not running")
-					}
-					if !s.hcrunning {
-						return fmt.Errorf("HC server not running")
+					time.Sleep(time.Millisecond * 150)
+					http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
+					if err := checkSrvRunning(apiSrvAddr); err != nil {
+						return fmt.Errorf("Server not running, err: %v", err)
 					}
 
-					time.Sleep(time.Millisecond * 50)
+					if err := checkSrvRunning(hcSrvAddr); err != nil {
+						return fmt.Errorf("Health Check server not running")
+					}
+
 					cancelFunc()
-					time.Sleep(time.Millisecond * 50)
+					time.Sleep(time.Millisecond * 250)
 
-					if s.hcrunning {
-						return fmt.Errorf("HC server not closed yet")
+					if err := checkSrvRunning(apiSrvAddr); err == nil {
+						return fmt.Errorf("Server running")
 					}
-					if s.srvRunning {
-						return fmt.Errorf("Server not closed yet")
+
+					if err := checkSrvRunning(hcSrvAddr); err == nil {
+						return fmt.Errorf("Health Check server running")
 					}
 
 					return nil
 				},
-				want: context.Canceled,
+				afterFunc: func() error {
+					cancelFunc()
+					if err := os.Unsetenv(keyKey); err != nil {
+						return err
+					}
+					if err := os.Unsetenv(certKey); err != nil {
+						return nil
+					}
+					return nil
+				},
 			}
 		}(),
 		func() test {
@@ -186,16 +213,24 @@ func Test_server_ListenAndServe(t *testing.T) {
 			key := "./assets/dummyServer.key"
 			certKey := "dummy_cert"
 			cert := "./assets/dummyServer.crt"
+
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(200)
+				fmt.Fprintln(w, "Hello, client")
+			})
+
+			apiSrvPort := 9998
+			hcSrvPort := 9999
+			apiSrvAddr := fmt.Sprintf("https://127.0.0.1:%v", apiSrvPort)
+			hcSrvAddr := fmt.Sprintf("http://127.0.0.1:%v", hcSrvPort)
 
 			return test{
 				name: "Test HC server stop when api server stop",
 				fields: fields{
 					srv: func() *http.Server {
 						srv := &http.Server{
-							Addr: ":9998",
-							Handler: func() http.Handler {
-								return nil
-							}(),
+							Addr:    fmt.Sprintf(":%d", apiSrvPort),
+							Handler: handler,
 						}
 
 						srv.SetKeepAlivesEnabled(true)
@@ -203,17 +238,15 @@ func Test_server_ListenAndServe(t *testing.T) {
 					}(),
 					hcsrv: func() *http.Server {
 						srv := &http.Server{
-							Addr: ":9999",
-							Handler: func() http.Handler {
-								return nil
-							}(),
+							Addr:    fmt.Sprintf(":%d", hcSrvPort),
+							Handler: handler,
 						}
 
 						srv.SetKeepAlivesEnabled(true)
 						return srv
 					}(),
 					cfg: config.Server{
-						Port: 9999,
+						Port: apiSrvPort,
 						TLS: config.TLS{
 							Enabled: true,
 							CertKey: certKey,
@@ -225,56 +258,74 @@ func Test_server_ListenAndServe(t *testing.T) {
 					ctx: context.Background(),
 				},
 				beforeFunc: func() error {
-					err := os.Setenv(keyKey, key)
-					if err != nil {
+					if err := os.Setenv(keyKey, key); err != nil {
 						return err
 					}
-					err = os.Setenv(certKey, cert)
-					if err != nil {
+					if err := os.Setenv(certKey, cert); err != nil {
 						return err
 					}
 					return nil
 				},
 				checkFunc: func(s *server, got chan []error, want error) error {
-					time.Sleep(time.Millisecond * 50)
-					if !s.srvRunning {
-						return fmt.Errorf("Server not running")
-					}
-					if !s.hcrunning {
-						return fmt.Errorf("HC server not running")
+					time.Sleep(time.Millisecond * 150)
+					http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
+					if err := checkSrvRunning(apiSrvAddr); err != nil {
+						return fmt.Errorf("Server not running, err: %v", err)
 					}
 
-					time.Sleep(time.Millisecond * 50)
+					if err := checkSrvRunning(hcSrvAddr); err != nil {
+						return fmt.Errorf("Health Check server not running")
+					}
+
 					s.srv.Close()
-					time.Sleep(time.Millisecond * 50)
+					time.Sleep(time.Millisecond * 150)
 
-					if s.hcrunning {
-						return fmt.Errorf("HC server not closed yet")
+					if err := checkSrvRunning(apiSrvAddr); err == nil {
+						return fmt.Errorf("Server running")
 					}
-					if s.srvRunning {
-						return fmt.Errorf("Server not closed yet")
+
+					if err := checkSrvRunning(hcSrvAddr); err == nil {
+						return fmt.Errorf("Health Check server running")
 					}
 
 					return nil
 				},
-				want: context.Canceled,
+				afterFunc: func() error {
+					if err := os.Unsetenv(keyKey); err != nil {
+						return err
+					}
+					if err := os.Unsetenv(certKey); err != nil {
+						return nil
+					}
+					return nil
+				},
 			}
 		}(),
+
 		func() test {
 			keyKey := "dummy_key"
 			key := "./assets/dummyServer.key"
 			certKey := "dummy_cert"
 			cert := "./assets/dummyServer.crt"
 
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(200)
+				fmt.Fprintln(w, "Hello, client")
+			})
+
+			apiSrvPort := 9998
+			hcSrvPort := 9999
+			apiSrvAddr := fmt.Sprintf("https://127.0.0.1:%v", apiSrvPort)
+			hcSrvAddr := fmt.Sprintf("http://127.0.0.1:%v", hcSrvPort)
+
 			return test{
 				name: "Test api server stop when HC server stop",
 				fields: fields{
 					srv: func() *http.Server {
 						srv := &http.Server{
-							Addr: ":9998",
-							Handler: func() http.Handler {
-								return nil
-							}(),
+							Addr:    fmt.Sprintf(":%d", apiSrvPort),
+							Handler: handler,
 						}
 
 						srv.SetKeepAlivesEnabled(true)
@@ -282,17 +333,15 @@ func Test_server_ListenAndServe(t *testing.T) {
 					}(),
 					hcsrv: func() *http.Server {
 						srv := &http.Server{
-							Addr: ":9999",
-							Handler: func() http.Handler {
-								return nil
-							}(),
+							Addr:    fmt.Sprintf(":%d", hcSrvPort),
+							Handler: handler,
 						}
 
 						srv.SetKeepAlivesEnabled(true)
 						return srv
 					}(),
 					cfg: config.Server{
-						Port: 9999,
+						Port: apiSrvPort,
 						TLS: config.TLS{
 							Enabled: true,
 							CertKey: certKey,
@@ -304,39 +353,48 @@ func Test_server_ListenAndServe(t *testing.T) {
 					ctx: context.Background(),
 				},
 				beforeFunc: func() error {
-					err := os.Setenv(keyKey, key)
-					if err != nil {
+					if err := os.Setenv(keyKey, key); err != nil {
 						return err
 					}
-					err = os.Setenv(certKey, cert)
-					if err != nil {
+					if err := os.Setenv(certKey, cert); err != nil {
 						return err
 					}
 					return nil
 				},
 				checkFunc: func(s *server, got chan []error, want error) error {
-					time.Sleep(time.Millisecond * 50)
-					if !s.srvRunning {
-						return fmt.Errorf("Server not running")
-					}
-					if !s.hcrunning {
-						return fmt.Errorf("HC server not running")
+					time.Sleep(time.Millisecond * 150)
+					http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
+					if err := checkSrvRunning(apiSrvAddr); err != nil {
+						return fmt.Errorf("Server not running, err: %v", err)
 					}
 
-					time.Sleep(time.Millisecond * 50)
+					if err := checkSrvRunning(hcSrvAddr); err != nil {
+						return fmt.Errorf("Health Check server not running")
+					}
+
 					s.hcsrv.Close()
-					time.Sleep(time.Millisecond * 50)
+					time.Sleep(time.Millisecond * 150)
 
-					if s.hcrunning {
-						return fmt.Errorf("HC server not closed yet")
+					if err := checkSrvRunning(apiSrvAddr); err == nil {
+						return fmt.Errorf("Server running")
 					}
-					if s.srvRunning {
-						return fmt.Errorf("Server not closed yet")
+
+					if err := checkSrvRunning(hcSrvAddr); err == nil {
+						return fmt.Errorf("Health Check server running")
 					}
 
 					return nil
 				},
-				want: context.Canceled,
+				afterFunc: func() error {
+					if err := os.Unsetenv(keyKey); err != nil {
+						return err
+					}
+					if err := os.Unsetenv(certKey); err != nil {
+						return nil
+					}
+					return nil
+				},
 			}
 		}(),
 	}
@@ -344,19 +402,11 @@ func Test_server_ListenAndServe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.afterFunc != nil {
-				defer func() {
-					if err := tt.afterFunc(); err != nil {
-						t.Errorf("%v", err)
-						return
-					}
-				}()
+				defer tt.afterFunc()
 			}
-
 			if tt.beforeFunc != nil {
-				err := tt.beforeFunc()
-				if err != nil {
-					t.Errorf("beforeFunc error, error: %v", err)
-					return
+				if err := tt.beforeFunc(); err != nil {
+					t.Errorf("before func error: %v", err)
 				}
 			}
 

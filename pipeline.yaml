@@ -85,7 +85,7 @@ jobs:
                     head -1 ../version/number
                     git tag `head -1 ../version/number`
                     PR_NUM=`git log -1 --pretty=%B | grep -o "#\d\+" | sed -e 's/#//'`
-                    if [ -z "${PR_NUM}" ]; then
+                    if [ ! -z "${PR_NUM}" ]; then
                       PR_INFO=`curl ${GITHUB_API_URL}/repos/${ORG_NAME}/${REPO_NAME}/pulls/${PR_NUM}`
                       PR_BODY=`echo $PR_INFO | jq .body -r`
                       echo "PR body: ${PR_BODY}"

@@ -1,6 +1,27 @@
 # Athenz Tenant Sidecar for Kubernetes
 
----
+Table of Contents
+=================
+
+- [Athenz Tenant Sidecar for Kubernetes](#athenz-tenant-sidecar-for-kubernetes)
+  - [What is Athenz tenant sidecar?](#what-is-athenz-tenant-sidecar)
+    - [Get Athenz N-Token from tenant sidecar](#get-athenz-n-token-from-tenant-sidecar)
+    - [Get Athenz Role Token from tenant sidecar](#get-athenz-role-token-from-tenant-sidecar)
+    - [Proxy HTTP request (add corresponding Athenz authorization token)](#proxy-http-request-add-corresponding-athenz-authorization-token)
+  - [Use Case](#use-case)
+  - [Specification](#specification)
+    - [Get N-token from Athenz through tenant sidecar](#get-n-token-from-athenz-through-tenant-sidecar)
+    - [Get role token from Athenz through tenant sidecar](#get-role-token-from-athenz-through-tenant-sidecar)
+    - [Proxy requests and append N-token authentication header](#proxy-requests-and-append-n-token-authentication-header)
+    - [Proxy requests and append role token authentication header](#proxy-requests-and-append-role-token-authentication-header)
+  - [Configuration](#configuration)
+  - [Developer Guide](#developer-guide)
+    - [Example code](#example-code)
+      - [Get N-token from tenant sidecar](#get-n-token-from-tenant-sidecar)
+      - [Get role token from tenant sidecar](#get-role-token-from-tenant-sidecar)
+      - [Proxy request through tenant sidecar (append N-token)](#proxy-request-through-tenant-sidecar-append-n-token)
+      - [Proxy request through tenant sidecar (append role token)](#proxy-request-through-tenant-sidecar-append-role-token)
+  - [Deployment Procedure](#deployment-procedure)
 
 ## What is Athenz tenant sidecar?
 
@@ -42,30 +63,30 @@ User can also use the reverse proxy endpoint to proxy the request to another ser
 
 ## Specification
 
-### 1. Get n-token from Athenz through tenant sidecar
+### Get N-token from Athenz through tenant sidecar
 
 - Only Accept HTTP GET request.
 - Response body contains below information in JSON format.
 
-| Name         | Description                       | Example |
-|--------------|-----------------------------------|---------|
-| n_token      | The n-token generated             | v=S1;d=tenant;n=service;h=localhost;a=6996e6fc49915494;t=1486004464;e=1486008064;k=0;s=[signeture] |
+| Name    | Description           | Example                                                                                            |
+| ------- | --------------------- | -------------------------------------------------------------------------------------------------- |
+| token | The n-token generated | v=S1;d=tenant;n=service;h=localhost;a=6996e6fc49915494;t=1486004464;e=1486008064;k=0;s=[signeture] |
 
   Example:
 
 ``` json
 {
-  "n_token": "v=S1;d=tenant;n=service;h=localhost;a=6996e6fc49915494;t=1486004464;e=1486008064;k=0;s=[signeture]"
+  "token": "v=S1;d=tenant;n=service;h=localhost;a=6996e6fc49915494;t=1486004464;e=1486008064;k=0;s=[signeture]"
 }
 ```
 
-### 2. Get role token from Athenz through tenant sidecar
+### Get role token from Athenz through tenant sidecar
 
 - Only accept HTTP POST request.
 - Request body must contains below information in JSON format.
 
 | Name                | Description                                                 | Required? | Example           |
-|---------------------|-------------------------------------------------------------|-----------|-------------------|
+| ------------------- | ----------------------------------------------------------- | --------- | ----------------- |
 | domain              | Role token domain name                                      | Yes       | domain.shopping   |
 | role                | Role token role name                                        | Yes       | users             |
 | proxy_for_principal | Role token proxyForPrincipal name                           | No        | proxyForPrincipal |
@@ -86,10 +107,10 @@ Example:
 
 - Response body contains below information in JSON format.
 
-| Name       | Description                       | Example    |
-|------------|-----------------------------------|------------|
+| Name       | Description                       | Example                                                                                                                                                |
+| ---------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | token      | The role token generated          | v=Z1;d=domain.shopping;r=users;p=domain.travel.travel-site;h=athenz.co.jp;a=9109ee08b79e6b63;t=1528853625;e=1528860825;k=0;i=192.168.1.1;s=[signature] |
-| expiryTime | The expiry time of the role token | 1528860825 |
+| expiryTime | The expiry time of the role token | 1528860825                                                                                                                                             |
 
 Example:
 
@@ -100,66 +121,305 @@ Example:
 }
 ```
 
-### 3. Proxy requests and append n-token authentication header
+### Proxy requests and append N-token authentication header
 
 - Accept any HTTP request.
 - Athenz tenant sidecar will proxy the request and append the n-token to the request header.
 - The destination server will return back to user via proxy.
 
-### 4. Proxy requests and append role token authentication header
+### Proxy requests and append role token authentication header
 
 - Accept any HTTP request.
 - Request header must contains below information.
 
-| Name                        | Description                                                  | Required? | Example |
-|-----------------------------|--------------------------------------------------------------|-----------|---------|
-| Athenz-Role-Auth            | The user role name used to generate the role token           | Yes       |         |
-| Athenz-Domain-Auth          | The domain name used to generate the role token              | Yes       |         |
-| Athenz-Proxy-Principal-Auth | The proxy for principal name used to generate the role token | Yes       |         |
+| Name                        | Description                                                  | Required? | Example  |
+| --------------------------- | ------------------------------------------------------------ | --------- | -------- |
+| Athenz-Role-Auth            | The user role name used to generate the role token           | Yes       | users    |
+| Athenz-Domain-Auth          | The domain name used to generate the role token              | Yes       | provider |
+| Athenz-Proxy-Principal-Auth | The proxy for principal name used to generate the role token | Yes       | username |
 
 HTTP header Example:
 
 ``` none
-Athenz-Role-Auth:
-Athenz-Domain-Auth:
-Athenz-Proxy-Principal-Auth:
+Athenz-Role-Auth: users
+Athenz-Domain-Auth: provider
+Athenz-Proxy-Principal-Auth: username
 ```
 
 - The destination server will return back to user via proxy.
 
-### Configuration
+## Configuration
 
 - [config.go](./config/config.go)
-- [config details](./doc/config-detail.md)
 
-### Developer Guide
+## Developer Guide
 
 After injecting tenant sidecar to user application, user application can access the tenant sidecar to get authorization and authentication credential from Athenz server. The tenant sidecar can only access by the user application injected, other application cannot access to the tenant sidecar. User can access tenant sidecar by using HTTP request.
 
-#### Example code
+### Example code
 
-```java
-public static void main(String[] args) {
-  
+#### Get N-token from tenant sidecar
+
+```go
+import (
+    "encoding/json"
+    "fmt"
+    "net/http"
+
+    "ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/model"
+)
+
+const scURL = "127.0.0.1" // sidecar URL
+const scPort = "8081"
+
+type NTokenResponse = model.NTokenResponse
+
+func GetNToken(appID, nCookie, tCookie, keyID, keyData string, keys []string) (*NTokenResponse, error) {
+    url := fmt.Sprintf("http://%s:%s/ntoken", scURL, scPort)
+
+    // make request
+    res, err := http.Get(url)
+    if err != nil {
+        return nil, err
+    }
+    defer res.Body.Close()
+
+    // validate response
+    if res.StatusCode != http.StatusOK {
+        err = fmt.Errorf("%s returned status code %d", url, res.StatusCode)
+        return nil, err
+    }
+
+    // decode request
+    var data NTokenResponse
+    err = json.NewDecoder(res.Body).Decode(&data)
+    if err != nil {
+        return nil, err
+    }
+
+    return &data, nil
 }
 ```
 
-### Deployment Procedure
+#### Get role token from tenant sidecar
 
-1. Prepare deployment file for K8s.
-   Refer to [injector guideline](http://).
+```go
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "net/http"
+    "time"
 
-1. Deploy to K8s.
+    "ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/model"
+)
+
+const scURL = "127.0.0.1" // sidecar URL
+const scPort = "8081"
+
+type RoleRequest = model.RoleRequest
+type RoleResponse = model.RoleResponse
+
+func GetRoleToken(domain, role, proxyForPrincipal string, minExpiry, maxExpiry time.Duration) (*RoleResponse, error) {
+    url := fmt.Sprintf("http://%s:%s/roletoken", scURL, scPort)
+
+    r := &RoleRequest{
+        Domain:            domain,
+        Role:              role,
+        ProxyForPrincipal: proxyForPrincipal,
+        MinExpiry:         minExpiry,
+        MaxExpiry:         maxExpiry,
+    }
+    reqJSON, _ := json.Marshal(r)
+
+    // create POST request
+    req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(reqJSON))
+    if err != nil {
+        return nil, err
+    }
+    req.Header.Set("Content-Type", "application/json")
+
+    // make request
+    res, err := http.DefaultClient.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer res.Body.Close()
+
+    // validate response
+    if res.StatusCode != http.StatusOK {
+        err = fmt.Errorf("%s returned status code %d", url, res.StatusCode)
+        return nil, err
+    }
+
+    // decode request
+    var data RoleResponse
+    err = json.NewDecoder(res.Body).Decode(&data)
+    if err != nil {
+        return nil, err
+    }
+
+    return &data, nil
+}
+```
+
+#### Proxy request through tenant sidecar (append N-token)
+
+```go
+const (
+    scURL  = "127.0.0.1" // sidecar URL
+    scPort = "8081"
+)
+
+var (
+    httpClient *http.Client // the HTTP client that use the proxy to append N-token header
+
+    // proxy URL
+    proxyNTokenURL    = fmt.Sprintf("http://%s:%s/proxy/ntoken", scURL, scPort)
+)
+
+func initHTTPClient() error {
+    proxyURL, err := url.Parse(proxyNTokenURL)
+    if err != nil {
+        return err
+    }
+
+    // transport that use the proxy, and append to the client
+    transport := &http.Transport{
+        Proxy: http.ProxyURL(proxyURL),
+    }
+    httpClient = &http.Client{
+        Transport: transport,
+    }
+
+    return nil
+}
+
+func MakeRequestUsingProxy(method, targetURL string, body io.Reader) (*[]byte, error) {
+    // create POST request
+    req, err := http.NewRequest(method, targetURL, body)
+    if err != nil {
+        return nil, err
+    }
+
+    // make request through the proxy
+    res, err := httpClient.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer res.Body.Close()
+
+    // validate response
+    if res.StatusCode != http.StatusOK {
+        err = fmt.Errorf("%s returned status code %d", targetURL, res.StatusCode)
+        return nil, err
+    }
+
+    // process response
+    data, err := ioutil.ReadAll(res.Body)
+    if err != nil {
+        return nil, err
+    }
+
+    return &data, nil
+}
+```
+
+#### Proxy request through tenant sidecar (append role token)
+
+```go
+const (
+    scURL  = "127.0.0.1" // sidecar URL
+    scPort = "8081"
+)
+
+var (
+    httpClient *http.Client // the HTTP client that use the proxy to append role token header
+
+    // proxy URL
+    proxyRoleTokenURL = fmt.Sprintf("http://%s:%s/proxy/roletoken", scURL, scPort)
+)
+
+func initHTTPClient() error {
+    proxyURL, err := url.Parse(proxyRoleTokenURL)
+    if err != nil {
+        return err
+    }
+
+    // transport that use the proxy, and append to the client
+    transport := &http.Transport{
+        Proxy: http.ProxyURL(proxyURL),
+    }
+    httpClient = &http.Client{
+        Transport: transport,
+    }
+
+    return nil
+}
+
+func MakeRequestUsingProxy(method, targetURL string, body io.Reader, role, domain, proxyPrincipal string) (*[]byte, error) {
+    // create POST request
+    req, err := http.NewRequest(method, targetURL, body)
+    if err != nil {
+        return nil, err
+    }
+
+    // append header for the proxy
+    req.Header.Set("Athenz-Role-Auth", role)
+    req.Header.Set("Athenz-Domain-Auth", domain)
+    req.Header.Set("Athenz-Proxy-Principal-Auth", proxyPrincipal)
+
+    // make request through the proxy
+    res, err := httpClient.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer res.Body.Close()
+
+    // validate response
+    if res.StatusCode != http.StatusOK {
+        err = fmt.Errorf("%s returned status code %d", targetURL, res.StatusCode)
+        return nil, err
+    }
+
+    // process response
+    data, err := ioutil.ReadAll(res.Body)
+    if err != nil {
+        return nil, err
+    }
+
+    return &data, nil
+}
+```
+
+We only provided golang example, but user can implement a client using any other language and connect to sidecar container using HTTP request.
+
+## Deployment Procedure
+
+1. Inject tenant sidecar to your K8s deployment file.
+
+   ```bash
+   aksctl t --athenz-domain <athenzDomain> \
+      --service-name <serviceName> \
+      --port <port> \
+      --key-version <keyVersion> \
+      --source <sourceFile> \
+      --output <outputFile>
+   ```
+
+   For more details please refer to [injector documentation](https://ghe.corp.yahoo.co.jp/athenz/aksctl/blob/master/README.md).
+
+2. Deploy to K8s.
 
    ```bash
    kubectl apply -f injected_deployments.yaml
    ```
 
-1. Verify if the application running
+3. Verify if the application running
 
    ```bash
    # list all the pods
-   kubectl get pods -n <namespace>
+   kubectl get pods -n <namespace>
    # if you are not sure which namespace your application deployed, use `--all-namespaces` option
    kubectl get pods --all-namespaces
   

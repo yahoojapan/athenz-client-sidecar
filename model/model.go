@@ -1,33 +1,10 @@
 package model
 
-import "time"
+import (
+	"time"
 
-// HCRequest represent the Host Certificate request information.
-type HCRequest struct {
-	// AppID represent Host Certificate application ID.
-	AppID string `json:"app_id"`
-}
-
-// UDBRequest represent the User Database request information.
-type UDBRequest struct {
-	// AppId represent User Database application ID.
-	AppID string `json:"app_id"`
-
-	// NCookie represent the N-Cookie string to connect to User Database.
-	NCookie string `json:"n_cookie"`
-
-	// TCookie represent the T-Cookie string to connect to User Database.
-	TCookie string `json:"t_cookie"`
-
-	// KeyID represent the Key ID to connect to User Database.
-	KeyID string `json:"key_id"`
-
-	// KeyData represent the Key Data to connect to User Database.
-	KeyData string `json:"key_data"`
-
-	// Keys represent the elements get from User Database.
-	Keys []string `json:"keys"`
-}
+	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/service"
+)
 
 // RoleRequest represent the request information to get the role token.
 type RoleRequest struct {
@@ -45,4 +22,13 @@ type RoleRequest struct {
 
 	// MaxExpiry represent the MaxExpiry field of the request.
 	MaxExpiry time.Duration `json:"max_expiry"`
+}
+
+// RoleResponse represent the basic information of the role token.
+type RoleResponse = service.RoleToken
+
+// NTokenResponse represent the response information of get N-token request.
+type NTokenResponse struct {
+	// NToken represent the N-token generated.
+	NToken string `json:"token"`
 }

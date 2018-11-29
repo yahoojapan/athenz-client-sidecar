@@ -197,7 +197,7 @@ func Test_handler_NToken(t *testing.T) {
 			want: want{
 				code:   http.StatusOK,
 				header: map[string]string{},
-				body:   []byte(`{"n_token":"token-230"}` + "\n"),
+				body:   []byte(`{"token":"token-230"}` + "\n"),
 			},
 		},
 		testcase{
@@ -214,7 +214,7 @@ func Test_handler_NToken(t *testing.T) {
 			want: want{
 				code:   http.StatusOK,
 				header: map[string]string{},
-				body:   []byte(`{"n_token":"token-247"}` + "\n"),
+				body:   []byte(`{"token":"token-247"}` + "\n"),
 			},
 		},
 	}

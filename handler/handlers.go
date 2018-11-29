@@ -57,9 +57,7 @@ func (h *handler) NToken(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	return json.NewEncoder(w).Encode(struct {
-		NToken string `json:"n_token"`
-	}{
+	return json.NewEncoder(w).Encode(model.NTokenResponse{
 		NToken: tok,
 	})
 }

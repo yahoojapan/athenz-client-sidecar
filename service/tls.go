@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
-	"os"
 
 	"ghe.corp.yahoo.co.jp/athenz/athenz-tenant-sidecar/config"
 	"github.com/pkg/errors"
@@ -20,10 +19,6 @@ var (
 // It initializes TLS configuration, for example the CA certificate and key to start TLS server.
 // Server and CA Certificate, and private key will be read from files from file paths defined in environment variables.
 func NewTLSConfig(cfg config.TLS) (*tls.Config, error) {
-	cert := os.Getenv(cfg.CertKey)
-	key := os.Getenv(cfg.KeyKey)
-	ca := os.Getenv(cfg.CAKey)
-
 	t := &tls.Config{
 		MinVersion: tls.VersionTLS12,
 		CurvePreferences: []tls.CurveID{
@@ -35,6 +30,10 @@ func NewTLSConfig(cfg config.TLS) (*tls.Config, error) {
 		SessionTicketsDisabled: true,
 		ClientAuth:             tls.NoClientCert,
 	}
+
+	cert := config.GetActualValue(cfg.CertKey)
+	key := config.GetActualValue(cfg.KeyKey)
+	ca := config.GetActualValue(cfg.CAKey)
 
 	if cert == "" || key == "" {
 		return nil, ErrTLSCertOrKeyNotFound

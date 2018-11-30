@@ -2,12 +2,15 @@ package service
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"time"
 
@@ -69,6 +72,31 @@ func NewRoleService(cfg config.Role, token ntokend.TokenProvider) RoleService {
 	if err != nil {
 		dur = defaultExpiry
 	}
+
+	var cp *x509.CertPool
+	var httpClient *http.Client
+	if len(cfg.AthenzRootCA) != 0 {
+		certPath := config.GetActualValue(cfg.AthenzRootCA)
+		_, err := os.Stat(certPath)
+		if !os.IsNotExist(err) {
+			cp, err = NewX509CertPool(certPath)
+			if err != nil {
+				cp = nil
+			}
+		}
+	}
+	if cp != nil {
+		httpClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs: cp,
+				},
+			},
+		}
+	} else {
+		httpClient = http.DefaultClient
+	}
+
 	return &roleService{
 		cfg:                   cfg,
 		token:                 token,
@@ -76,7 +104,7 @@ func NewRoleService(cfg config.Role, token ntokend.TokenProvider) RoleService {
 		athenzPrincipleHeader: cfg.PrincipalAuthHeaderName,
 		domainRoleCache:       gache.New(),
 		expiry:                dur,
-		httpClient:            http.DefaultClient,
+		httpClient:            httpClient,
 	}
 }
 

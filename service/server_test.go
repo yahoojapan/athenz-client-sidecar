@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -116,9 +117,9 @@ func Test_server_ListenAndServe(t *testing.T) {
 		func() test {
 			ctx, cancelFunc := context.WithCancel(context.Background())
 
-			keyKey := "dummy_key"
+			keyKey := "_dummy_key_"
 			key := "./assets/dummyServer.key"
-			certKey := "dummy_cert"
+			certKey := "_dummy_cert_"
 			cert := "./assets/dummyServer.crt"
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -163,10 +164,10 @@ func Test_server_ListenAndServe(t *testing.T) {
 					ctx: ctx,
 				},
 				beforeFunc: func() error {
-					if err := os.Setenv(keyKey, key); err != nil {
+					if err := os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key); err != nil {
 						return err
 					}
-					if err := os.Setenv(certKey, cert); err != nil {
+					if err := os.Setenv(strings.TrimPrefix(strings.TrimSuffix(certKey, "_"), "_"), cert); err != nil {
 						return err
 					}
 					return nil
@@ -198,10 +199,10 @@ func Test_server_ListenAndServe(t *testing.T) {
 				},
 				afterFunc: func() error {
 					cancelFunc()
-					if err := os.Unsetenv(keyKey); err != nil {
+					if err := os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_")); err != nil {
 						return err
 					}
-					if err := os.Unsetenv(certKey); err != nil {
+					if err := os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(certKey, "_"), "_")); err != nil {
 						return nil
 					}
 					return nil
@@ -209,9 +210,9 @@ func Test_server_ListenAndServe(t *testing.T) {
 			}
 		}(),
 		func() test {
-			keyKey := "dummy_key"
+			keyKey := "_dummy_key_"
 			key := "./assets/dummyServer.key"
-			certKey := "dummy_cert"
+			certKey := "_dummy_cert_"
 			cert := "./assets/dummyServer.crt"
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -258,10 +259,10 @@ func Test_server_ListenAndServe(t *testing.T) {
 					ctx: context.Background(),
 				},
 				beforeFunc: func() error {
-					if err := os.Setenv(keyKey, key); err != nil {
+					if err := os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key); err != nil {
 						return err
 					}
-					if err := os.Setenv(certKey, cert); err != nil {
+					if err := os.Setenv(strings.TrimPrefix(strings.TrimSuffix(certKey, "_"), "_"), cert); err != nil {
 						return err
 					}
 					return nil
@@ -292,10 +293,10 @@ func Test_server_ListenAndServe(t *testing.T) {
 					return nil
 				},
 				afterFunc: func() error {
-					if err := os.Unsetenv(keyKey); err != nil {
+					if err := os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_")); err != nil {
 						return err
 					}
-					if err := os.Unsetenv(certKey); err != nil {
+					if err := os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(certKey, "_"), "_")); err != nil {
 						return nil
 					}
 					return nil
@@ -304,9 +305,9 @@ func Test_server_ListenAndServe(t *testing.T) {
 		}(),
 
 		func() test {
-			keyKey := "dummy_key"
+			keyKey := "_dummy_key_"
 			key := "./assets/dummyServer.key"
-			certKey := "dummy_cert"
+			certKey := "_dummy_cert_"
 			cert := "./assets/dummyServer.crt"
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -353,10 +354,10 @@ func Test_server_ListenAndServe(t *testing.T) {
 					ctx: context.Background(),
 				},
 				beforeFunc: func() error {
-					if err := os.Setenv(keyKey, key); err != nil {
+					if err := os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key); err != nil {
 						return err
 					}
-					if err := os.Setenv(certKey, cert); err != nil {
+					if err := os.Setenv(strings.TrimPrefix(strings.TrimSuffix(certKey, "_"), "_"), cert); err != nil {
 						return err
 					}
 					return nil
@@ -387,10 +388,10 @@ func Test_server_ListenAndServe(t *testing.T) {
 					return nil
 				},
 				afterFunc: func() error {
-					if err := os.Unsetenv(keyKey); err != nil {
+					if err := os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_")); err != nil {
 						return err
 					}
-					if err := os.Unsetenv(certKey); err != nil {
+					if err := os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(certKey, "_"), "_")); err != nil {
 						return nil
 					}
 					return nil
@@ -559,9 +560,9 @@ func Test_server_listenAndServeAPI(t *testing.T) {
 	}
 	tests := []test{
 		func() test {
-			keyKey := "dummy_key"
+			keyKey := "_dummy_key_"
 			key := "./assets/dummyServer.key"
-			certKey := "dummy_cert"
+			certKey := "_dummy_cert_"
 			cert := "./assets/dummyServer.crt"
 
 			return test{
@@ -583,11 +584,11 @@ func Test_server_listenAndServeAPI(t *testing.T) {
 					},
 				},
 				beforeFunc: func() error {
-					err := os.Setenv(keyKey, key)
+					err := os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key)
 					if err != nil {
 						return err
 					}
-					err = os.Setenv(certKey, cert)
+					err = os.Setenv(strings.TrimPrefix(strings.TrimSuffix(certKey, "_"), "_"), cert)
 					if err != nil {
 						return err
 					}
@@ -608,8 +609,8 @@ func Test_server_listenAndServeAPI(t *testing.T) {
 					return nil
 				},
 				afterFunc: func() error {
-					os.Unsetenv(keyKey)
-					os.Unsetenv(certKey)
+					os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"))
+					os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(certKey, "_"), "_"))
 					return nil
 				},
 				want: http.ErrServerClosed,

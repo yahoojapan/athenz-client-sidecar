@@ -111,6 +111,9 @@ type Role struct {
 	// AthenzURL represent the athenz URL to get the role token
 	AthenzURL string `yaml:"athenz_url"`
 
+	// AthenzRootCA represent the Athenz server Root Certificate
+	AthenzRootCA string `yaml:"athenz_root_ca"`
+
 	// TokenExpiry represent the duration of the expiration
 	TokenExpiry string `yaml:"expiration"`
 }

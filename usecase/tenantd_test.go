@@ -42,12 +42,12 @@ func TestNew(t *testing.T) {
 			wantErr: fmt.Errorf("invalid token refresh duration , time: invalid duration "),
 		},
 		func() test {
-			keyKey := "dummyKey"
+			keyKey := "_dummyKey_"
 			key := "./assets/dummyServer.key"
 			cfg := config.Config{
 				Token: config.Token{
-					AthenzDomain:    keyKey,
-					ServiceName:     keyKey,
+					AthenzDomain:    strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					ServiceName:     strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
 					PrivateKeyPath:  key,
 					ValidateToken:   false,
 					RefreshDuration: "1m",
@@ -66,8 +66,8 @@ func TestNew(t *testing.T) {
 					cfg: cfg,
 				},
 				want: func() Tenant {
-					os.Setenv(keyKey, key)
-					defer os.Unsetenv(keyKey)
+					os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key)
+					defer os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"))
 					token, err := createNtokend(cfg.Token)
 					if err != nil {
 						panic(err)
@@ -138,17 +138,17 @@ func Test_tenantd_Start(t *testing.T) {
 	}
 	tests := []test{
 		func() test {
-			keyKey := "dummyKey"
+			keyKey := "_dummyKey_"
 			key := "./assets/dummyServer.key"
 
-			certKey := "dummy_cert"
+			certKey := "_dummy_cert_"
 			cert := "./assets/dummyServer.crt"
 
 			cfg := config.Config{
 				Token: config.Token{
-					AthenzDomain:    keyKey,
-					ServiceName:     keyKey,
-					PrivateKeyPath:  "_" + keyKey + "_",
+					AthenzDomain:    strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					ServiceName:     strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					PrivateKeyPath:  keyKey,
 					ValidateToken:   false,
 					RefreshDuration: "1m",
 					KeyVersion:      "1",
@@ -167,8 +167,8 @@ func Test_tenantd_Start(t *testing.T) {
 
 			ctx, cancelFunc := context.WithCancel(context.Background())
 
-			os.Setenv(keyKey, key)
-			os.Setenv(certKey, cert)
+			os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key)
+			os.Setenv(strings.TrimPrefix(strings.TrimSuffix(certKey, "_"), "_"), cert)
 
 			return test{
 				name: "Token updater works",
@@ -204,7 +204,7 @@ func Test_tenantd_Start(t *testing.T) {
 					return nil
 				},
 				afterFunc: func() {
-					os.Unsetenv(keyKey)
+					os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"))
 				},
 				want: []error{context.Canceled},
 			}
@@ -270,7 +270,7 @@ func Test_createNtokend(t *testing.T) {
 			wantErr: fmt.Errorf("invalid token expiration %s, %v", "dummy", "time: invalid duration dummy"),
 		},
 		func() test {
-			keyKey := "dummyKey"
+			keyKey := "_dummyKey_"
 			key := "notexists"
 
 			return test{
@@ -280,21 +280,21 @@ func Test_createNtokend(t *testing.T) {
 						cfg: config.Token{
 							RefreshDuration: "1m",
 							Expiration:      "1m",
-							PrivateKeyPath:  "_" + keyKey + "_",
+							PrivateKeyPath:  keyKey,
 						},
 					}
 				}(),
 				beforeFunc: func() {
-					os.Setenv(keyKey, key)
+					os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key)
 				},
 				afterFunc: func() {
-					os.Unsetenv(keyKey)
+					os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"))
 				},
 				wantErr: fmt.Errorf("invalid token certificate open %v", "notexists: no such file or directory"),
 			}
 		}(),
 		func() test {
-			keyKey := "dummyKey"
+			keyKey := "_dummyKey_"
 			key := "./assets/invalid_dummyServer.key"
 
 			return test{
@@ -305,16 +305,16 @@ func Test_createNtokend(t *testing.T) {
 						cfg: config.Token{
 							RefreshDuration: "1m",
 							Expiration:      "1m",
-							PrivateKeyPath:  "_" + keyKey + "_",
+							PrivateKeyPath:  keyKey,
 							NTokenPath:      "",
 						},
 					}
 				}(),
 				beforeFunc: func() {
-					os.Setenv(keyKey, key)
+					os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key)
 				},
 				afterFunc: func() {
-					os.Unsetenv(keyKey)
+					os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"))
 				},
 				wantErr: fmt.Errorf(`failed to create ZMS SVC Token Builder
 AthenzDomain:	
@@ -324,13 +324,13 @@ Error: Unable to create signer: Unable to load private key`),
 			}
 		}(),
 		func() test {
-			keyKey := "dummyKey"
+			keyKey := "_dummyKey_"
 			key := "./assets/dummyServer.key"
 			cfg := config.Token{
-				AthenzDomain:    keyKey,
-				ServiceName:     keyKey,
+				AthenzDomain:    strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+				ServiceName:     strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
 				NTokenPath:      "",
-				PrivateKeyPath:  "_" + keyKey + "_",
+				PrivateKeyPath:  keyKey,
 				ValidateToken:   false,
 				RefreshDuration: "1s",
 				KeyVersion:      "1",
@@ -357,7 +357,7 @@ Error: Unable to create signer: Unable to load private key`),
 					return tok
 				}(),
 				beforeFunc: func() {
-					os.Setenv(keyKey, key)
+					os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key)
 				},
 				checkFunc: func(got, want ntokend.TokenService) error {
 					ctx, cancel := context.WithCancel(context.Background())
@@ -400,7 +400,7 @@ Error: Unable to create signer: Unable to load private key`),
 					return nil
 				},
 				afterFunc: func() {
-					os.Unsetenv(keyKey)
+					os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"))
 				},
 			}
 		}(),

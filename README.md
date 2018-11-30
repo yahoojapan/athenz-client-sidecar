@@ -134,16 +134,16 @@ Example:
 
 | Name                        | Description                                                  | Required? | Example  |
 | --------------------------- | ------------------------------------------------------------ | --------- | -------- |
-| Athenz-Role-Auth            | The user role name used to generate the role token           | Yes       | users    |
-| Athenz-Domain-Auth          | The domain name used to generate the role token              | Yes       | provider |
-| Athenz-Proxy-Principal-Auth | The proxy for principal name used to generate the role token | Yes       | username |
+| Athenz-Role            | The user role name used to generate the role token           | Yes       | users    |
+| Athenz-Domain          | The domain name used to generate the role token              | Yes       | provider |
+| Athenz-Proxy-Principal | The proxy for principal name used to generate the role token | Yes       | username |
 
 HTTP header Example:
 
 ``` none
-Athenz-Role-Auth: users
-Athenz-Domain-Auth: provider
-Athenz-Proxy-Principal-Auth: username
+Athenz-Role: users
+Athenz-Domain: provider
+Athenz-Proxy-Principal: username
 ```
 
 - The destination server will return back to user via proxy.
@@ -365,9 +365,9 @@ func MakeRequestUsingProxy(method, targetURL string, body io.Reader, role, domai
     }
 
     // append header for the proxy
-    req.Header.Set("Athenz-Role-Auth", role)
-    req.Header.Set("Athenz-Domain-Auth", domain)
-    req.Header.Set("Athenz-Proxy-Principal-Auth", proxyPrincipal)
+    req.Header.Set("Athenz-Role", role)
+    req.Header.Set("Athenz-Domain", domain)
+    req.Header.Set("Athenz-Proxy-Principal", proxyPrincipal)
 
     // make request through the proxy
     res, err := httpClient.Do(req)

@@ -23,8 +23,8 @@ func TestNewRoutes(t *testing.T) {
 		func() test {
 			// prepare handler.Handler for calling NewRoutes()
 			proxyConfig := config.Proxy{
-				AuthHeader: "X-test-auth-header",
-				RoleHeader: "X-test-role-header",
+				PrincipalAuthHeaderName: "X-test-auth-header",
+				RoleAuthHeaderName: "X-test-role-header",
 				BufferSize: 1024,
 			}
 			h := handler.New(proxyConfig, nil, nil, nil)

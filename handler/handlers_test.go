@@ -79,7 +79,7 @@ func TestNew(t *testing.T) {
 			args: args{
 				cfg: config.Proxy{
 					BufferSize: 72,
-					AuthHeader: "auth-header-73",
+					PrincipalAuthHeaderName: "auth-header-73",
 				},
 				bp: infra.NewBuffer(uint64(75)),
 				token: func() (string, error) {
@@ -95,7 +95,7 @@ func TestNew(t *testing.T) {
 			want: &handler{
 				cfg: config.Proxy{
 					BufferSize: 72,
-					AuthHeader: "auth-header-73",
+					PrincipalAuthHeaderName: "auth-header-73",
 				},
 			},
 			checkFunc: func(got, want *handler) error {
@@ -332,7 +332,7 @@ func Test_handler_NTokenProxy(t *testing.T) {
 					return "token-365", nil
 				},
 				cfg: config.Proxy{
-					AuthHeader: "auth-header-368",
+					PrincipalAuthHeaderName: "auth-header-368",
 				},
 			},
 			args: args{
@@ -371,7 +371,7 @@ func Test_handler_NTokenProxy(t *testing.T) {
 					return "token-405", nil
 				},
 				cfg: config.Proxy{
-					AuthHeader: "auth-header-408",
+					PrincipalAuthHeaderName: "auth-header-408",
 				},
 			},
 			args: args{
@@ -407,7 +407,7 @@ func Test_handler_NTokenProxy(t *testing.T) {
 					return "token-445", nil
 				},
 				cfg: config.Proxy{
-					AuthHeader: "auth-header-448",
+					PrincipalAuthHeaderName: "auth-header-448",
 				},
 			},
 			args: args{
@@ -782,16 +782,16 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 					}, nil
 				},
 				cfg: config.Proxy{
-					RoleHeader: "role-header-836",
+					RoleAuthHeaderName: "role-header-836",
 				},
 			},
 			args: args{
 				w: httptest.NewRecorder(),
 				r: func() *http.Request {
 					request := httptest.NewRequest(http.MethodGet, "http://url-842", nil)
-					request.Header.Set("Athenz-Role-Auth", "athenz-role-auth-843")
-					request.Header.Set("Athenz-Domain-Auth", "athenz-domain-auth-844")
-					request.Header.Set("Athenz-Proxy-Principal-Auth", "athenz-proxy-principal-auth-845")
+					request.Header.Set("Athenz-Role", "athenz-role-auth-843")
+					request.Header.Set("Athenz-Domain", "athenz-domain-auth-844")
+					request.Header.Set("Athenz-Proxy-Principal", "athenz-proxy-principal-auth-845")
 					return request
 				}(),
 			},
@@ -840,16 +840,16 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 					}, nil
 				},
 				cfg: config.Proxy{
-					RoleHeader: "role-header-894",
+					RoleAuthHeaderName: "role-header-894",
 				},
 			},
 			args: args{
 				w: httptest.NewRecorder(),
 				r: func() *http.Request {
 					request := httptest.NewRequest(http.MethodGet, "http://url-900", strings.NewReader("body-900"))
-					request.Header.Set("Athenz-Role-Auth", "athenz-role-auth-901")
-					request.Header.Set("Athenz-Domain-Auth", "athenz-domain-auth-902")
-					request.Header.Set("Athenz-Proxy-Principal-Auth", "athenz-proxy-principal-auth-903")
+					request.Header.Set("Athenz-Role", "athenz-role-auth-901")
+					request.Header.Set("Athenz-Domain", "athenz-domain-auth-902")
+					request.Header.Set("Athenz-Proxy-Principal", "athenz-proxy-principal-auth-903")
 					return request
 				}(),
 			},
@@ -890,7 +890,7 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 					}, nil
 				},
 				cfg: config.Proxy{
-					RoleHeader: "role-header-944",
+					RoleAuthHeaderName: "role-header-944",
 				},
 			},
 			args: args{

@@ -70,13 +70,13 @@ func TestNew(t *testing.T) {
 					Expiration:      "20m",
 				},
 				Role: Role{
-					AuthHeader:  "Yahoo-Principal-Auth",
+					PrincipalAuthHeaderName:  "Yahoo-Principal-Auth",
 					AthenzURL:   "https://alpha.zts.athenz.yahoo.co.jp:4443/zts/v1",
 					TokenExpiry: "30m",
 				},
 				Proxy: Proxy{
-					AuthHeader: "Athenz-Principal-Auth",
-					RoleHeader: "Athenz-Role-Auth",
+					PrincipalAuthHeaderName: "Yahoo-Principal-Auth",
+					RoleAuthHeaderName: "Yahoo-Role-Auth",
 					BufferSize: 1024,
 				},
 			},

@@ -22,11 +22,12 @@ ntoken:
   key_version: v1.0
   expiration: 20m
 roletoken:
+  auth_header_key: Yahoo-Principal-Auth
   athenz_url: https://alpha.zts.athenz.yahoo.co.jp:4443/zts/v1
   expiration: 30m
   proxy_principal: ""
 proxy:
-  auth_header_key: Athenz-Principal-Auth
-  role_header_key: Athenz-Role-Auth
+  auth_header_key: Yahoo-Principal-Auth
+  role_header_key: Yahoo-Role-Auth
   buffer_size: 1024
 

@@ -66,11 +66,11 @@ type TLS struct {
 
 // Proxy represent the reverse proxy configuration to connect to Athenz server
 type Proxy struct {
-	// AuthHeader represent the HTTP header key name of the authenication token for N-Token proxy request
-	AuthHeader string `yaml:"auth_header_key"`
+	// PrincipalAuthHeaderName represent the HTTP header key name of the authenication token for N-Token proxy request
+	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
 
-	// RoleHeader represent the HTTP header key name of the role token for Role token proxy request
-	RoleHeader string `yaml:"role_header_key"`
+	// RoleAuthHeaderName represent the HTTP header key name of the role token for Role token proxy request
+	RoleAuthHeaderName string `yaml:"role_header_key"`
 
 	// BufferSize represent the reverse proxy buffer size
 	BufferSize uint64 `yaml:"buffer_size"`
@@ -105,8 +105,8 @@ type Token struct {
 
 // Role represent the Role token configuration
 type Role struct {
-	// AuthHeader is the HTTP header name for holding the n-token.
-	AuthHeader string `yaml:"auth_header_key"`
+	// PrincipalAuthHeaderName is the HTTP header name for holding the n-token.
+	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
 
 	// AthenzURL represent the athenz URL to get the role token
 	AthenzURL string `yaml:"athenz_url"`

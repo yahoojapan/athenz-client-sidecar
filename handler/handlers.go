@@ -70,7 +70,7 @@ func (h *handler) NTokenProxy(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	r.Header.Set(h.cfg.AuthHeader, tok)
+	r.Header.Set(h.cfg.PrincipalAuthHeaderName, tok)
 	h.proxy.ServeHTTP(w, r)
 	return nil
 }
@@ -96,14 +96,14 @@ func (h *handler) RoleToken(w http.ResponseWriter, r *http.Request) error {
 func (h *handler) RoleTokenProxy(w http.ResponseWriter, r *http.Request) error {
 	defer flushAndClose(r.Body)
 
-	role := r.Header.Get("Athenz-Role-Auth")
-	domain := r.Header.Get("Athenz-Domain-Auth")
-	principal := r.Header.Get("Athenz-Proxy-Principal-Auth")
+	role := r.Header.Get("Athenz-Role")
+	domain := r.Header.Get("Athenz-Domain")
+	principal := r.Header.Get("Athenz-Proxy-Principal")
 	tok, err := h.role(r.Context(), domain, role, principal, 0, 0)
 	if err != nil {
 		return err
 	}
-	r.Header.Set(h.cfg.RoleHeader, tok.Token)
+	r.Header.Set(h.cfg.RoleAuthHeaderName, tok.Token)
 	h.proxy.ServeHTTP(w, r)
 	return nil
 }

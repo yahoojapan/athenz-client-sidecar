@@ -73,7 +73,7 @@ func NewRoleService(cfg config.Role, token ntokend.TokenProvider) RoleService {
 		cfg:                   cfg,
 		token:                 token,
 		athenzURL:             cfg.AthenzURL,
-		athenzPrincipleHeader: cfg.AuthHeader,
+		athenzPrincipleHeader: cfg.PrincipalAuthHeaderName,
 		domainRoleCache:       gache.New(),
 		expiry:                dur,
 		httpClient:            http.DefaultClient,

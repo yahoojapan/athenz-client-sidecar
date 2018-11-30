@@ -20,8 +20,8 @@ import (
 func TestNew(t *testing.T) {
 	// prepare handler.Handler for calling New()
 	proxyConfig := config.Proxy{
-		AuthHeader: "X-test-auth-header",
-		RoleHeader: "X-test-role-header",
+		PrincipalAuthHeaderName: "X-test-auth-header",
+		RoleAuthHeaderName: "X-test-role-header",
 		BufferSize: 1024,
 	}
 	h := handler.New(proxyConfig, nil, nil, nil)

@@ -26,7 +26,7 @@ roletoken:
   expiration: 30m
   proxy_principal: ""
 proxy:
-  auth_header_key: Athenz-Principal-Auth
-  role_header_key: Athenz-Role-Auth
+  auth_header_key: Yahoo-Principal-Auth
+  role_header_key: Yahoo-Role-Auth
   buffer_size: 1024
 

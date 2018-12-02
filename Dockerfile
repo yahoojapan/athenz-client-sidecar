@@ -25,7 +25,8 @@ RUN CGO_ENABLED=1 \
     GOARCH=$(go env GOARCH) \
     GO111MODULE=on \
     go build --ldflags '-s -w -linkmode "external" -extldflags "-static -fPIC -m64 -pthread -std=c++11 -lstdc++"' -a -tags "cgo netgo" -installsuffix "cgo netgo" -o "${APP_NAME}" \
-    && upx -9 -o "/usr/bin/${APP_NAME}" "${APP_NAME}"
+    && upx -9 -o "/usr/bin/${APP_NAME}" "${APP_NAME}" \
+    && mv config/cybertrust_root_cacert_g2.crt /etc/athenz/ca.crt
 
 RUN apk del build-dependencies --purge \
     && rm -rf "${GOPATH}"
@@ -43,5 +44,7 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /etc/passwd /etc/passwd
 # Copy our static executable
 COPY --from=builder /usr/bin/${APP_NAME} /go/bin/${APP_NAME}
+# Copy root ca
+COPY --from=builder /etc/athenz/ca.crt /etc/athenz/ca.crt
 
 ENTRYPOINT ["/go/bin/tenant"]

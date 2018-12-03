@@ -30,9 +30,9 @@ func TestNewRoleService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.Role{
-					TokenExpiry: "5s",
-					AthenzURL:   "http://dummy",
-					PrincipalAuthHeaderName:  "dummyAuthHeader",
+					TokenExpiry:             "5s",
+					AthenzURL:               "dummy",
+					PrincipalAuthHeaderName: "dummyAuthHeader",
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -71,7 +71,7 @@ func TestNewRoleService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.Role{
-					AthenzURL:  "http://dummy",
+					AthenzURL:               "dummy",
 					PrincipalAuthHeaderName: "dummyAuthHeader",
 				},
 				token: func() (string, error) {
@@ -158,7 +158,7 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintf(w, dummyToken2)
 			})
-			dummyServer := httptest.NewServer(sampleHandler)
+			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			domainRoleCache.SetWithExpire("dummyDomain-dummyRole", &cacheData{
 				token: dummyRoleToken,
@@ -275,7 +275,7 @@ func Test_roleService_getRoleToken(t *testing.T) {
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintf(w, dummyToken)
 			})
-			dummyServer := httptest.NewServer(sampleHandler)
+			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
 				name: "getRoleToken returns correct",
@@ -310,7 +310,7 @@ func Test_roleService_getRoleToken(t *testing.T) {
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 			})
-			dummyServer := httptest.NewServer(sampleHandler)
+			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
 				name: "getRoleToken returns error",
@@ -421,7 +421,7 @@ func Test_roleService_handleExpiredHook(t *testing.T) {
 		{
 			name: "handleExpiredHook can run",
 			fields: fields{
-				httpClient:      httptest.NewServer(nil).Client(),
+				httpClient:      httptest.NewTLSServer(nil).Client(),
 				domainRoleCache: gache.New(),
 				token: func() (string, error) {
 					return "dummyToken", nil
@@ -488,7 +488,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintf(w, dummyToken)
 			})
-			dummyServer := httptest.NewServer(sampleHandler)
+			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
 				name: "updateRoleToken returns correct",
@@ -550,7 +550,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintf(w, dummyToken)
 			})
-			dummyServer := httptest.NewServer(sampleHandler)
+			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
 				name: "updateRoleToken new request returns error",
@@ -560,7 +560,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					token: func() (string, error) {
 						return "", nil
 					},
-					athenzURL:             "http://127.0.0.1:9876",
+					athenzURL:             "127.0.0.1:9876",
 					athenzPrincipleHeader: "Yahoo-Principal-Auth",
 				},
 				args: args{
@@ -571,7 +571,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					minExpiry:         time.Second,
 					maxExpiry:         time.Second,
 				},
-				wantErr: fmt.Errorf("Get http://127.0.0.1:9876/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1000000000&maxExpiryTime=1000000000&proxyForPrincipal=dummyProxy: dial tcp 127.0.0.1:9876: connect: connection refused"),
+				wantErr: fmt.Errorf("Get https://127.0.0.1:9876/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1000000000&maxExpiryTime=1000000000&proxyForPrincipal=dummyProxy: dial tcp 127.0.0.1:9876: connect: connection refused"),
 			}
 		}(),
 		func() test {
@@ -582,7 +582,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
 			})
-			dummyServer := httptest.NewServer(sampleHandler)
+			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
 				name: "updateRoleToken get token error",
@@ -616,7 +616,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintf(w, dummyToken)
 			})
-			dummyServer := httptest.NewServer(sampleHandler)
+			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
 				name: "updateRoleToken decode token error",
@@ -652,7 +652,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintf(w, dummyToken)
 			})
-			dummyServer := httptest.NewServer(sampleHandler)
+			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			roleRoleCache := gache.New()
 
@@ -697,7 +697,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintf(w, dummyToken)
 			})
-			dummyServer := httptest.NewServer(sampleHandler)
+			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			domainRoleCache := gache.New()
 
@@ -880,47 +880,47 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 		{
 			name: "getRoleTokenAthenzURL correct",
 			args: args{
-				athenzURL:         "http://dummyUURL",
+				athenzURL:         "dummyUURL",
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				minExpiry:         time.Second,
 				maxExpiry:         time.Second,
 				proxyForPrincipal: "dummyProxyForPrincipal",
 			},
-			want: "http://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1000000000&maxExpiryTime=1000000000&proxyForPrincipal=dummyProxyForPrincipal",
+			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1000000000&maxExpiryTime=1000000000&proxyForPrincipal=dummyProxyForPrincipal",
 		},
 		{
 			name: "getRoleTokenAthenzURL correct null minExpiry",
 			args: args{
-				athenzURL:         "http://dummyUURL",
+				athenzURL:         "dummyUURL",
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				maxExpiry:         time.Second,
 				proxyForPrincipal: "dummyProxyForPrincipal",
 			},
-			want: "http://dummyUURL/domain/dummyDomain/token?role=dummyRole&maxExpiryTime=1000000000&proxyForPrincipal=dummyProxyForPrincipal",
+			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&maxExpiryTime=1000000000&proxyForPrincipal=dummyProxyForPrincipal",
 		},
 		{
 			name: "getRoleTokenAthenzURL correct null maxExpiry",
 			args: args{
-				athenzURL:         "http://dummyUURL",
+				athenzURL:         "dummyUURL",
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				minExpiry:         time.Second,
 				proxyForPrincipal: "dummyProxyForPrincipal",
 			},
-			want: "http://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1000000000&maxExpiryTime=0&proxyForPrincipal=dummyProxyForPrincipal",
+			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1000000000&maxExpiryTime=0&proxyForPrincipal=dummyProxyForPrincipal",
 		},
 		{
 			name: "getRoleTokenAthenzURL correct null proxyForPrincipal",
 			args: args{
-				athenzURL: "http://dummyUURL",
+				athenzURL: "dummyUURL",
 				domain:    "dummyDomain",
 				role:      "dummyRole",
 				minExpiry: time.Second,
 				maxExpiry: time.Second,
 			},
-			want: "http://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1000000000&maxExpiryTime=1000000000&proxyForPrincipal=",
+			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1000000000&maxExpiryTime=1000000000&proxyForPrincipal=",
 		},
 	}
 	for _, tt := range tests {

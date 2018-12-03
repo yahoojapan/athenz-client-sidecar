@@ -223,7 +223,7 @@ func decode(key string) (string, string) {
 }
 
 func getRoleTokenAthenzURL(athenzURL, domain, role string, minExpiry, maxExpiry time.Duration, proxyForPrincipal string) string {
-	u := fmt.Sprintf("%s/domain/%s/token?role=%s", athenzURL, domain, url.QueryEscape(role))
+	u := fmt.Sprintf("https://%s/domain/%s/token?role=%s", strings.TrimPrefix(strings.TrimPrefix(athenzURL, "https://"), "http://"), domain, url.QueryEscape(role))
 
 	switch {
 	case minExpiry > 0:

@@ -1,0 +1,33 @@
+---
+versi
+on: v1.0.0
+server:
+  port: 8080
+  health_check_port: 80
+  health_check_path: /healthz
+  timeout: 10s
+  shutdown_duration: 5s
+  tls:
+    enabled: true
+    cert: _cert_
+    key: _key_
+    ca: _ca_
+ntoken:
+  athenz_domain:  _athenz_domain_
+  service_name: _service_name_
+  ntoken_path: "/tmp/ntoken"
+  private_key_path: _athenz_private_key_
+  validate_token: false
+  refresh_duration: 30m
+  key_version: v1.0
+  expiration: 20m
+roletoken:
+  auth_header_key: Athenz-Principal
+  athenz_url: https://www.athenz.com:4443/zts/v1
+  expiration: 30m
+  proxy_principal: ""
+proxy:
+  auth_header_key: Athenz-Principal
+  role_header_key: Athenz-Role-Auth
+  buffer_size: 1024
+

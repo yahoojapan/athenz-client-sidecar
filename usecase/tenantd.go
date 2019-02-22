@@ -27,7 +27,7 @@ type clientd struct {
 }
 
 // New returns a client sidecar daemon, or any error occurred.
-// Tenant sidecar daemon contains token service, role token service, host certificate service, user database client and client sidecar service.
+// Client sidecar daemon contains token service, role token service, host certificate service, user database client and client sidecar service.
 func New(cfg config.Config) (Tenant, error) {
 	// create token service
 	token, err := createNtokend(cfg.Token)

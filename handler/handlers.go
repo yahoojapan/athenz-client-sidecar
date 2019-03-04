@@ -57,6 +57,7 @@ func (h *handler) NToken(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	w.Header().Set("Content-type", "application/json; charset=utf-8")
 	return json.NewEncoder(w).Encode(model.NTokenResponse{
 		NToken: tok,
 	})
@@ -89,6 +90,7 @@ func (h *handler) RoleToken(w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
+	w.Header().Set("Content-type", "application/json; charset=utf-8")
 	return json.NewEncoder(w).Encode(tok)
 }
 

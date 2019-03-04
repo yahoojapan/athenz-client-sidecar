@@ -14,7 +14,7 @@ func TestGetVersion(t *testing.T) {
 		want string
 	}{
 		{
-			name: "Get Tenant Sidecar version",
+			name: "Get Client Sidecar version",
 			want: "v1.0.0",
 		},
 	}

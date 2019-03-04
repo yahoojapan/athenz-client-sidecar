@@ -1,9 +1,9 @@
-# Athenz Tenant Sidecar for Kubernetes
+# Athenz Client Sidecar for Kubernetes
 
 Table of Contents
 =================
 
-- [Athenz Tenant Sidecar for Kubernetes](#athenz-client-sidecar-for-kubernetes)
+- [Athenz Client Sidecar for Kubernetes](#athenz-client-sidecar-for-kubernetes)
   - [What is Athenz client sidecar?](#what-is-athenz-client-sidecar)
     - [Get Athenz N-Token from client sidecar](#get-athenz-n-token-from-client-sidecar)
     - [Get Athenz Role Token from client sidecar](#get-athenz-role-token-from-client-sidecar)

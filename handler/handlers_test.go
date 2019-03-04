@@ -78,7 +78,7 @@ func TestNew(t *testing.T) {
 			name: "Check New, works normally",
 			args: args{
 				cfg: config.Proxy{
-					BufferSize: 72,
+					BufferSize:              72,
 					PrincipalAuthHeaderName: "auth-header-73",
 				},
 				bp: infra.NewBuffer(uint64(75)),
@@ -94,7 +94,7 @@ func TestNew(t *testing.T) {
 			},
 			want: &handler{
 				cfg: config.Proxy{
-					BufferSize: 72,
+					BufferSize:              72,
 					PrincipalAuthHeaderName: "auth-header-73",
 				},
 			},
@@ -195,9 +195,11 @@ func Test_handler_NToken(t *testing.T) {
 				r: httptest.NewRequest(http.MethodGet, "http://url-235", nil),
 			},
 			want: want{
-				code:   http.StatusOK,
-				header: map[string]string{},
-				body:   []byte(`{"token":"token-230"}` + "\n"),
+				code: http.StatusOK,
+				header: map[string]string{
+					"Content-type": "application/json; charset=utf-8",
+				},
+				body: []byte(`{"token":"token-230"}` + "\n"),
 			},
 		},
 		testcase{
@@ -591,9 +593,11 @@ func Test_handler_RoleToken(t *testing.T) {
 				}`)),
 			},
 			want: want{
-				code:   http.StatusOK,
-				header: map[string]string{},
-				body:   []byte(`{"token":"role-token-629","expiryTime":630}` + "\n"),
+				code: http.StatusOK,
+				header: map[string]string{
+					"Content-type": "application/json; charset=utf-8",
+				},
+				body: []byte(`{"token":"role-token-629","expiryTime":630}` + "\n"),
 			},
 		},
 		func() testcase {

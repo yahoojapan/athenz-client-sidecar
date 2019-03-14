@@ -40,7 +40,7 @@ func TestNewTLSConfig(t *testing.T) {
 	}
 
 	tests := []test{
-		test{
+		{
 			name: "Check the minimum SSL/TLS version",
 			args: defaultArgs,
 			want: &tls.Config{
@@ -75,7 +75,7 @@ func TestNewTLSConfig(t *testing.T) {
 				return nil
 			},
 		},
-		test{
+		{
 			name: "Check values of 'CurvePreferences'",
 			args: defaultArgs,
 			want: &tls.Config{
@@ -124,7 +124,7 @@ func TestNewTLSConfig(t *testing.T) {
 				return nil
 			},
 		},
-		test{
+		{
 			name: "Check whether the value of 'SessionTicketsDisabled' is true",
 			args: defaultArgs,
 			want: &tls.Config{
@@ -159,7 +159,7 @@ func TestNewTLSConfig(t *testing.T) {
 				return nil
 			},
 		},
-		test{
+		{
 			name: "Check certificates",
 			args: defaultArgs,
 			want: &tls.Config{
@@ -194,7 +194,7 @@ func TestNewTLSConfig(t *testing.T) {
 				return nil
 			},
 		},
-		test{
+		{
 			name: "Check whether ClientAuth is 'RequireAndVerifyClientCert'",
 			args: defaultArgs,
 			want: &tls.Config{
@@ -229,7 +229,7 @@ func TestNewTLSConfig(t *testing.T) {
 				return nil
 			},
 		},
-		test{
+		{
 			name: "Request without cert file",
 			args: defaultArgs,
 			beforeFunc: func(args args) {
@@ -242,7 +242,7 @@ func TestNewTLSConfig(t *testing.T) {
 			},
 			wantErr: fmt.Errorf("Cert/Key path not found"),
 		},
-		test{
+		{
 			name: "Request without key file",
 			args: defaultArgs,
 			beforeFunc: func(args args) {
@@ -255,7 +255,7 @@ func TestNewTLSConfig(t *testing.T) {
 			},
 			wantErr: fmt.Errorf("Cert/Key path not found"),
 		},
-		test{
+		{
 			name: "Check whether ClientAuth is 'NoClientCert' when requesting without CA file",
 			args: defaultArgs,
 			want: &tls.Config{
@@ -288,7 +288,7 @@ func TestNewTLSConfig(t *testing.T) {
 				return nil
 			},
 		},
-		test{
+		{
 			name: "Request with invalid cert file",
 			args: defaultArgs,
 			beforeFunc: func(args args) {
@@ -304,7 +304,7 @@ func TestNewTLSConfig(t *testing.T) {
 			},
 			wantErr: fmt.Errorf("tls: failed to find any PEM data in certificate input"),
 		},
-		test{
+		{
 			name: "Request with invalid key file",
 			args: defaultArgs,
 			beforeFunc: func(args args) {
@@ -320,7 +320,7 @@ func TestNewTLSConfig(t *testing.T) {
 			},
 			wantErr: fmt.Errorf("tls: failed to find any PEM data in key input"),
 		},
-		test{
+		{
 			name: "Request with invalid CA file",
 			args: defaultArgs,
 			beforeFunc: func(args args) {
@@ -387,27 +387,27 @@ func TestNewX509CertPool(t *testing.T) {
 	}
 
 	tests := []test{
-		test{
+		{
 			name: "Get CA cert pool",
 			args: args{
 				path: "./assets/dummyCa.pem",
 			},
 		},
-		test{
+		{
 			name: "Missing CA file",
 			args: args{
 				path: "/tmp/CAfilenotfound.pem",
 			},
 			wantErr: fmt.Errorf("no such file or directory"),
 		},
-		test{
+		{
 			name: "Argument not specified",
 			args: args{
 				path: "",
 			},
 			wantErr: fmt.Errorf("no such file or directory"),
 		},
-		test{
+		{
 			name: "Request with invalid CA file",
 			args: args{
 				path: "./assets/invalid_dummyCa.pem",

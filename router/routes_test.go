@@ -24,8 +24,8 @@ func TestNewRoutes(t *testing.T) {
 			// prepare handler.Handler for calling NewRoutes()
 			proxyConfig := config.Proxy{
 				PrincipalAuthHeaderName: "X-test-auth-header",
-				RoleAuthHeaderName: "X-test-role-header",
-				BufferSize: 1024,
+				RoleAuthHeaderName:      "X-test-role-header",
+				BufferSize:              1024,
 			}
 			h := handler.New(proxyConfig, nil, nil, nil)
 

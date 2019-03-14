@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"github.com/kpango/glg"
+	"github.com/yahoojapan/athenz-client-sidecar/config"
 )
 
 // Server represents a client sidecar server behavior

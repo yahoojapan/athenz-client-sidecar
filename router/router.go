@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/kpango/glg"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"github.com/yahoojapan/athenz-client-sidecar/handler"
-	"github.com/kpango/glg"
 )
 
 //New returns Routed ServeMux

@@ -12,17 +12,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kpango/glg"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"github.com/yahoojapan/athenz-client-sidecar/handler"
-	"github.com/kpango/glg"
 )
 
 func TestNew(t *testing.T) {
 	// prepare handler.Handler for calling New()
 	proxyConfig := config.Proxy{
 		PrincipalAuthHeaderName: "X-test-auth-header",
-		RoleAuthHeaderName: "X-test-role-header",
-		BufferSize: 1024,
+		RoleAuthHeaderName:      "X-test-role-header",
+		BufferSize:              1024,
 	}
 	h := handler.New(proxyConfig, nil, nil, nil)
 

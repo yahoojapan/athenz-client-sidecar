@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kpango/gache"
 	ntokend "github.com/kpango/ntokend"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
-	"github.com/kpango/gache"
 	"golang.org/x/sync/singleflight"
 )
 

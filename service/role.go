@@ -14,11 +14,11 @@ import (
 	"strings"
 	"time"
 
-	ntokend "github.com/kpango/ntokend"
-	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"github.com/kpango/fastime"
 	"github.com/kpango/gache"
+	ntokend "github.com/kpango/ntokend"
 	"github.com/pkg/errors"
+	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"golang.org/x/sync/singleflight"
 )
 

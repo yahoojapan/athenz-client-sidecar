@@ -5,8 +5,8 @@ import (
 	"crypto/x509"
 	"io/ioutil"
 
-	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"github.com/pkg/errors"
+	"github.com/yahoojapan/athenz-client-sidecar/config"
 )
 
 var (
@@ -31,9 +31,9 @@ func NewTLSConfig(cfg config.TLS) (*tls.Config, error) {
 		ClientAuth:             tls.NoClientCert,
 	}
 
-	cert := config.GetActualValue(cfg.CertKey)
-	key := config.GetActualValue(cfg.KeyKey)
-	ca := config.GetActualValue(cfg.CAKey)
+	cert := config.GetActualValue(cfg.Cert)
+	key := config.GetActualValue(cfg.Key)
+	ca := config.GetActualValue(cfg.CA)
 
 	if cert == "" || key == "" {
 		return nil, ErrTLSCertOrKeyNotFound

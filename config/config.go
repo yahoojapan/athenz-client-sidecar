@@ -54,14 +54,14 @@ type TLS struct {
 	// Enable represent the client sidecar server enable TLS or not.
 	Enabled bool `yaml:"enabled"`
 
-	// CertKey represent the certificate environment variable key used to start client sidecar server.
-	CertKey string `yaml:"cert_key"`
+	// Cert represent the certificate used to start client sidecar server.
+	Cert string `yaml:"cert"`
 
-	// KeyKey represent the private key environment variable key used to start client sidecar server.
-	KeyKey string `yaml:"key_key"`
+	// Key represent the private key used to start client sidecar server.
+	Key string `yaml:"key"`
 
-	// CAKey represent the CA certificate environment variable key used to start client sidecar server.
-	CAKey string `yaml:"ca_key"`
+	// CAKey represent the CA certificate used to start client sidecar server.
+	CA string `yaml:"ca"`
 }
 
 // Proxy represent the reverse proxy configuration to connect to Athenz server

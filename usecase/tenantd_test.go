@@ -159,8 +159,8 @@ func Test_clientd_Start(t *testing.T) {
 					HealthzPath: "/dummyPath",
 					TLS: config.TLS{
 						Enabled: true,
-						CertKey: certKey,
-						KeyKey:  keyKey,
+						Cert:    certKey,
+						Key:     keyKey,
 					},
 				},
 			}

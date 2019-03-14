@@ -54,9 +54,9 @@ func TestNew(t *testing.T) {
 					ShutdownDuration: "5s",
 					TLS: TLS{
 						Enabled: true,
-						CertKey: "cert",
-						KeyKey:  "key",
-						CAKey:   "ca",
+						Cert:    "cert",
+						Key:     "key",
+						CA:      "ca",
 					},
 				},
 				Token: Token{
@@ -70,14 +70,14 @@ func TestNew(t *testing.T) {
 					Expiration:      "20m",
 				},
 				Role: Role{
-					PrincipalAuthHeaderName:  "Athenz-Principal",
-					AthenzURL:   "https://www.athenz.com:4443/zts/v1",
-					TokenExpiry: "30m",
+					PrincipalAuthHeaderName: "Athenz-Principal",
+					AthenzURL:               "https://www.athenz.com:4443/zts/v1",
+					TokenExpiry:             "30m",
 				},
 				Proxy: Proxy{
 					PrincipalAuthHeaderName: "Athenz-Principal",
-					RoleAuthHeaderName: "Athenz-Role-Auth",
-					BufferSize: 1024,
+					RoleAuthHeaderName:      "Athenz-Role-Auth",
+					BufferSize:              1024,
 				},
 			},
 		},

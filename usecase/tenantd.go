@@ -14,7 +14,7 @@ import (
 	"github.com/yahoojapan/athenz-client-sidecar/service"
 )
 
-// Tenant represent a client sidecar behavour
+// Tenant represent a client sidecar behavior
 type Tenant interface {
 	Start(ctx context.Context) chan []error
 }

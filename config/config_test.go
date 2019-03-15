@@ -54,7 +54,7 @@ func TestNew(t *testing.T) {
 		wantErr error
 	}
 	tests := []test{
-		test{
+		{
 			name: "Read valid config file",
 			args: args{
 				path: "./assets/valid_config.yaml",
@@ -69,9 +69,9 @@ func TestNew(t *testing.T) {
 					ShutdownDuration: "5s",
 					TLS: TLS{
 						Enabled: true,
-						CertKey: "cert",
-						KeyKey:  "key",
-						CAKey:   "ca",
+						Cert:    "cert",
+						Key:     "key",
+						CA:      "ca",
 					},
 				},
 				Token: Token{
@@ -96,7 +96,7 @@ func TestNew(t *testing.T) {
 				},
 			},
 		},
-		test{
+		{
 			name: "Read invalid config file",
 			args: args{
 				path: "./assets/invalid_config.yaml",

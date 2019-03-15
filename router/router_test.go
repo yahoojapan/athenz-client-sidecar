@@ -404,7 +404,7 @@ func Test_routing(t *testing.T) {
 					defer func() {
 						got := recover()
 						if got != want {
-							testErr = fmt.Errorf("error occured: got: %v  want: %v", got, want)
+							testErr = fmt.Errorf("error occurred: got: %v  want: %v", got, want)
 						}
 					}()
 

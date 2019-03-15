@@ -48,14 +48,14 @@ func TestNewTLSConfig(t *testing.T) {
 		KeyKeyPath:  "./assets/dummyServer.key",
 		CAKeyPath:   "./assets/dummyCa.pem",
 		cfg: config.TLS{
-			CertKey: "_test_cert_",
-			KeyKey:  "_test_key_",
-			CAKey:   "_test_ca_",
+			Cert: "_test_cert_",
+			Key:  "_test_key_",
+			CA:   "_test_ca_",
 		},
 	}
 
 	tests := []test{
-		test{
+		{
 			name: "Check the minimum SSL/TLS version",
 			args: defaultArgs,
 			want: &tls.Config{
@@ -74,14 +74,14 @@ func TestNewTLSConfig(t *testing.T) {
 				// ClientAuth: tls.RequireAndVerifyClientCert,
 			},
 			beforeFunc: func(args args) {
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"), args.CertKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"), args.KeyKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"), args.CAKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"), args.CertKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"), args.KeyKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"), args.CAKeyPath)
 			},
 			afterFunc: func(args args) {
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"))
 			},
 			checkFunc: func(got, want *tls.Config) error {
 				if got.MinVersion != want.MinVersion {
@@ -90,7 +90,7 @@ func TestNewTLSConfig(t *testing.T) {
 				return nil
 			},
 		},
-		test{
+		{
 			name: "Check values of 'CurvePreferences'",
 			args: defaultArgs,
 			want: &tls.Config{
@@ -109,14 +109,14 @@ func TestNewTLSConfig(t *testing.T) {
 				// ClientAuth: tls.RequireAndVerifyClientCert,
 			},
 			beforeFunc: func(args args) {
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"), args.CertKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"), args.KeyKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"), args.CAKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"), args.CertKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"), args.KeyKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"), args.CAKeyPath)
 			},
 			afterFunc: func(args args) {
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"))
 			},
 			checkFunc: func(got, want *tls.Config) error {
 				if len(got.CurvePreferences) != len(want.CurvePreferences) {
@@ -139,7 +139,7 @@ func TestNewTLSConfig(t *testing.T) {
 				return nil
 			},
 		},
-		test{
+		{
 			name: "Check whether the value of 'SessionTicketsDisabled' is true",
 			args: defaultArgs,
 			want: &tls.Config{
@@ -158,14 +158,14 @@ func TestNewTLSConfig(t *testing.T) {
 				// ClientAuth: tls.RequireAndVerifyClientCert,
 			},
 			beforeFunc: func(args args) {
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"), args.CertKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"), args.KeyKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"), args.CAKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"), args.CertKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"), args.KeyKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"), args.CAKeyPath)
 			},
 			afterFunc: func(args args) {
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"))
 			},
 			checkFunc: func(got, want *tls.Config) error {
 				if got.SessionTicketsDisabled != want.SessionTicketsDisabled {
@@ -174,7 +174,7 @@ func TestNewTLSConfig(t *testing.T) {
 				return nil
 			},
 		},
-		test{
+		{
 			name: "Check certificates",
 			args: defaultArgs,
 			want: &tls.Config{
@@ -193,14 +193,14 @@ func TestNewTLSConfig(t *testing.T) {
 				// ClientAuth: tls.RequireAndVerifyClientCert,
 			},
 			beforeFunc: func(args args) {
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"), args.CertKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"), args.KeyKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"), args.CAKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"), args.CertKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"), args.KeyKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"), args.CAKeyPath)
 			},
 			afterFunc: func(args args) {
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"))
 			},
 			checkFunc: func(got, want *tls.Config) error {
 				if !reflect.DeepEqual(got.Certificates, want.Certificates) {
@@ -209,7 +209,7 @@ func TestNewTLSConfig(t *testing.T) {
 				return nil
 			},
 		},
-		test{
+		{
 			name: "Check whether ClientAuth is 'RequireAndVerifyClientCert'",
 			args: defaultArgs,
 			want: &tls.Config{
@@ -228,14 +228,14 @@ func TestNewTLSConfig(t *testing.T) {
 				ClientAuth: tls.RequireAndVerifyClientCert,
 			},
 			beforeFunc: func(args args) {
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"), args.CertKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"), args.KeyKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"), args.CAKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"), args.CertKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"), args.KeyKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"), args.CAKeyPath)
 			},
 			afterFunc: func(args args) {
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"))
 			},
 			checkFunc: func(got, want *tls.Config) error {
 				if got.ClientAuth != want.ClientAuth {
@@ -244,33 +244,33 @@ func TestNewTLSConfig(t *testing.T) {
 				return nil
 			},
 		},
-		test{
+		{
 			name: "Request without cert file",
 			args: defaultArgs,
 			beforeFunc: func(args args) {
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"), args.KeyKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"), args.CAKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"), args.KeyKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"), args.CAKeyPath)
 			},
 			afterFunc: func(args args) {
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"))
 			},
 			wantErr: fmt.Errorf("Cert/Key path not found"),
 		},
-		test{
+		{
 			name: "Request without key file",
 			args: defaultArgs,
 			beforeFunc: func(args args) {
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"), args.CertKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"), args.CAKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"), args.CertKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"), args.CAKeyPath)
 			},
 			afterFunc: func(args args) {
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"))
 			},
 			wantErr: fmt.Errorf("Cert/Key path not found"),
 		},
-		test{
+		{
 			name: "Check whether ClientAuth is 'NoClientCert' when requesting without CA file",
 			args: defaultArgs,
 			want: &tls.Config{
@@ -289,12 +289,12 @@ func TestNewTLSConfig(t *testing.T) {
 				ClientAuth: tls.NoClientCert,
 			},
 			beforeFunc: func(args args) {
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"), args.CertKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"), args.KeyKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"), args.CertKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"), args.KeyKeyPath)
 			},
 			afterFunc: func(args args) {
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"))
 			},
 			checkFunc: func(got, want *tls.Config) error {
 				if got.ClientAuth != want.ClientAuth {
@@ -303,51 +303,51 @@ func TestNewTLSConfig(t *testing.T) {
 				return nil
 			},
 		},
-		test{
+		{
 			name: "Request with invalid cert file",
 			args: defaultArgs,
 			beforeFunc: func(args args) {
 				args.CertKeyPath = "./assets/invalid_dummyServer.crt"
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"), args.CertKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"), args.KeyKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"), args.CAKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"), args.CertKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"), args.KeyKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"), args.CAKeyPath)
 			},
 			afterFunc: func(args args) {
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"))
 			},
 			wantErr: fmt.Errorf("tls: failed to find any PEM data in certificate input"),
 		},
-		test{
+		{
 			name: "Request with invalid key file",
 			args: defaultArgs,
 			beforeFunc: func(args args) {
 				args.KeyKeyPath = "./assets/invalid_dummyServer.key"
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"), args.CertKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"), args.KeyKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"), args.CAKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"), args.CertKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"), args.KeyKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"), args.CAKeyPath)
 			},
 			afterFunc: func(args args) {
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"))
 			},
 			wantErr: fmt.Errorf("tls: failed to find any PEM data in key input"),
 		},
-		test{
+		{
 			name: "Request with invalid CA file",
 			args: defaultArgs,
 			beforeFunc: func(args args) {
 				args.CAKeyPath = "./assets/invalid_dummyCa.pem"
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"), args.CertKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"), args.KeyKeyPath)
-				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"), args.CAKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"), args.CertKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"), args.KeyKeyPath)
+				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"), args.CAKeyPath)
 			},
 			afterFunc: func(args args) {
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyKey, "_"), "_"))
-				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAKey, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Cert, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.Key, "_"), "_"))
+				os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CA, "_"), "_"))
 			},
 			wantErr: fmt.Errorf("Certification Failed"),
 		},
@@ -402,27 +402,27 @@ func TestNewX509CertPool(t *testing.T) {
 	}
 
 	tests := []test{
-		test{
+		{
 			name: "Get CA cert pool",
 			args: args{
 				path: "./assets/dummyCa.pem",
 			},
 		},
-		test{
+		{
 			name: "Missing CA file",
 			args: args{
 				path: "/tmp/CAfilenotfound.pem",
 			},
 			wantErr: fmt.Errorf("no such file or directory"),
 		},
-		test{
+		{
 			name: "Argument not specified",
 			args: args{
 				path: "",
 			},
 			wantErr: fmt.Errorf("no such file or directory"),
 		},
-		test{
+		{
 			name: "Request with invalid CA file",
 			args: args{
 				path: "./assets/invalid_dummyCa.pem",

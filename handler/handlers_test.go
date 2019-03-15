@@ -89,7 +89,7 @@ func TestNew(t *testing.T) {
 		checkFunc func(got, want *handler) error
 	}
 	tests := []testcase{
-		testcase{
+		{
 			name: "Check New, works normally",
 			args: args{
 				cfg: config.Proxy{
@@ -180,7 +180,7 @@ func Test_handler_NToken(t *testing.T) {
 		wantError error
 	}
 	tests := []testcase{
-		testcase{
+		{
 			name: "Check handler NToken, on token error",
 			fields: fields{
 				token: func() (string, error) {
@@ -198,7 +198,7 @@ func Test_handler_NToken(t *testing.T) {
 			},
 			wantError: fmt.Errorf("get-token-error-207"),
 		},
-		testcase{
+		{
 			name: "Check handler NToken, response token as json",
 			fields: fields{
 				token: func() (string, error) {
@@ -217,7 +217,7 @@ func Test_handler_NToken(t *testing.T) {
 				body: []byte(`{"token":"token-230"}` + "\n"),
 			},
 		},
-		testcase{
+		{
 			name: "Check handler NToken, request body closed",
 			fields: fields{
 				token: func() (string, error) {
@@ -304,7 +304,7 @@ func Test_handler_NTokenProxy(t *testing.T) {
 		wantError error
 	}
 	tests := []testcase{
-		testcase{
+		{
 			name: "Check handler NTokenProxy, on token error",
 			fields: fields{
 				token: func() (string, error) {
@@ -322,7 +322,7 @@ func Test_handler_NTokenProxy(t *testing.T) {
 			},
 			wantError: fmt.Errorf("get-token-error-331"),
 		},
-		testcase{
+		{
 			name: "Check handler NTokenProxy, request got auth-token and proxied (GET)",
 			fields: fields{
 				// mock proxy, mirror header, prepends prefix to response
@@ -364,7 +364,7 @@ func Test_handler_NTokenProxy(t *testing.T) {
 				body: []byte(`proxied-359-`),
 			},
 		},
-		testcase{
+		{
 			name: "Check handler NTokenProxy, request got auth-token and proxied (POST)",
 			fields: fields{
 				// mock proxy, mirror header, prepends prefix to response
@@ -403,7 +403,7 @@ func Test_handler_NTokenProxy(t *testing.T) {
 				body: []byte(`proxied-399-body-413`),
 			},
 		},
-		testcase{
+		{
 			name: "Check handler NTokenProxy, request body closed",
 			fields: fields{
 				// mock proxy, mirror header, prepends prefix to response
@@ -514,7 +514,7 @@ func Test_handler_RoleToken(t *testing.T) {
 		wantError error
 	}
 	tests := []testcase{
-		testcase{
+		{
 			name:   "Check handler RoleToken, on decode request body error",
 			fields: fields{},
 			args: args{
@@ -528,7 +528,7 @@ func Test_handler_RoleToken(t *testing.T) {
 			},
 			wantError: fmt.Errorf("invalid character 'b' looking for beginning of value"),
 		},
-		testcase{
+		{
 			name: "Check handler RoleToken, on role error",
 			fields: fields{
 				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (*service.RoleToken, error) {
@@ -549,7 +549,7 @@ func Test_handler_RoleToken(t *testing.T) {
 			},
 			wantError: fmt.Errorf("get-role-token-error-571"),
 		},
-		testcase{
+		{
 			name: "Check handler RoleToken, on context cancel",
 			fields: fields{
 				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (roleToken *service.RoleToken, err error) {
@@ -587,7 +587,7 @@ func Test_handler_RoleToken(t *testing.T) {
 			},
 			wantError: context.Canceled,
 		},
-		testcase{
+		{
 			name: "Check handler RoleToken, request got role token",
 			fields: fields{
 				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (roleToken *service.RoleToken, err error) {
@@ -707,7 +707,7 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 		wantError error
 	}
 	tests := []testcase{
-		testcase{
+		{
 			name: "Check handler RoleTokenProxy, on role error",
 			fields: fields{
 				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (roleToken *service.RoleToken, err error) {
@@ -728,7 +728,7 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 			},
 			wantError: fmt.Errorf("get-role-token-error-749"),
 		},
-		testcase{
+		{
 			name: "Check handler RoleTokenProxy, on context cancel",
 			fields: fields{
 				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (roleToken *service.RoleToken, err error) {
@@ -766,7 +766,7 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 			},
 			wantError: context.Canceled,
 		},
-		testcase{
+		{
 			name: "Check handler RoleTokenProxy, request got role-token and proxied (GET)",
 			fields: fields{
 				// mock proxy, mirror header, prepends prefix to response
@@ -827,7 +827,7 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 				body: []byte(`proxied-819-`),
 			},
 		},
-		testcase{
+		{
 			name: "Check handler RoleTokenProxy, request got auth-token and proxied (POST)",
 			fields: fields{
 				// mock proxy, mirror header, prepends prefix to response
@@ -885,7 +885,7 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 				body: []byte(`proxied-877-body-900`),
 			},
 		},
-		testcase{
+		{
 			name: "Check handler RoleTokenProxy, request body closed",
 			fields: fields{
 				// mock proxy, mirror header, prepends prefix to response

@@ -46,7 +46,7 @@ func TestNewBuffer(t *testing.T) {
 		checkFunc func(got, want *buffer) error
 	}
 	tests := []testcase{
-		testcase{
+		{
 			name: "Check newBuffer, with 0 size",
 			args: args{
 				size: 0,
@@ -59,7 +59,7 @@ func TestNewBuffer(t *testing.T) {
 				return nil
 			},
 		},
-		testcase{
+		{
 			name: "Check newBuffer, positive size",
 			args: args{
 				size: 37,
@@ -111,7 +111,7 @@ func Test_buffer_Get(t *testing.T) {
 		checkFunc func(got, want *buffer) error
 	}
 	tests := []testcase{
-		testcase{
+		{
 			name: "Check buffer Get, get from internal pool",
 			fields: fields{
 				pool: sync.Pool{
@@ -156,7 +156,7 @@ func Test_buffer_Put(t *testing.T) {
 		checkFunc func(got *buffer) error
 	}
 	tests := []testcase{
-		testcase{
+		{
 			name: "Check buffer Put, with 0 size",
 			fields: fields{
 				pool: sync.Pool{New: func() interface{} { return make([]byte, 0, 134) }},
@@ -188,7 +188,7 @@ func Test_buffer_Put(t *testing.T) {
 				return nil
 			},
 		},
-		testcase{
+		{
 			name: "Check buffer Put, with buffer len and cap > current size",
 			fields: fields{
 				pool: sync.Pool{New: func() interface{} { return make([]byte, 0, 165) }},
@@ -251,7 +251,7 @@ func Test_max(t *testing.T) {
 		want uint64
 	}
 	tests := []testcase{
-		testcase{
+		{
 			name: "Check max, x < y",
 			args: args{
 				x: uint64(227),
@@ -259,14 +259,14 @@ func Test_max(t *testing.T) {
 			},
 			want: uint64(228),
 		},
-		testcase{
+		{
 			name: "Check max, x == y",
 			args: args{
 				x: uint64(235), y: uint64(235),
 			},
 			want: uint64(235),
 		},
-		testcase{
+		{
 			name: "Check max, x > y",
 			args: args{
 				y: uint64(242),

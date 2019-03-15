@@ -1,3 +1,18 @@
+/*
+Copyright (C)  2018 Yahoo Japan Corporation Athenz team.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
 package router
 
 import (
@@ -12,17 +27,17 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kpango/glg"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"github.com/yahoojapan/athenz-client-sidecar/handler"
-	"github.com/kpango/glg"
 )
 
 func TestNew(t *testing.T) {
 	// prepare handler.Handler for calling New()
 	proxyConfig := config.Proxy{
 		PrincipalAuthHeaderName: "X-test-auth-header",
-		RoleAuthHeaderName: "X-test-role-header",
-		BufferSize: 1024,
+		RoleAuthHeaderName:      "X-test-role-header",
+		BufferSize:              1024,
 	}
 	h := handler.New(proxyConfig, nil, nil, nil)
 

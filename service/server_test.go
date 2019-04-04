@@ -182,10 +182,7 @@ func Test_server_ListenAndServe(t *testing.T) {
 					if err := os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key); err != nil {
 						return err
 					}
-					if err := os.Setenv(strings.TrimPrefix(strings.TrimSuffix(certKey, "_"), "_"), cert); err != nil {
-						return err
-					}
-					return nil
+					return os.Setenv(strings.TrimPrefix(strings.TrimSuffix(certKey, "_"), "_"), cert)
 				},
 				checkFunc: func(s *server, got chan []error, want error) error {
 					time.Sleep(time.Millisecond * 150)
@@ -277,10 +274,7 @@ func Test_server_ListenAndServe(t *testing.T) {
 					if err := os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key); err != nil {
 						return err
 					}
-					if err := os.Setenv(strings.TrimPrefix(strings.TrimSuffix(certKey, "_"), "_"), cert); err != nil {
-						return err
-					}
-					return nil
+					return os.Setenv(strings.TrimPrefix(strings.TrimSuffix(certKey, "_"), "_"), cert)
 				},
 				checkFunc: func(s *server, got chan []error, want error) error {
 					time.Sleep(time.Millisecond * 150)
@@ -372,10 +366,7 @@ func Test_server_ListenAndServe(t *testing.T) {
 					if err := os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key); err != nil {
 						return err
 					}
-					if err := os.Setenv(strings.TrimPrefix(strings.TrimSuffix(certKey, "_"), "_"), cert); err != nil {
-						return err
-					}
-					return nil
+					return os.Setenv(strings.TrimPrefix(strings.TrimSuffix(certKey, "_"), "_"), cert)
 				},
 				checkFunc: func(s *server, got chan []error, want error) error {
 					time.Sleep(time.Millisecond * 150)

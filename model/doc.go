@@ -14,7 +14,5 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-/*
-Package model contains struct for HTTP request bodies and their JSON definitions.
-*/
+// Package model contains struct for HTTP request bodies and their JSON definitions.
 package model

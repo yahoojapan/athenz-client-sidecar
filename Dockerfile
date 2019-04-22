@@ -25,7 +25,7 @@ RUN CGO_ENABLED=1 \
     GOARCH=$(go env GOARCH) \
     GO111MODULE=on \
     go build --ldflags '-s -w -linkmode "external" -extldflags "-static -fPIC -m64 -pthread -std=c++11 -lstdc++"' -a -tags "cgo netgo" -installsuffix "cgo netgo" -o "${APP_NAME}" \
-    && upx -9 -o "/usr/bin/${APP_NAME}" "${APP_NAME}"
+    && upx --best -o "/usr/bin/${APP_NAME}" "${APP_NAME}"
 
 RUN apk del build-dependencies --purge \
     && rm -rf "${GOPATH}"

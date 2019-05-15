@@ -56,18 +56,21 @@ func parseParams() (*params, error) {
 }
 
 func run(cfg config.Config) []error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	if !cfg.EnableColorLogging {
+		glg.Get().DisableColor()
+	}
 
 	daemon, err := usecase.New(cfg)
 	if err != nil {
 		return []error{err}
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	ech := daemon.Start(ctx)
 
 	sigCh := make(chan os.Signal, 1)
-
 	signal.Notify(sigCh, syscall.SIGTERM, syscall.SIGINT)
 
 	for {

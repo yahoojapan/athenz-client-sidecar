@@ -27,6 +27,9 @@ type Config struct {
 	// Version represent the client sidecar application version.
 	Version string `yaml:"version"`
 
+	// EnableColorLogging represents if user want to enable colorized logging.
+	EnableColorLogging bool `yaml:"enable_log_color"`
+
 	// Server represent the client sidecar and health check server configuration.
 	Server Server `yaml:"server"`
 

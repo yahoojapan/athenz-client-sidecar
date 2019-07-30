@@ -35,6 +35,7 @@ type Server interface {
 type server struct {
 	// client sidecar server
 	srv        *http.Server
+	srvHandler http.Handler
 	srvRunning bool
 
 	// Health Check server
@@ -75,52 +76,55 @@ var (
 //
 // The health check server is a http.Server instance, which the port number is read from "config.Server.HealthzPort"
 // , and the handler is as follow - Handle HTTP GET request and always return HTTP Status OK (200) response.
-func NewServer(cfg config.Server, h http.Handler) Server {
-	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.Port),
-		Handler: h,
-	}
-	srv.SetKeepAlivesEnabled(true)
+func NewServer(opts ...Option) Server {
+	var err error
 
-	hcsrv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.HealthzPort),
-		Handler: createHealthCheckServiceMux(cfg.HealthzPath),
+	s := &server{}
+	for _, o := range opts {
+		o(s)
 	}
-	hcsrv.SetKeepAlivesEnabled(true)
 
-	dur, err := time.ParseDuration(cfg.ShutdownDuration)
+	s.srv = &http.Server{
+		Addr:    fmt.Sprintf(":%d", s.cfg.Port),
+		Handler: s.srvHandler,
+	}
+	s.srv.SetKeepAlivesEnabled(true)
+
+	if s.healthzSrvEnable() {
+		s.hcsrv = &http.Server{
+			Addr:    fmt.Sprintf(":%d", s.cfg.HealthzPort),
+			Handler: createHealthCheckServiceMux(s.cfg.HealthzPath),
+		}
+		s.hcsrv.SetKeepAlivesEnabled(true)
+	}
+
+	s.sddur, err = time.ParseDuration(s.cfg.ShutdownDuration)
 	if err != nil {
 		glg.Warn(err)
 	}
 
-	pwt, err := time.ParseDuration(cfg.ProbeWaitTime)
+	s.pwt, err = time.ParseDuration(s.cfg.ProbeWaitTime)
 	if err != nil {
-		glg.Warn(err)
+		s.pwt = time.Second * 3
 	}
 
-	return &server{
-		srv:   srv,
-		hcsrv: hcsrv,
-		cfg:   cfg,
-		pwt:   pwt,
-		sddur: dur,
-	}
+	return s
 }
 
 // ListenAndServe returns a error channel, which includes error returned from client sidecar server.
 // This function start both health check and client sidecar server, and the server will close whenever the context receive a Done signal.
 // Whenever the server closed, the client sidecar server will shutdown after a defined duration (cfg.ProbeWaitTime), while the health check server will shutdown immediately
 func (s *server) ListenAndServe(ctx context.Context) chan []error {
-	echan := make(chan []error, 1)
+	var (
+		echan = make(chan []error, 1)
+		sech  = make(chan error, 1)
+		hech  chan error
 
-	// error channels to keep track server status
-	sech := make(chan error, 1)
-	hech := make(chan error, 1)
-
-	wg := new(sync.WaitGroup)
-	wg.Add(2)
+		wg = new(sync.WaitGroup)
+	)
 
 	// start both client sidecar server and health check server
+	wg.Add(1)
 	go func() {
 		s.mu.Lock()
 		s.srvRunning = true
@@ -136,20 +140,24 @@ func (s *server) ListenAndServe(ctx context.Context) chan []error {
 		s.mu.Unlock()
 	}()
 
-	go func() {
-		s.mu.Lock()
-		s.hcrunning = true
-		s.mu.Unlock()
-		wg.Done()
+	if s.healthzSrvEnable() {
+		wg.Add(1)
+		hech = make(chan error, 1)
+		go func() {
+			s.mu.Lock()
+			s.hcrunning = true
+			s.mu.Unlock()
+			wg.Done()
 
-		glg.Info("client sidecar health check server starting")
-		hech <- s.hcsrv.ListenAndServe()
-		close(hech)
+			glg.Info("client sidecar health check server starting")
+			hech <- s.hcsrv.ListenAndServe()
+			close(hech)
 
-		s.mu.Lock()
-		s.hcrunning = false
-		s.mu.Unlock()
-	}()
+			s.mu.Lock()
+			s.hcrunning = false
+			s.mu.Unlock()
+		}()
+	}
 
 	go func() {
 		// wait for all server running
@@ -251,7 +259,6 @@ func handleHealthCheckRequest(w http.ResponseWriter, r *http.Request) {
 
 // listenAndServeAPI return any error occurred when start a HTTPS server, including any error when loading TLS certificate
 func (s *server) listenAndServeAPI() error {
-
 	if !s.cfg.TLS.Enabled {
 		return s.srv.ListenAndServe()
 	}
@@ -264,4 +271,8 @@ func (s *server) listenAndServeAPI() error {
 		glg.Error(err)
 	}
 	return s.srv.ListenAndServeTLS("", "")
+}
+
+func (s *server) healthzSrvEnable() bool {
+	return s.cfg.HealthzPort > 0
 }

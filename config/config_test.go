@@ -66,7 +66,8 @@ func TestNew(t *testing.T) {
 					HealthzPort:      80,
 					HealthzPath:      "/healthz",
 					Timeout:          "10s",
-					ShutdownDuration: "5s",
+					ShutdownDuration: "10s",
+					ProbeWaitTime:    "9s",
 					TLS: TLS{
 						Enabled: true,
 						Cert:    "cert",

@@ -90,12 +90,12 @@ func NewServer(cfg config.Server, h http.Handler) Server {
 
 	dur, err := time.ParseDuration(cfg.ShutdownDuration)
 	if err != nil {
-		dur = time.Second * 5
+		dur = time.Second * 10
 	}
 
 	pwt, err := time.ParseDuration(cfg.ProbeWaitTime)
 	if err != nil {
-		pwt = time.Second * 3
+		pwt = time.Second * 9
 	}
 
 	return &server{

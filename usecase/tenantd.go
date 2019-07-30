@@ -54,12 +54,16 @@ func New(cfg config.Config) (Tenant, error) {
 	role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
 
 	serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider()))
+	srv := service.NewServer(
+		service.WithServerConfig(cfg.Server),
+		service.WithServerHandler(serveMux),
+	)
 
 	return &clientd{
 		cfg:    cfg,
 		token:  token,
 		role:   role,
-		server: service.NewServer(cfg.Server, serveMux),
+		server: srv,
 	}, nil
 }
 

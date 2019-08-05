@@ -105,7 +105,7 @@ func NewServer(opts ...Option) Server {
 
 	s.pwt, err = time.ParseDuration(s.cfg.ProbeWaitTime)
 	if err != nil {
-		s.pwt = time.Second * 3
+		glg.Warn(err)
 	}
 
 	return s

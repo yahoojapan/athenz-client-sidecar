@@ -448,6 +448,7 @@ func Test_server_ListenAndServe(t *testing.T) {
 					}(),
 					cfg: config.Server{
 						Port: apiSrvPort,
+						// HealthzPort: hcSrvPort,
 						TLS: config.TLS{
 							Enabled: true,
 							Cert:    cert,

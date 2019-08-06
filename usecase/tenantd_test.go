@@ -90,7 +90,10 @@ func TestNew(t *testing.T) {
 					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
 
 					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider()))
-					server := service.NewServer(cfg.Server, serveMux)
+					server := service.NewServer(
+						service.WithServerConfig(cfg.Server),
+						service.WithServerHandler(serveMux),
+					)
 
 					return &clientd{
 						cfg:    cfg,
@@ -195,7 +198,10 @@ func Test_clientd_Start(t *testing.T) {
 					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
 
 					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider()))
-					server := service.NewServer(cfg.Server, serveMux)
+					server := service.NewServer(
+						service.WithServerConfig(cfg.Server),
+						service.WithServerHandler(serveMux),
+					)
 
 					return fields{
 						cfg:    cfg,

@@ -31,8 +31,7 @@ import (
 
 func TestNewServer(t *testing.T) {
 	type args struct {
-		cfg config.Server
-		h   http.Handler
+		opts []Option
 	}
 	tests := []struct {
 		name      string
@@ -43,13 +42,15 @@ func TestNewServer(t *testing.T) {
 		{
 			name: "Check health address",
 			args: args{
-				cfg: config.Server{
-					HealthzPath: "/healthz",
-					HealthzPort: 8080,
+				opts: []Option{
+					WithServerConfig(config.Server{
+						HealthzPath: "/healthz",
+						HealthzPort: 8080,
+					}),
+					WithServerHandler(func() http.Handler {
+						return nil
+					}()),
 				},
-				h: func() http.Handler {
-					return nil
-				}(),
 			},
 			want: &server{
 				hcsrv: &http.Server{
@@ -66,14 +67,16 @@ func TestNewServer(t *testing.T) {
 		{
 			name: "Check server address",
 			args: args{
-				cfg: config.Server{
-					Port:        8081,
-					HealthzPath: "/healthz",
-					HealthzPort: 8080,
+				opts: []Option{
+					WithServerConfig(config.Server{
+						Port:        8081,
+						HealthzPath: "/healthz",
+						HealthzPort: 8080,
+					}),
+					WithServerHandler(func() http.Handler {
+						return nil
+					}()),
 				},
-				h: func() http.Handler {
-					return nil
-				}(),
 			},
 			want: &server{
 				srv: &http.Server{
@@ -90,7 +93,7 @@ func TestNewServer(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewServer(tt.args.cfg, tt.args.h)
+			got := NewServer(tt.args.opts...)
 			if err := tt.checkFunc(got, tt.want); err != nil {
 				t.Errorf("NewServer() = %v, want %v", got, tt.want)
 			}
@@ -167,7 +170,8 @@ func Test_server_ListenAndServe(t *testing.T) {
 						return s
 					}(),
 					cfg: config.Server{
-						Port: apiSrvPort,
+						Port:        apiSrvPort,
+						HealthzPort: hcSrvPort,
 						TLS: config.TLS{
 							Enabled: true,
 							Cert:    certKey,
@@ -259,7 +263,8 @@ func Test_server_ListenAndServe(t *testing.T) {
 						return srv
 					}(),
 					cfg: config.Server{
-						Port: apiSrvPort,
+						Port:        apiSrvPort,
+						HealthzPort: hcSrvPort,
 						TLS: config.TLS{
 							Enabled: true,
 							Cert:    certKey,
@@ -351,7 +356,8 @@ func Test_server_ListenAndServe(t *testing.T) {
 						return srv
 					}(),
 					cfg: config.Server{
-						Port: apiSrvPort,
+						Port:        apiSrvPort,
+						HealthzPort: hcSrvPort,
 						TLS: config.TLS{
 							Enabled: true,
 							Cert:    certKey,
@@ -400,6 +406,80 @@ func Test_server_ListenAndServe(t *testing.T) {
 					if err := os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(certKey, "_"), "_")); err != nil {
 						return nil
 					}
+					return nil
+				},
+			}
+		}(),
+		func() test {
+			ctx, cancelFunc := context.WithCancel(context.Background())
+			key := "./assets/dummyServer.key"
+			cert := "./assets/dummyServer.crt"
+
+			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(200)
+				fmt.Fprintln(w, "Hello, client")
+			})
+
+			apiSrvPort := 9998
+			hcSrvPort := 9999
+			apiSrvAddr := fmt.Sprintf("https://127.0.0.1:%v", apiSrvPort)
+			hcSrvAddr := fmt.Sprintf("http://127.0.0.1:%v", hcSrvPort)
+
+			return test{
+				name: "Test health check server disable",
+				fields: fields{
+					srv: func() *http.Server {
+						srv := &http.Server{
+							Addr:    fmt.Sprintf(":%d", apiSrvPort),
+							Handler: handler,
+						}
+
+						srv.SetKeepAlivesEnabled(true)
+						return srv
+					}(),
+					hcsrv: func() *http.Server {
+						srv := &http.Server{
+							Addr:    fmt.Sprintf(":%d", hcSrvPort),
+							Handler: handler,
+						}
+
+						srv.SetKeepAlivesEnabled(true)
+						return srv
+					}(),
+					cfg: config.Server{
+						Port: apiSrvPort,
+						// HealthzPort: hcSrvPort,
+						TLS: config.TLS{
+							Enabled: true,
+							Cert:    cert,
+							Key:     key,
+						},
+					},
+				},
+				args: args{
+					ctx: ctx,
+				},
+				checkFunc: func(s *server, got chan []error, want error) error {
+					time.Sleep(time.Millisecond * 150)
+					http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+
+					if err := checkSrvRunning(apiSrvAddr); err != nil {
+						return fmt.Errorf("Server not running")
+					}
+					if err := checkSrvRunning(hcSrvAddr); err == nil {
+						return fmt.Errorf("Health Check server running")
+					}
+
+					cancelFunc()
+					time.Sleep(time.Millisecond * 150)
+
+					if err := checkSrvRunning(apiSrvAddr); err == nil {
+						return fmt.Errorf("Server running")
+					}
+					if err := checkSrvRunning(hcSrvAddr); err == nil {
+						return fmt.Errorf("Health Check server running")
+					}
+
 					return nil
 				},
 			}

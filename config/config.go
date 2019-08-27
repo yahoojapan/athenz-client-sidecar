@@ -140,17 +140,17 @@ type Role struct {
 
 // ServiceCert represent the service cert configuration
 type ServiceCert struct {
-	// PrivateKeyPath represent the private key environment name to sign the token.
-	PrivateKeyPath string `yaml:"private_key_path"`
-
 	// AthenzURL represent the athenz URL to get the role token
 	AthenzURL string `yaml:"athenz_url"`
+
+	// AthenzRootCA represent the Athenz server Root Certificate
+	AthenzRootCA string `yaml:"athenz_root_ca"`
 
 	// DNSDomain is the suffix of SAN
 	DNSDomain string `yaml:"dns_domain"`
 
-	// Expiration represent the duration of the expiration
-	Expiration string `yaml:"expiration"`
+	// RefreshDuration represent the svccert refresh duration
+	RefreshDuration string `yaml:"refresh_duration"`
 
 	// IntermediateCert decides wheather concatinate intermediate cert to end-entity cert
 	IntermediateCert bool `yaml:"intermediate_cert"`

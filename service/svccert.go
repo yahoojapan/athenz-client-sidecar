@@ -36,8 +36,8 @@ import (
 	"time"
 
 	"github.com/kpango/glg"
+	ntokend "github.com/kpango/ntokend"
 	"github.com/yahoo/athenz/clients/go/zts"
-	"github.com/yahoo/athenz/libs/go/zmssvctoken"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"golang.org/x/sync/singleflight"
 )
@@ -63,6 +63,7 @@ type SvcCertService interface {
 // svcCertService represent the implementation of athenz RoleService
 type svcCertService struct {
 	cfg                   config.Token
+	token                 ntokend.TokenProvider
 	athenzURL             string
 	athenzRootCA          string
 	dnsDomain             string
@@ -78,7 +79,7 @@ type svcCertService struct {
 type SvcCertProvider func() ([]byte, error)
 
 // NewSvcCertService returns a SvcCertService to update and get the svccert from athenz.
-func NewSvcCertService(cfg config.Config) SvcCertService {
+func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) SvcCertService {
 	dur, err := time.ParseDuration(cfg.ServiceCert.RefreshDuration)
 	if err != nil {
 		dur = defaultRefreshDuration
@@ -111,6 +112,7 @@ func NewSvcCertService(cfg config.Config) SvcCertService {
 	return &svcCertService{
 		cfg:                   cfg.Token,
 		svcCert:               &atomic.Value{},
+		token:                 token,
 		athenzURL:             cfg.ServiceCert.AthenzURL,
 		dnsDomain:             cfg.ServiceCert.DNSDomain,
 		athenzRootCA:          cfg.ServiceCert.AthenzRootCA,
@@ -227,7 +229,7 @@ func (s *svcCertService) loadSvcCert() ([]byte, error) {
 	// we're using copper argos which only uses tls and the attestation
 	// data contains the authentication details
 
-	client, err := ntokenClient(
+	client, err := s.ntokenClient(
 		s.athenzURL,
 		s.cfg.AthenzDomain,
 		s.cfg.ServiceName,
@@ -326,32 +328,9 @@ func generateCSR(keySigner *signer, subj pkix.Name, host, ip, uri string) (strin
 	return buf.String(), nil
 }
 
-func getNToken(domain, service, keyID string, keyBytes []byte) (string, error) {
+func (s *svcCertService) ntokenClient(ztsURL, domain, service, keyID, caCertFile, hdr string, keyBytes []byte) (*zts.ZTSClient, error) {
 
-	if keyID == "" {
-		return "", errors.New("Missing key-version for the specified private key")
-	}
-
-	// get token builder instance
-	builder, err := zmssvctoken.NewTokenBuilder(domain, service, keyBytes, keyID)
-	if err != nil {
-		return "", err
-	}
-
-	// set optional attributes
-	builder.SetExpiration(10 * time.Minute)
-
-	// get a token instance that always gives you unexpired tokens values
-	// safe for concurrent use
-	tok := builder.Token()
-
-	// get a token for use
-	return tok.Value()
-}
-
-func ntokenClient(ztsURL, domain, service, keyID, caCertFile, hdr string, keyBytes []byte) (*zts.ZTSClient, error) {
-
-	ntoken, err := getNToken(domain, service, keyID, keyBytes)
+	ntoken, err := s.token()
 	if err != nil {
 		return nil, err
 	}

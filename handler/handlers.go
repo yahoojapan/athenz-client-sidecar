@@ -17,6 +17,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -38,6 +39,8 @@ type Handler interface {
 	RoleToken(http.ResponseWriter, *http.Request) error
 	// RoleTokenProxy handles proxy requests that require a role token.
 	RoleTokenProxy(http.ResponseWriter, *http.Request) error
+	// ServiceCert handles get svccert requests.
+	ServiceCert(http.ResponseWriter, *http.Request) error
 }
 
 // Func is http.HandlerFunc with error return.
@@ -137,5 +140,10 @@ func flushAndClose(rc io.ReadCloser) error {
 		// close
 		return rc.Close()
 	}
+	return nil
+}
+
+func (h *handler) ServiceCert(w http.ResponseWriter, r *http.Request) error {
+	fmt.Fprint(w, "ok")
 	return nil
 }

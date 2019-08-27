@@ -41,6 +41,8 @@ type Config struct {
 
 	// Proxy represent the configuration of the reverse proxy server to connect to athenz to get N-token and role token.
 	Proxy Proxy `yaml:"proxy"`
+
+	ServiceCert ServiceCert `yaml:"service_cert"`
 }
 
 // Server represent client sidecar server and health check server configuration.
@@ -134,6 +136,24 @@ type Role struct {
 
 	// TokenExpiry represent the duration of the expiration
 	TokenExpiry string `yaml:"expiration"`
+}
+
+// ServiceCert represent the service cert configuration
+type ServiceCert struct {
+	// PrivateKeyPath represent the private key environment name to sign the token.
+	PrivateKeyPath string `yaml:"private_key_path"`
+
+	// AthenzURL represent the athenz URL to get the role token
+	AthenzURL string `yaml:"athenz_url"`
+
+	// DNSDomain is the suffix of SAN
+	DNSDomain string `yaml:"dns_domain"`
+
+	// Expiration represent the duration of the expiration
+	Expiration string `yaml:"expiration"`
+
+	// IntermediateCert decides wheather concatinate intermediate cert to end-entity cert
+	IntermediateCert bool `yaml:"intermediate_cert"`
 }
 
 const (

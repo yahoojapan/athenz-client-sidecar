@@ -62,5 +62,13 @@ func NewRoutes(h handler.Handler) []Route {
 			"/proxy/ntoken",
 			h.NTokenProxy,
 		},
+		{
+			"Service Cert Handler",
+			[]string{
+				http.MethodGet,
+			},
+			"/svccert",
+			h.ServiceCert,
+		},
 	}
 }

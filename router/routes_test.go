@@ -82,6 +82,14 @@ func TestNewRoutes(t *testing.T) {
 						"/proxy/ntoken",
 						h.NTokenProxy,
 					},
+					{
+						"Service Cert Handler",
+						[]string{
+							http.MethodGet,
+						},
+						"/svccert",
+						h.ServiceCert,
+					},
 				},
 			}
 		}(),

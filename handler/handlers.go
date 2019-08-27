@@ -17,7 +17,6 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -48,21 +47,23 @@ type Func func(http.ResponseWriter, *http.Request) error
 
 // handler is internal implementation of Handler interface.
 type handler struct {
-	proxy *httputil.ReverseProxy
-	token ntokend.TokenProvider
-	role  service.RoleProvider
-	cfg   config.Proxy
+	proxy   *httputil.ReverseProxy
+	token   ntokend.TokenProvider
+	role    service.RoleProvider
+	svcCert service.SvcCertProvider
+	cfg     config.Proxy
 }
 
 // New creates a handler for handling different HTTP requests based on the given services. It also contains a reverse proxy for handling proxy request.
-func New(cfg config.Proxy, bp httputil.BufferPool, token ntokend.TokenProvider, role service.RoleProvider) Handler {
+func New(cfg config.Proxy, bp httputil.BufferPool, token ntokend.TokenProvider, role service.RoleProvider, svcCert service.SvcCertProvider) Handler {
 	return &handler{
 		proxy: &httputil.ReverseProxy{
 			BufferPool: bp,
 		},
-		token: token,
-		role:  role,
-		cfg:   cfg,
+		token:   token,
+		role:    role,
+		svcCert: svcCert,
+		cfg:     cfg,
 	}
 }
 
@@ -144,6 +145,15 @@ func flushAndClose(rc io.ReadCloser) error {
 }
 
 func (h *handler) ServiceCert(w http.ResponseWriter, r *http.Request) error {
-	fmt.Fprint(w, "ok")
-	return nil
+	defer flushAndClose(r.Body)
+
+	cert, err := h.svcCert()
+	if err != nil {
+		return err
+	}
+
+	w.Header().Set("Content-type", "application/json; charset=utf-8")
+	return json.NewEncoder(w).Encode(model.SvcCertResponse{
+		Cert: cert,
+	})
 }

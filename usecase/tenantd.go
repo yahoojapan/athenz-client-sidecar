@@ -35,10 +35,11 @@ type Tenant interface {
 }
 
 type clientd struct {
-	cfg    config.Config
-	token  ntokend.TokenService
-	server service.Server
-	role   service.RoleService
+	cfg     config.Config
+	token   ntokend.TokenService
+	server  service.Server
+	role    service.RoleService
+	svccert service.SvcCertService
 }
 
 // New returns a client sidecar daemon, or any error occurred.
@@ -53,17 +54,21 @@ func New(cfg config.Config) (Tenant, error) {
 	// create role service
 	role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
 
-	serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider()))
+	// create svccert service
+	svccert := service.NewSvcCertService(cfg)
+
+	serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider(), svccert.GetSvcCertProvider()))
 	srv := service.NewServer(
 		service.WithServerConfig(cfg.Server),
 		service.WithServerHandler(serveMux),
 	)
 
 	return &clientd{
-		cfg:    cfg,
-		token:  token,
-		role:   role,
-		server: srv,
+		cfg:     cfg,
+		token:   token,
+		role:    role,
+		svccert: svccert,
+		server:  srv,
 	}, nil
 }
 
@@ -71,6 +76,8 @@ func New(cfg config.Config) (Tenant, error) {
 func (t *clientd) Start(ctx context.Context) chan []error {
 	t.token.StartTokenUpdater(ctx)
 	t.role.StartRoleUpdater(ctx)
+	t.svccert.StartSvcCertUpdater(ctx)
+
 	return t.server.ListenAndServe(ctx)
 }
 

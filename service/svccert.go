@@ -45,6 +45,9 @@ import (
 var (
 	// defaultRefreshDuration represent the default svccert expiry time.
 	defaultRefreshDuration = time.Hour * 24
+
+	// ErrCertNotFound represent an error when failed to fetch the svccert from SvcCertProvider.
+	ErrCertNotFound = errors.New("Failed to fetch service cert")
 )
 
 type signer struct {
@@ -53,7 +56,7 @@ type signer struct {
 }
 
 type SvcCertService interface {
-	StartSvcCertUpdate(context.Context) SvcCertService
+	StartSvcCertUpdater(context.Context) SvcCertService
 	GetSvcCertProvider() SvcCertProvider
 }
 
@@ -71,14 +74,8 @@ type svcCertService struct {
 	httpClient            *http.Client
 }
 
-// SvcCert represent the basic information of the svccert.
-type SvcCert struct {
-	Cert       []byte `json:"cert"`
-	ExpiryTime int64  `json:"expiryTime"`
-}
-
 // SvcCertProvider represent a function pointer to get the svccert.
-type SvcCertProvider func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (*SvcCert, error)
+type SvcCertProvider func() ([]byte, error)
 
 // NewSvcCertService returns a SvcCertService to update and get the svccert from athenz.
 func NewSvcCertService(cfg config.Config) SvcCertService {
@@ -113,6 +110,7 @@ func NewSvcCertService(cfg config.Config) SvcCertService {
 
 	return &svcCertService{
 		cfg:                   cfg.Token,
+		svcCert:               &atomic.Value{},
 		athenzURL:             cfg.ServiceCert.AthenzURL,
 		dnsDomain:             cfg.ServiceCert.DNSDomain,
 		athenzRootCA:          cfg.ServiceCert.AthenzRootCA,
@@ -123,7 +121,7 @@ func NewSvcCertService(cfg config.Config) SvcCertService {
 	}
 }
 
-func (s *svcCertService) StartSvcCertUpdate(ctx context.Context) SvcCertService {
+func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService {
 	go func() {
 		var err error
 		err = s.update()
@@ -158,8 +156,20 @@ func (s *svcCertService) StartSvcCertUpdate(ctx context.Context) SvcCertService 
 	return s
 }
 
+// GetSvcCertProvider returns a function pointer to get the svccert.
 func (s *svcCertService) GetSvcCertProvider() SvcCertProvider {
-	return nil
+	return s.getSvcCert
+}
+
+// getSvcCert return a token string or error
+// This function is thread-safe. This function will return the svccert stored in the atomic variable,
+// or return the error when the svccert is not initialized or cannot be generated
+func (s *svcCertService) getSvcCert() ([]byte, error) {
+	cert := s.svcCert.Load()
+	if cert == nil {
+		return nil, ErrCertNotFound
+	}
+	return cert.([]byte), nil
 }
 
 func (s *svcCertService) update() error {
@@ -249,7 +259,7 @@ func (s *svcCertService) loadSvcCert() ([]byte, error) {
 	caCertificates := identity.CaCertBundle
 
 	if s.intermediateCert {
-		return []byte(strings.Join([]string{certificate, caCertificates}, "\n")), nil
+		return []byte(certificate + caCertificates), nil
 	}
 
 	return []byte(certificate), nil

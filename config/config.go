@@ -154,6 +154,9 @@ type ServiceCert struct {
 
 	// IntermediateCert decides wheather concatinate intermediate cert to end-entity cert
 	IntermediateCert bool `yaml:"intermediate_cert"`
+
+	// PrincipalAuthHeaderName is the HTTP header name for holding the n-token.
+	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
 }
 
 const (

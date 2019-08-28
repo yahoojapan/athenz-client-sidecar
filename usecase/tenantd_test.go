@@ -88,8 +88,9 @@ func TestNew(t *testing.T) {
 						panic(err)
 					}
 					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					svccert := service.NewSvcCertService(cfg, token.GetTokenProvider())
 
-					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider()))
+					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider(), svccert.GetSvcCertProvider()))
 					server := service.NewServer(
 						service.WithServerConfig(cfg.Server),
 						service.WithServerHandler(serveMux),
@@ -137,10 +138,11 @@ func TestNew(t *testing.T) {
 
 func Test_clientd_Start(t *testing.T) {
 	type fields struct {
-		cfg    config.Config
-		token  ntokend.TokenService
-		server service.Server
-		role   service.RoleService
+		cfg     config.Config
+		token   ntokend.TokenService
+		server  service.Server
+		role    service.RoleService
+		svccert service.SvcCertService
 	}
 	type args struct {
 		ctx context.Context
@@ -196,18 +198,20 @@ func Test_clientd_Start(t *testing.T) {
 						panic(err)
 					}
 					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					svccert := service.NewSvcCertService(cfg, token.GetTokenProvider())
 
-					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider()))
+					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider(), svccert.GetSvcCertProvider()))
 					server := service.NewServer(
 						service.WithServerConfig(cfg.Server),
 						service.WithServerHandler(serveMux),
 					)
 
 					return fields{
-						cfg:    cfg,
-						token:  token,
-						server: server,
-						role:   role,
+						cfg:     cfg,
+						token:   token,
+						server:  server,
+						role:    role,
+						svccert: svccert,
 					}
 				}(),
 				args: args{
@@ -244,10 +248,11 @@ func Test_clientd_Start(t *testing.T) {
 			}
 
 			te := &clientd{
-				cfg:    tt.fields.cfg,
-				token:  tt.fields.token,
-				server: tt.fields.server,
-				role:   tt.fields.role,
+				cfg:     tt.fields.cfg,
+				token:   tt.fields.token,
+				server:  tt.fields.server,
+				role:    tt.fields.role,
+				svccert: tt.fields.svccert,
 			}
 			got := te.Start(tt.args.ctx)
 			if err := tt.checkFunc(got, tt.want); err != nil {
@@ -337,10 +342,7 @@ func Test_createNtokend(t *testing.T) {
 				afterFunc: func() {
 					os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"))
 				},
-				wantErr: fmt.Errorf(`failed to create ZMS SVC Token Builder
-AthenzDomain:	
-ServiceName:	
-KeyVersion:	: Unable to create signer: Unable to load private key`),
+				wantErr: fmt.Errorf("failed to create ZMS SVC Token Builder\nAthenzDomain:\t\nServiceName:\t\nKeyVersion:\t: Unable to create signer: Unable to load private key"),
 			}
 		}(),
 		func() test {

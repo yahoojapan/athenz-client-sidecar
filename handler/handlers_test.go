@@ -77,10 +77,11 @@ func EqualResponse(writer http.ResponseWriter, code int, header map[string]strin
 
 func TestNew(t *testing.T) {
 	type args struct {
-		cfg   config.Proxy
-		bp    httputil.BufferPool
-		token ntokend.TokenProvider
-		role  service.RoleProvider
+		cfg     config.Proxy
+		bp      httputil.BufferPool
+		token   ntokend.TokenProvider
+		role    service.RoleProvider
+		svcCert service.SvcCertProvider
 	}
 	type testcase struct {
 		name      string
@@ -105,6 +106,9 @@ func TestNew(t *testing.T) {
 						Token:      "role-token-89",
 						ExpiryTime: 90,
 					}, fmt.Errorf("get-role-token-error-91")
+				},
+				svcCert: func() ([]byte, error) {
+					return []byte("svccert"), fmt.Errorf("svccert-error")
 				},
 			},
 			want: &handler{
@@ -143,6 +147,16 @@ func TestNew(t *testing.T) {
 					return &NotEqualError{"role() err", gotError, wantError}
 				}
 
+				// svccert
+				gotSvcCert, gotError := got.svcCert()
+				wantSvcCert, wantError := "svccert", fmt.Errorf("svccert-error")
+				if !reflect.DeepEqual(gotToken, wantToken) {
+					return &NotEqualError{"svccert()", gotSvcCert, wantSvcCert}
+				}
+				if !reflect.DeepEqual(gotError, wantError) {
+					return &NotEqualError{"svccert() err", gotError, wantError}
+				}
+
 				return nil
 			},
 		},
@@ -150,7 +164,7 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := New(tt.args.cfg, tt.args.bp, tt.args.token, tt.args.role)
+			got := New(tt.args.cfg, tt.args.bp, tt.args.token, tt.args.role, tt.args.svcCert)
 			if err := tt.checkFunc(got.(*handler), tt.want); err != nil {
 				t.Errorf("New() %v", err)
 				return

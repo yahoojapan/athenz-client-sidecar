@@ -157,6 +157,21 @@ type ServiceCert struct {
 
 	// PrincipalAuthHeaderName is the HTTP header name for holding the n-token.
 	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
+
+	// Subject is subject fields of the certificate
+	Subject Subject `yaml:"subject"`
+}
+
+// Subject represent subject fields of the certificate
+type Subject struct {
+	// Country is the Subject C/Country field of certificate
+	Country string `yaml:"country"`
+
+	// Organization is the Subject O/Organization field of the certificate
+	Organization string `yaml:"organization"`
+
+	// OrganizationalUnit is the Subject OU/OrganizationalUnit field of the certificate
+	OrganizationalUnit string `yaml:"organizational_unit"`
 }
 
 const (

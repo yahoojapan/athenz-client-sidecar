@@ -62,17 +62,13 @@ type SvcCertService interface {
 
 // svcCertService represent the implementation of athenz RoleService
 type svcCertService struct {
-	cfg                   config.Token
-	token                 ntokend.TokenProvider
-	athenzURL             string
-	athenzRootCA          string
-	dnsDomain             string
-	athenzPrincipleHeader string
-	intermediateCert      bool
-	svcCert               *atomic.Value
-	group                 singleflight.Group
-	refreshDuration       time.Duration
-	httpClient            *http.Client
+	cfg             config.ServiceCert
+	tokenCfg        config.Token
+	token           ntokend.TokenProvider
+	svcCert         *atomic.Value
+	group           singleflight.Group
+	refreshDuration time.Duration
+	httpClient      *http.Client
 }
 
 // SvcCertProvider represent a function pointer to get the svccert.
@@ -110,16 +106,12 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) SvcCertSe
 	}
 
 	return &svcCertService{
-		cfg:                   cfg.Token,
-		svcCert:               &atomic.Value{},
-		token:                 token,
-		athenzURL:             cfg.ServiceCert.AthenzURL,
-		dnsDomain:             cfg.ServiceCert.DNSDomain,
-		athenzRootCA:          cfg.ServiceCert.AthenzRootCA,
-		intermediateCert:      cfg.ServiceCert.IntermediateCert,
-		athenzPrincipleHeader: cfg.ServiceCert.PrincipalAuthHeaderName,
-		refreshDuration:       dur,
-		httpClient:            httpClient,
+		cfg:             cfg.ServiceCert,
+		tokenCfg:        cfg.Token,
+		svcCert:         &atomic.Value{},
+		token:           token,
+		refreshDuration: dur,
+		httpClient:      httpClient,
 	}
 }
 
@@ -189,7 +181,7 @@ func (s *svcCertService) setCert(svcCert []byte) {
 
 func (s *svcCertService) loadSvcCert() ([]byte, error) {
 	// load private key
-	keyBytes, err := ioutil.ReadFile(s.cfg.PrivateKeyPath)
+	keyBytes, err := ioutil.ReadFile(s.tokenCfg.PrivateKeyPath)
 	if err != nil {
 		return nil, err
 	}
@@ -204,19 +196,15 @@ func (s *svcCertService) loadSvcCert() ([]byte, error) {
 	// it is used, not the CA. So, we will always put the Athenz name in the CN
 	// (it is *not* a DNS domain name), and put the host name into the SAN.
 
-	hyphenDomain := strings.Replace(s.cfg.AthenzDomain, ".", "-", -1)
-	host := fmt.Sprintf("%s.%s.%s", s.cfg.ServiceName, hyphenDomain, s.dnsDomain)
-	commonName := fmt.Sprintf("%s.%s", s.cfg.AthenzDomain, s.cfg.ServiceName)
-
-	subjOU := "Athenz"
-	subjO := "Oath Inc."
-	subjC := "US"
+	hyphenDomain := strings.Replace(s.tokenCfg.AthenzDomain, ".", "-", -1)
+	host := fmt.Sprintf("%s.%s.%s", s.tokenCfg.ServiceName, hyphenDomain, s.cfg.DNSDomain)
+	commonName := fmt.Sprintf("%s.%s", s.tokenCfg.AthenzDomain, s.tokenCfg.ServiceName)
 
 	subj := pkix.Name{
 		CommonName:         commonName,
-		OrganizationalUnit: []string{subjOU},
-		Organization:       []string{subjO},
-		Country:            []string{subjC},
+		OrganizationalUnit: []string{s.cfg.Subject.OrganizationalUnit},
+		Organization:       []string{s.cfg.Subject.Organization},
+		Country:            []string{s.cfg.Subject.Country},
 	}
 
 	csrData, err := generateCSR(pkSigner, subj, host, "", "")
@@ -230,12 +218,12 @@ func (s *svcCertService) loadSvcCert() ([]byte, error) {
 	// data contains the authentication details
 
 	client, err := s.ntokenClient(
-		s.athenzURL,
-		s.cfg.AthenzDomain,
-		s.cfg.ServiceName,
-		s.cfg.KeyVersion,
-		s.athenzRootCA,
-		s.athenzPrincipleHeader,
+		s.cfg.AthenzURL,
+		s.tokenCfg.AthenzDomain,
+		s.tokenCfg.ServiceName,
+		s.tokenCfg.KeyVersion,
+		s.cfg.AthenzRootCA,
+		s.cfg.PrincipalAuthHeaderName,
 		keyBytes,
 	)
 	if err != nil {
@@ -247,12 +235,16 @@ func (s *svcCertService) loadSvcCert() ([]byte, error) {
 	expiryTime32 := int32(0)
 	req := &zts.InstanceRefreshRequest{
 		Csr:        csrData,
-		KeyId:      s.cfg.KeyVersion,
+		KeyId:      s.tokenCfg.KeyVersion,
 		ExpiryTime: &expiryTime32,
 	}
 
 	// request a tls certificate for this service
-	identity, err := client.PostInstanceRefreshRequest(zts.CompoundName(s.cfg.AthenzDomain), zts.SimpleName(s.cfg.ServiceName), req)
+	identity, err := client.PostInstanceRefreshRequest(
+		zts.CompoundName(s.tokenCfg.AthenzDomain),
+		zts.SimpleName(s.tokenCfg.ServiceName),
+		req,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -260,7 +252,7 @@ func (s *svcCertService) loadSvcCert() ([]byte, error) {
 	certificate := identity.Certificate
 	caCertificates := identity.CaCertBundle
 
-	if s.intermediateCert {
+	if s.cfg.IntermediateCert {
 		return []byte(certificate + caCertificates), nil
 	}
 

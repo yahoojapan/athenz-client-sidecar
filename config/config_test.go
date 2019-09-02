@@ -95,6 +95,19 @@ func TestNew(t *testing.T) {
 					RoleAuthHeaderName:      "Athenz-Role-Auth",
 					BufferSize:              1024,
 				},
+				ServiceCert: ServiceCert{
+					AthenzURL:               "https://www.athenz.com:4443/zts/v1",
+					AthenzRootCA:            "/etc/ssl/cert.pem",
+					DNSDomain:               "www.athenz.com",
+					RefreshDuration:         "30m",
+					IntermediateCert:        true,
+					PrincipalAuthHeaderName: "Athenz-Principal",
+					Subject: Subject{
+						Country:            "US",
+						Organization:       "Oath Inc.",
+						OrganizationalUnit: "Athenz",
+					},
+				},
 			},
 		},
 		{

@@ -149,8 +149,8 @@ func TestNew(t *testing.T) {
 
 				// svccert
 				gotSvcCert, gotError := got.svcCert()
-				wantSvcCert, wantError := "svccert", fmt.Errorf("svccert-error")
-				if !reflect.DeepEqual(gotToken, wantToken) {
+				wantSvcCert, wantError := []byte("svccert"), fmt.Errorf("svccert-error")
+				if !reflect.DeepEqual(gotSvcCert, wantSvcCert) {
 					return &NotEqualError{"svccert()", gotSvcCert, wantSvcCert}
 				}
 				if !reflect.DeepEqual(gotError, wantError) {
@@ -1056,6 +1056,69 @@ func Test_flushAndClose(t *testing.T) {
 			gotError := flushAndClose(tt.args.readCloser)
 			if !reflect.DeepEqual(gotError, tt.wantError) {
 				t.Errorf("flushAndClose() error = %v, want %v", gotError, tt.wantError)
+			}
+		})
+	}
+}
+
+func Test_handler_ServiceCert(t *testing.T) {
+	type fields struct {
+		cert service.SvcCertProvider
+	}
+	type args struct {
+		w http.ResponseWriter
+		r *http.Request
+	}
+	type want struct {
+		code   int
+		header map[string]string
+		body   []byte
+	}
+	type testcase struct {
+		name   string
+		fields fields
+		args   args
+		//want      want
+		wantError error
+	}
+	tests := []testcase{
+		{
+			name: "Check ServiceCert, get svccert success",
+			fields: fields{
+				cert: func() (cert []byte, err error) {
+					return []byte("Test cert"), nil
+				},
+			},
+			args: args{
+				w: httptest.NewRecorder(),
+				r: httptest.NewRequest(http.MethodGet, "http://url-336", nil),
+			},
+			/*
+				want: want{
+					code:   http.StatusOK,
+					header: map[string]string{},
+					body:   []byte{},
+				},
+			*/
+			wantError: nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			var err error
+			h := &handler{
+				svcCert: tt.fields.cert,
+			}
+
+			gotSvcError := h.ServiceCert(tt.args.w, tt.args.r)
+			if !reflect.DeepEqual(gotSvcError, tt.wantError) {
+				err = &NotEqualError{"error", gotSvcError, tt.wantError}
+			}
+			fmt.Println(tt.args.w)
+			if err != nil {
+				t.Errorf("handler.ServiceCert() %v", err)
+				return
 			}
 		})
 	}

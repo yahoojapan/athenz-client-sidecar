@@ -30,13 +30,13 @@ proxy:
   role_header_key: Athenz-Role-Auth
   buffer_size: 1024
 service_cert:
-  athenz_url: https://alpha.zts.athenz.yahoo.co.jp:4443/zts/v1
+  athenz_url: https://www.athenz.com:4443/zts/v1
   athenz_root_ca: /etc/ssl/cert.pem
-  dns_domain: athenz.yahoo.co.jp
+  dns_domain: www.athenz.com
   refresh_duration: 1d
   intermediate_cert: true
-  auth_header_key: Yahoo-Principal-Auth
+  auth_header_key: Athenz-Principal
   subject:
-    organization: "Outh Inc."
-    organizational_unit: "Athenz"
-    country: "US"
+    country: US
+    organization: "Oath Inc."
+    organizational_unit: Athenz

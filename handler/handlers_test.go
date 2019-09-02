@@ -1075,10 +1075,10 @@ func Test_handler_ServiceCert(t *testing.T) {
 		body   []byte
 	}
 	type testcase struct {
-		name   string
-		fields fields
-		args   args
-		//want      want
+		name      string
+		fields    fields
+		args      args
+		want      want
 		wantError error
 	}
 	tests := []testcase{
@@ -1093,14 +1093,30 @@ func Test_handler_ServiceCert(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest(http.MethodGet, "http://url-336", nil),
 			},
-			/*
-				want: want{
-					code:   http.StatusOK,
-					header: map[string]string{},
-					body:   []byte{},
-				},
-			*/
+			want: want{
+				code:   http.StatusOK,
+				header: map[string]string{"Content-Type": "application/json; charset=utf-8"},
+				body:   []byte("{\"cert\":\"VGVzdCBjZXJ0\"}\n"),
+			},
 			wantError: nil,
+		},
+		{
+			name: "Check ServiceCert, get svccert success",
+			fields: fields{
+				cert: func() (cert []byte, err error) {
+					return nil, fmt.Errorf("svccert error")
+				},
+			},
+			args: args{
+				w: httptest.NewRecorder(),
+				r: httptest.NewRequest(http.MethodGet, "http://url-336", nil),
+			},
+			want: want{
+				code:   http.StatusOK,
+				header: map[string]string{},
+				body:   []byte{},
+			},
+			wantError: fmt.Errorf("svccert error"),
 		},
 	}
 	for _, tt := range tests {
@@ -1115,7 +1131,11 @@ func Test_handler_ServiceCert(t *testing.T) {
 			if !reflect.DeepEqual(gotSvcError, tt.wantError) {
 				err = &NotEqualError{"error", gotSvcError, tt.wantError}
 			}
-			fmt.Println(tt.args.w)
+			if err != nil {
+				t.Errorf("handler.ServiceCert() %v", err)
+				return
+			}
+			err = EqualResponse(tt.args.w, tt.want.code, tt.want.header, tt.want.body)
 			if err != nil {
 				t.Errorf("handler.ServiceCert() %v", err)
 				return

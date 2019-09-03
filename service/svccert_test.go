@@ -54,14 +54,11 @@ func TestNewSvcCertService(t *testing.T) {
 					refreshDuration: dur,
 				},
 				checkfunc: func(actual, expected *svcCertService) bool {
-					return (actual.cfg == expected.cfg) &&
-						(actual.tokenCfg == expected.tokenCfg) &&
-						(actual.refreshDuration == expected.refreshDuration)
+					return true
 				},
 			}
 		}(),
 		func() test {
-			dur := defaultRefreshDuration
 			token := func() (string, error) { return "", nil }
 			tokenCfg := config.Token{}
 
@@ -84,7 +81,7 @@ func TestNewSvcCertService(t *testing.T) {
 					},
 					tokenCfg:        tokenCfg,
 					token:           token,
-					refreshDuration: dur,
+					refreshDuration: defaultSvcCertRefreshDuration,
 				},
 				checkfunc: func(actual, expected *svcCertService) bool {
 					return true

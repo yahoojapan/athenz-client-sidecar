@@ -43,10 +43,13 @@ import (
 )
 
 var (
-	// defaultRefreshDuration represent the default svccert expiry time.
-	defaultRefreshDuration = time.Hour * 24
+	// defaultRefreshDuration represents the default time to refresh the goroutine.
+	defaultSvcCertRefreshDuration = time.Hour * 24
 
-	// ErrCertNotFound represent an error when failed to fetch the svccert from SvcCertProvider.
+	// defaultexpiration represents the default expiration time for certificate
+	// defaultSvcCertExpiration = time.Hour * 24 * 20
+
+	// ErrCertNotFound represents an error when failed to fetch the svccert from SvcCertProvider.
 	ErrCertNotFound = errors.New("Failed to fetch service cert")
 )
 
@@ -55,12 +58,13 @@ type signer struct {
 	algorithm x509.SignatureAlgorithm
 }
 
+// SvcCertService represents a interface to automatically refresh the certificate.
 type SvcCertService interface {
 	StartSvcCertUpdater(context.Context) SvcCertService
 	GetSvcCertProvider() SvcCertProvider
 }
 
-// svcCertService represent the implementation of athenz RoleService
+// svcCertService represents the implementation of athenz RoleService
 type svcCertService struct {
 	cfg             config.ServiceCert
 	tokenCfg        config.Token
@@ -68,17 +72,18 @@ type svcCertService struct {
 	svcCert         *atomic.Value
 	group           singleflight.Group
 	refreshDuration time.Duration
+	expiration      time.Time
 	httpClient      *http.Client
 }
 
-// SvcCertProvider represent a function pointer to get the svccert.
+// SvcCertProvider represents a function pointer to get the svccert.
 type SvcCertProvider func() ([]byte, error)
 
 // NewSvcCertService returns a SvcCertService to update and get the svccert from athenz.
 func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) SvcCertService {
 	dur, err := time.ParseDuration(cfg.ServiceCert.RefreshDuration)
 	if err != nil {
-		dur = defaultRefreshDuration
+		dur = defaultSvcCertRefreshDuration
 	}
 
 	var cp *x509.CertPool
@@ -118,7 +123,7 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) SvcCertSe
 func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService {
 	go func() {
 		var err error
-		err = s.update()
+		_, err = s.update()
 		fch := make(chan struct{})
 		if err != nil {
 			glg.Error(err)
@@ -132,14 +137,14 @@ func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService
 				ticker.Stop()
 				return
 			case <-fch:
-				err = s.update()
+				_, err = s.update()
 				if err != nil {
 					glg.Error(err)
 					time.Sleep(time.Second)
 					fch <- struct{}{}
 				}
 			case <-ticker.C:
-				err = s.update()
+				_, err = s.update()
 				if err != nil {
 					glg.Error(err)
 					fch <- struct{}{}
@@ -160,23 +165,24 @@ func (s *svcCertService) GetSvcCertProvider() SvcCertProvider {
 // or return the error when the svccert is not initialized or cannot be generated
 func (s *svcCertService) getSvcCert() ([]byte, error) {
 	cert := s.svcCert.Load()
+
+	// TODO: check expiration
 	if cert == nil {
-		err := s.update()
-		cert = s.svcCert.Load()
-		if err != nil || cert == nil {
-			return nil, ErrCertNotFound
-		}
+		return s.update()
 	}
 	return cert.([]byte), nil
 }
 
-func (s *svcCertService) update() error {
+func (s *svcCertService) update() ([]byte, error) {
 	cert, err := s.loadSvcCert()
 	if err != nil {
-		return err
+		return nil, ErrCertNotFound
 	}
+
 	s.setCert(cert)
-	return nil
+
+	// TODO: update expiration
+	return cert, nil
 }
 
 func (s *svcCertService) setCert(svcCert []byte) {

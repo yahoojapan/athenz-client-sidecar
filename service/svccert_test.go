@@ -2,7 +2,6 @@ package service
 
 import (
 	"net/http"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -21,13 +20,11 @@ func TestNewSvcCertService(t *testing.T) {
 		token ntokend.TokenProvider
 	}
 	type test struct {
-		name string
-		args args
-		want SvcCertService
+		name      string
+		args      args
+		want      SvcCertService
+		checkfunc func(*svcCertService, *svcCertService) bool
 	}
-
-	mockSvcCert := &atomic.Value{}
-	mockHTTPClient := &http.Client{}
 
 	tests := []test{
 		func() test {
@@ -56,203 +53,108 @@ func TestNewSvcCertService(t *testing.T) {
 					token:           token,
 					refreshDuration: dur,
 				},
+				checkfunc: func(actual, expected *svcCertService) bool {
+					return (actual.cfg == expected.cfg) &&
+						(actual.tokenCfg == expected.tokenCfg) &&
+						(actual.refreshDuration == expected.refreshDuration)
+				},
 			}
 		}(),
-		// func() test {
-		// 	return test{
-		// 		name: "Error create builder",
-		// 		args: args{
-		// 			Options: []Option{},
-		// 		},
-		// 		wantErr: ErrTokenBuilder("", "", "", errors.New("Unable to create signer: Unable to load private key")),
-		// 	}
-		// }(),
-		// func() test {
-		// 	tfp := ""
-		// 	texp := time.Minute
-		// 	rdur := time.Second
-		//
-		// 	d := "dummyDomain"
-		// 	s := "dummyService"
-		// 	kv := "dummyKeyVer"
-		// 	kd, err := ioutil.ReadFile("./assets/dummyServer.key")
-		// 	if err != nil {
-		// 		panic(err)
-		// 	}
-		// 	h := "dummyHost"
-		// 	i := "dummyIp"
-		//
-		// 	return test{
-		// 		name: "return success",
-		// 		args: args{
-		// 			Options: []Option{
-		// 				AthenzDomain(d), ServiceName(s), KeyVersion(kv), KeyData(kd), Hostname(h), IPAddr(i),
-		// 				TokenFilePath(tfp), TokenExpiration(texp), RefreshDuration(rdur), DisableValidate(),
-		// 			},
-		// 		},
-		// 		want: func() TokenService {
-		// 			tb, err := zmssvctoken.NewTokenBuilder(d, s, kd, kv)
-		// 			if err != nil {
-		// 				panic(err)
-		// 			}
-		// 			tb.SetHostname(h)
-		// 			tb.SetIPAddress(i)
-		//
-		// 			return &token{
-		// 				token:           new(atomic.Value),
-		// 				tokenFilePath:   tfp,
-		// 				validateToken:   false,
-		// 				tokenExpiration: texp,
-		// 				refreshDuration: rdur,
-		// 				builder:         tb,
-		//
-		// 				athenzDomain: d,
-		// 				serviceName:  s,
-		// 				keyVersion:   kv,
-		// 				keyData:      kd,
-		// 				hostname:     h,
-		// 				ipAddr:       i,
-		// 			}
-		// 		}(),
-		// 		checkFunc: func(got, want TokenService) error {
-		// 			ctx, cancel := context.WithCancel(context.Background())
-		// 			defer cancel()
-		// 			got.StartTokenUpdater(ctx)
-		// 			want.StartTokenUpdater(ctx)
-		// 			time.Sleep(time.Millisecond * 50)
-		//
-		// 			g, err := got.GetTokenProvider()()
-		// 			if err != nil {
-		// 				return fmt.Errorf("Got not found, err: %v", err)
-		// 			}
-		// 			w, err := want.GetTokenProvider()()
-		// 			if err != nil {
-		// 				return fmt.Errorf("Want not found, err: %v", err)
-		// 			}
-		// 			parse := func(str string) map[string]string {
-		// 				m := make(map[string]string)
-		// 				for _, pair := range strings.Split(str, ";") {
-		// 					kv := strings.SplitN(pair, "=", 2)
-		// 					if len(kv) < 2 {
-		// 						continue
-		// 					}
-		// 					m[kv[0]] = kv[1]
-		// 				}
-		// 				return m
-		// 			}
-		//
-		// 			gm := parse(g)
-		// 			wm := parse(w)
-		//
-		// 			check := func(key string) bool {
-		// 				return gm[key] != wm[key]
-		// 			}
-		//
-		// 			if check("v") || check("d") || check("n") || check("k") || check("h") || check("i") || check("t") || check("e") {
-		// 				return fmt.Errorf("invalid token, got: %s, want: %s", g, w)
-		// 			}
-		//
-		// 			return nil
-		// 		},
-		// 	}
-		// }(),
-		//
-		// func() test {
-		// 	tfp := ""
-		// 	texp := time.Minute
-		// 	rdur := time.Second
-		//
-		// 	d := "dummyDomain"
-		// 	s := "dummyService"
-		// 	kv := "dummyKeyVer"
-		// 	kd, err := ioutil.ReadFile("./assets/dummyServer.key")
-		// 	if err != nil {
-		// 		panic(err)
-		// 	}
-		// 	h := "dummyHost"
-		// 	i := "dummyIp"
-		//
-		// 	dummy := "dummy"
-		//
-		// 	return test{
-		// 		name: "check token option order",
-		// 		args: args{
-		// 			Options: []Option{
-		// 				// dummy value
-		// 				AthenzDomain(dummy), ServiceName(dummy), KeyVersion(dummy), KeyData([]byte{}), Hostname(dummy), IPAddr(dummy),
-		// 				TokenFilePath(dummy), TokenExpiration(time.Hour), RefreshDuration(time.Hour), EnableValidate(),
-		// 				// actual value
-		// 				AthenzDomain(d), ServiceName(s), KeyVersion(kv), KeyData(kd), Hostname(h), IPAddr(i),
-		// 				TokenFilePath(tfp), TokenExpiration(texp), RefreshDuration(rdur), DisableValidate(),
-		// 			},
-		// 		},
-		// 		want: func() TokenService {
-		// 			tb, err := zmssvctoken.NewTokenBuilder(d, s, kd, kv)
-		// 			if err != nil {
-		// 				panic(err)
-		// 			}
-		// 			tb.SetHostname(h)
-		// 			tb.SetIPAddress(i)
-		//
-		// 			return &token{
-		// 				token:           new(atomic.Value),
-		// 				tokenFilePath:   tfp,
-		// 				validateToken:   false,
-		// 				tokenExpiration: texp,
-		// 				refreshDuration: rdur,
-		// 				builder:         tb,
-		//
-		// 				athenzDomain: d,
-		// 				serviceName:  s,
-		// 				keyVersion:   kv,
-		// 				keyData:      kd,
-		// 				hostname:     h,
-		// 				ipAddr:       i,
-		// 			}
-		// 		}(),
-		// 		checkFunc: func(got, want TokenService) error {
-		// 			ctx, cancel := context.WithCancel(context.Background())
-		// 			defer cancel()
-		// 			got.StartTokenUpdater(ctx)
-		// 			want.StartTokenUpdater(ctx)
-		// 			time.Sleep(time.Millisecond * 50)
-		//
-		// 			g, err := got.GetTokenProvider()()
-		// 			if err != nil {
-		// 				return fmt.Errorf("Got not found, err: %v", err)
-		// 			}
-		// 			w, err := want.GetTokenProvider()()
-		// 			if err != nil {
-		// 				return fmt.Errorf("Want not found, err: %v", err)
-		// 			}
-		// 			parse := func(str string) map[string]string {
-		// 				m := make(map[string]string)
-		// 				for _, pair := range strings.Split(str, ";") {
-		// 					kv := strings.SplitN(pair, "=", 2)
-		// 					if len(kv) < 2 {
-		// 						continue
-		// 					}
-		// 					m[kv[0]] = kv[1]
-		// 				}
-		// 				return m
-		// 			}
-		//
-		// 			gm := parse(g)
-		// 			wm := parse(w)
-		//
-		// 			check := func(key string) bool {
-		// 				return gm[key] != wm[key]
-		// 			}
-		//
-		// 			if check("v") || check("d") || check("n") || check("k") || check("h") || check("i") || check("t") || check("e") {
-		// 				return fmt.Errorf("invalid token, got: %s, want: %s", g, w)
-		// 			}
-		//
-		// 			return nil
-		// 		},
-		// 	}
-		// }(),
+		func() test {
+			dur := defaultRefreshDuration
+			token := func() (string, error) { return "", nil }
+			tokenCfg := config.Token{}
+
+			return test{
+				name: "Fail to parse RefreshDuration",
+				args: args{
+					cfg: config.Config{
+						Token: tokenCfg,
+						ServiceCert: config.ServiceCert{
+							AthenzRootCA:    "./assets/dummyCa.pem",
+							RefreshDuration: "",
+						},
+					},
+					token: token,
+				},
+				want: &svcCertService{
+					cfg: config.ServiceCert{
+						AthenzRootCA:    "./assets/dummyCa.pem",
+						RefreshDuration: "",
+					},
+					tokenCfg:        tokenCfg,
+					token:           token,
+					refreshDuration: dur,
+				},
+				checkfunc: func(actual, expected *svcCertService) bool {
+					return true
+				},
+			}
+		}(),
+		func() test {
+			dur, _ := time.ParseDuration("30m")
+			token := func() (string, error) { return "", nil }
+			tokenCfg := config.Token{}
+
+			return test{
+				name: "AthenzRootCA file dose not exist",
+				args: args{
+					cfg: config.Config{
+						Token: tokenCfg,
+						ServiceCert: config.ServiceCert{
+							AthenzRootCA:    "/not/exist.pem",
+							RefreshDuration: "30m",
+						},
+					},
+					token: token,
+				},
+				want: &svcCertService{
+					cfg: config.ServiceCert{
+						AthenzRootCA:    "/not/exist.pem",
+						RefreshDuration: "30m",
+					},
+					tokenCfg:        tokenCfg,
+					token:           token,
+					refreshDuration: dur,
+				},
+				checkfunc: func(actual, expected *svcCertService) bool {
+					return actual.httpClient == http.DefaultClient
+				},
+			}
+		}(),
+		func() test {
+			dur, _ := time.ParseDuration("30m")
+			token := func() (string, error) { return "", nil }
+			tokenCfg := config.Token{}
+
+			return test{
+				name: "AthenzRootCA dose not match x509",
+				args: args{
+					cfg: config.Config{
+						Token: tokenCfg,
+						ServiceCert: config.ServiceCert{
+							AthenzRootCA:    "./assets/invalid_dummyCa.pem",
+							RefreshDuration: "30m",
+						},
+					},
+					token: token,
+				},
+				want: &svcCertService{
+					cfg: config.ServiceCert{
+						AthenzRootCA:    "./assets/invalid_dummyCa.pem",
+						RefreshDuration: "30m",
+					},
+					tokenCfg:        tokenCfg,
+					token:           token,
+					refreshDuration: dur,
+				},
+				checkfunc: func(actual, expected *svcCertService) bool {
+					return actual.httpClient == http.DefaultClient
+				},
+			}
+		}(),
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			actual := NewSvcCertService(tt.args.cfg, tt.args.token)
@@ -262,18 +164,13 @@ func TestNewSvcCertService(t *testing.T) {
 
 			actualSvcCertService := actual.(*svcCertService)
 			expectedSvcCertService := tt.want.(*svcCertService)
-			actualSvcCertService.svcCert = mockSvcCert
-			expectedSvcCertService.svcCert = mockSvcCert
-			actualSvcCertService.httpClient = mockHTTPClient
-			expectedSvcCertService.httpClient = mockHTTPClient
 
-			if actualSvcCertService != expectedSvcCertService {
+			if (actualSvcCertService.cfg != expectedSvcCertService.cfg) ||
+				(actualSvcCertService.tokenCfg != expectedSvcCertService.tokenCfg) ||
+				(actualSvcCertService.refreshDuration != expectedSvcCertService.refreshDuration) ||
+				!tt.checkfunc(actualSvcCertService, expectedSvcCertService) {
 				t.Errorf("TestNewSvcCertService failed expected: %+v, actual: %+v", expectedSvcCertService, actualSvcCertService)
 			}
-
-			// if !reflect.DeepEqual(actualSvcCertService, expectedSvcCertService) {
-			//   t.Errorf("TestNewSvcCertService failed expected: %v, actual: %v", expectedSvcCertService, actualSvcCertService)
-			// }
 		})
 	}
 }

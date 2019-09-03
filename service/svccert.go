@@ -52,7 +52,7 @@ var (
 	// ErrCertNotFound represents an error when failed to fetch the svccert from SvcCertProvider.
 	ErrCertNotFound = errors.New("Failed to fetch service cert")
 
-	// ErrCertNotFound represents an error when failed to parse the svccert from SvcCertProvider.
+	// ErrInvalidCert represents an error when failed to parse the svccert from SvcCertProvider.
 	ErrInvalidCert = errors.New("Failed to parse service cert")
 )
 

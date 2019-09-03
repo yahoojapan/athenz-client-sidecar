@@ -161,7 +161,11 @@ func (s *svcCertService) GetSvcCertProvider() SvcCertProvider {
 func (s *svcCertService) getSvcCert() ([]byte, error) {
 	cert := s.svcCert.Load()
 	if cert == nil {
-		return nil, ErrCertNotFound
+		err := s.update()
+		cert = s.svcCert.Load()
+		if err != nil || cert == nil {
+			return nil, ErrCertNotFound
+		}
 	}
 	return cert.([]byte), nil
 }

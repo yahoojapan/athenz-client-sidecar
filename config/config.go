@@ -158,6 +158,9 @@ type ServiceCert struct {
 	// PrincipalAuthHeaderName is the HTTP header name for holding the n-token.
 	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
 
+	// Expiration represent the duration of the expiration.
+	Expiration string `yaml:"expiration"`
+
 	// Subject is subject fields of the certificate
 	Subject Subject `yaml:"subject"`
 }

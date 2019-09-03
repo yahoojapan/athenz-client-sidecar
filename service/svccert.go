@@ -51,6 +51,9 @@ var (
 
 	// ErrCertNotFound represents an error when failed to fetch the svccert from SvcCertProvider.
 	ErrCertNotFound = errors.New("Failed to fetch service cert")
+
+	// ErrCertNotFound represents an error when failed to parse the svccert from SvcCertProvider.
+	ErrInvalidCert = errors.New("Failed to parse service cert")
 )
 
 type signer struct {
@@ -126,7 +129,6 @@ func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService
 		_, err = s.update()
 		fch := make(chan struct{})
 		if err != nil {
-			glg.Error(err)
 			fch <- struct{}{}
 		}
 
@@ -166,8 +168,7 @@ func (s *svcCertService) GetSvcCertProvider() SvcCertProvider {
 func (s *svcCertService) getSvcCert() ([]byte, error) {
 	cert := s.svcCert.Load()
 
-	// TODO: check expiration
-	if cert == nil {
+	if cert == nil || s.expiration.Before(time.Now()) {
 		return s.update()
 	}
 	return cert.([]byte), nil
@@ -181,7 +182,19 @@ func (s *svcCertService) update() ([]byte, error) {
 
 	s.setCert(cert)
 
-	// TODO: update expiration
+	block, _ := pem.Decode(cert)
+
+	var certificate []*x509.Certificate
+	if s.cfg.IntermediateCert {
+		certificate, err = x509.ParseCertificates(block.Bytes)
+	} else {
+		certificate[0], err = x509.ParseCertificate(block.Bytes)
+	}
+	if err != nil {
+		return nil, ErrInvalidCert
+	}
+
+	s.expiration = certificate[0].NotAfter
 	return cert, nil
 }
 
@@ -242,7 +255,7 @@ func (s *svcCertService) loadSvcCert() ([]byte, error) {
 
 	// if we're given provider then we're going to use our
 	// copper argos model to request the certificate
-	expiryTime32 := int32(0)
+	expiryTime32 := int32(1)
 	req := &zts.InstanceRefreshRequest{
 		Csr:        csrData,
 		KeyId:      s.tokenCfg.KeyVersion,

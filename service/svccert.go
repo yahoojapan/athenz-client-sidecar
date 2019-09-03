@@ -321,7 +321,6 @@ func generateCSR(keySigner *signer, subj pkix.Name, host, ip, uri string) (strin
 }
 
 func (s *svcCertService) ntokenClient(ztsURL, domain, service, keyID, caCertFile, hdr string, keyBytes []byte) (*zts.ZTSClient, error) {
-
 	ntoken, err := s.token()
 	if err != nil {
 		return nil, err

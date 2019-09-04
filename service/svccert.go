@@ -31,7 +31,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -59,6 +58,12 @@ type signer struct {
 	algorithm x509.SignatureAlgorithm
 }
 
+type requestTemplate struct {
+	req          *zts.InstanceRefreshRequest
+	compoundName zts.CompoundName
+	simpleName   zts.SimpleName
+}
+
 // SvcCertService represents a interface to automatically refresh the certificate.
 type SvcCertService interface {
 	StartSvcCertUpdater(context.Context) SvcCertService
@@ -74,41 +79,23 @@ type svcCertService struct {
 	group           singleflight.Group
 	refreshDuration time.Duration
 	expiration      time.Time
-	httpClient      *http.Client
+	client          *zts.ZTSClient
+	refreshRequest  *requestTemplate
 }
 
 // SvcCertProvider represents a function pointer to get the svccert.
 type SvcCertProvider func() ([]byte, error)
 
 // NewSvcCertService returns a SvcCertService to update and get the svccert from athenz.
-func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) SvcCertService {
+func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertService, error) {
 	dur, err := time.ParseDuration(cfg.ServiceCert.RefreshDuration)
 	if err != nil {
 		dur = defaultSvcCertRefreshDuration
 	}
 
-	var cp *x509.CertPool
-	var httpClient *http.Client
-	if len(cfg.ServiceCert.AthenzRootCA) != 0 {
-		certPath := config.GetActualValue(cfg.ServiceCert.AthenzRootCA)
-		_, err := os.Stat(certPath)
-		if !os.IsNotExist(err) {
-			cp, err = NewX509CertPool(certPath)
-			if err != nil {
-				cp = nil
-			}
-		}
-	}
-	if cp != nil {
-		httpClient = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					RootCAs: cp,
-				},
-			},
-		}
-	} else {
-		httpClient = http.DefaultClient
+	reqTemp, client, err := setup(cfg)
+	if err != nil {
+		return nil, err
 	}
 
 	return &svcCertService{
@@ -117,99 +104,21 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) SvcCertSe
 		svcCert:         &atomic.Value{},
 		token:           token,
 		refreshDuration: dur,
-		httpClient:      httpClient,
-	}
+		client:          client,
+		refreshRequest:  reqTemp,
+	}, nil
 }
 
-func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService {
-	go func() {
-		var err error
-		_, err = s.update()
-		fch := make(chan struct{})
-		if err != nil {
-			fch <- struct{}{}
-		}
-
-		ticker := time.NewTicker(s.refreshDuration)
-		for {
-			select {
-			case <-ctx.Done():
-				ticker.Stop()
-				return
-			case <-fch:
-				_, err = s.update()
-				if err != nil {
-					glg.Error(err)
-					time.Sleep(time.Second)
-					fch <- struct{}{}
-				}
-			case <-ticker.C:
-				_, err = s.update()
-				if err != nil {
-					glg.Error(err)
-					fch <- struct{}{}
-				}
-			}
-		}
-	}()
-	return s
-}
-
-// GetSvcCertProvider returns a function pointer to get the svccert.
-func (s *svcCertService) GetSvcCertProvider() SvcCertProvider {
-	return s.getSvcCert
-}
-
-// getSvcCert return a token string or error
-// This function is thread-safe. This function will return the svccert stored in the atomic variable,
-// or return the error when the svccert is not initialized or cannot be generated
-func (s *svcCertService) getSvcCert() ([]byte, error) {
-	cert := s.svcCert.Load()
-
-	if cert == nil || s.expiration.Before(time.Now()) {
-		return s.update()
-	}
-	return cert.([]byte), nil
-}
-
-func (s *svcCertService) update() ([]byte, error) {
-	cert, err := s.loadSvcCert()
-	if err != nil {
-		return nil, ErrCertNotFound
-	}
-
-	s.setCert(cert)
-
-	block, _ := pem.Decode(cert)
-
-	var certificate []*x509.Certificate
-	if s.cfg.IntermediateCert {
-		certificate, err = x509.ParseCertificates(block.Bytes)
-	} else {
-		certificate[0], err = x509.ParseCertificate(block.Bytes)
-	}
-	if err != nil {
-		return nil, ErrInvalidCert
-	}
-
-	s.expiration = certificate[0].NotAfter
-	return cert, nil
-}
-
-func (s *svcCertService) setCert(svcCert []byte) {
-	s.svcCert.Store(svcCert)
-}
-
-func (s *svcCertService) loadSvcCert() ([]byte, error) {
+func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 	// load private key
-	keyBytes, err := ioutil.ReadFile(s.tokenCfg.PrivateKeyPath)
+	keyBytes, err := ioutil.ReadFile(cfg.Token.PrivateKeyPath)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// get our private key signer for csr
 	pkSigner, err := newSigner(keyBytes)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// generate a csr for this service
@@ -217,20 +126,20 @@ func (s *svcCertService) loadSvcCert() ([]byte, error) {
 	// it is used, not the CA. So, we will always put the Athenz name in the CN
 	// (it is *not* a DNS domain name), and put the host name into the SAN.
 
-	hyphenDomain := strings.Replace(s.tokenCfg.AthenzDomain, ".", "-", -1)
-	host := fmt.Sprintf("%s.%s.%s", s.tokenCfg.ServiceName, hyphenDomain, s.cfg.DNSDomain)
-	commonName := fmt.Sprintf("%s.%s", s.tokenCfg.AthenzDomain, s.tokenCfg.ServiceName)
+	hyphenDomain := strings.Replace(cfg.Token.AthenzDomain, ".", "-", -1)
+	host := fmt.Sprintf("%s.%s.%s", cfg.Token.ServiceName, hyphenDomain, cfg.ServiceCert.DNSDomain)
+	commonName := fmt.Sprintf("%s.%s", cfg.Token.AthenzDomain, cfg.Token.ServiceName)
 
 	subj := pkix.Name{
 		CommonName:         commonName,
-		OrganizationalUnit: []string{s.cfg.Subject.OrganizationalUnit},
-		Organization:       []string{s.cfg.Subject.Organization},
-		Country:            []string{s.cfg.Subject.Country},
+		OrganizationalUnit: []string{cfg.ServiceCert.Subject.OrganizationalUnit},
+		Organization:       []string{cfg.ServiceCert.Subject.Organization},
+		Country:            []string{cfg.ServiceCert.Subject.Country},
 	}
 
 	csrData, err := generateCSR(pkSigner, subj, host, "", "")
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// if we're given a certificate then we'll use that otherwise
@@ -238,17 +147,17 @@ func (s *svcCertService) loadSvcCert() ([]byte, error) {
 	// we're using copper argos which only uses tls and the attestation
 	// data contains the authentication details
 
-	client, err := s.ntokenClient(
-		s.cfg.AthenzURL,
-		s.tokenCfg.AthenzDomain,
-		s.tokenCfg.ServiceName,
-		s.tokenCfg.KeyVersion,
-		s.cfg.AthenzRootCA,
-		s.cfg.PrincipalAuthHeaderName,
+	client, err := ztsClient(
+		cfg.ServiceCert.AthenzURL,
+		cfg.Token.AthenzDomain,
+		cfg.Token.ServiceName,
+		cfg.Token.KeyVersion,
+		cfg.ServiceCert.AthenzRootCA,
+		cfg.ServiceCert.PrincipalAuthHeaderName,
 		keyBytes,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// if we're given provider then we're going to use our
@@ -256,28 +165,15 @@ func (s *svcCertService) loadSvcCert() ([]byte, error) {
 	expiryTime32 := int32(1)
 	req := &zts.InstanceRefreshRequest{
 		Csr:        csrData,
-		KeyId:      s.tokenCfg.KeyVersion,
+		KeyId:      cfg.Token.KeyVersion,
 		ExpiryTime: &expiryTime32,
 	}
 
-	// request a tls certificate for this service
-	identity, err := client.PostInstanceRefreshRequest(
-		zts.CompoundName(s.tokenCfg.AthenzDomain),
-		zts.SimpleName(s.tokenCfg.ServiceName),
-		req,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	certificate := identity.Certificate
-	caCertificates := identity.CaCertBundle
-
-	if s.cfg.IntermediateCert {
-		return []byte(certificate + caCertificates), nil
-	}
-
-	return []byte(certificate), nil
+	return &requestTemplate{
+		req:          req,
+		compoundName: zts.CompoundName(cfg.Token.AthenzDomain),
+		simpleName:   zts.SimpleName(cfg.Token.ServiceName),
+	}, client, nil
 }
 
 func newSigner(privateKeyPEM []byte) (*signer, error) {
@@ -325,6 +221,7 @@ func generateCSR(keySigner *signer, subj pkix.Name, host, ip, uri string) (strin
 			}
 		}
 	}
+
 	csr, err := x509.CreateCertificateRequest(rand.Reader, &template, keySigner.key)
 	if err != nil {
 		return "", fmt.Errorf("Cannot create CSR: %v", err)
@@ -333,6 +230,7 @@ func generateCSR(keySigner *signer, subj pkix.Name, host, ip, uri string) (strin
 		Type:  "CERTIFICATE REQUEST",
 		Bytes: csr,
 	}
+
 	var buf bytes.Buffer
 	err = pem.Encode(&buf, block)
 	if err != nil {
@@ -341,15 +239,12 @@ func generateCSR(keySigner *signer, subj pkix.Name, host, ip, uri string) (strin
 	return buf.String(), nil
 }
 
-func (s *svcCertService) ntokenClient(ztsURL, domain, service, keyID, caCertFile, hdr string, keyBytes []byte) (*zts.ZTSClient, error) {
-	ntoken, err := s.token()
-	if err != nil {
-		return nil, err
-	}
+func ztsClient(ztsURL, domain, service, keyID, caCertFile, hdr string, keyBytes []byte) (*zts.ZTSClient, error) {
 	transport := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		ResponseHeaderTimeout: 30 * time.Second,
 	}
+
 	if caCertFile != "" {
 		config := &tls.Config{}
 		certPool := x509.NewCertPool()
@@ -361,8 +256,104 @@ func (s *svcCertService) ntokenClient(ztsURL, domain, service, keyID, caCertFile
 		config.RootCAs = certPool
 		transport.TLSClientConfig = config
 	}
-	// use the ntoken to talk to Athenz
+
 	client := zts.NewClient(ztsURL, transport)
-	client.AddCredentials(hdr, ntoken)
+
 	return &client, nil
+}
+
+func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService {
+	go func() {
+		var err error
+		_, err = s.refreshSvcCert()
+		fch := make(chan struct{})
+		if err != nil {
+			fch <- struct{}{}
+		}
+
+		ticker := time.NewTicker(s.refreshDuration)
+		for {
+			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				return
+			case <-fch:
+				_, err = s.refreshSvcCert()
+				if err != nil {
+					glg.Error(err)
+					time.Sleep(time.Second)
+					fch <- struct{}{}
+				}
+			case <-ticker.C:
+				_, err = s.refreshSvcCert()
+				if err != nil {
+					glg.Error(err)
+					fch <- struct{}{}
+				}
+			}
+		}
+	}()
+	return s
+}
+
+// GetSvcCertProvider returns a function pointer to get the svccert.
+func (s *svcCertService) GetSvcCertProvider() SvcCertProvider {
+	return s.getSvcCert
+}
+
+// getSvcCert return a token string or error
+// This function is thread-safe. This function will return the svccert stored in the atomic variable,
+// or return the error when the svccert is not initialized or cannot be generated
+func (s *svcCertService) getSvcCert() ([]byte, error) {
+	cert := s.svcCert.Load()
+
+	if cert == nil || s.expiration.Before(time.Now()) {
+		return s.refreshSvcCert()
+	}
+	return cert.([]byte), nil
+}
+
+func (s *svcCertService) refreshSvcCert() ([]byte, error) {
+	ntoken, err := s.token()
+	if err != nil {
+		return nil, err
+	}
+
+	s.client.AddCredentials(s.cfg.PrincipalAuthHeaderName, ntoken)
+
+	// request a tls certificate for this service
+	identity, err := s.client.PostInstanceRefreshRequest(
+		s.refreshRequest.compoundName,
+		s.refreshRequest.simpleName,
+		s.refreshRequest.req,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	var cert []byte
+	var certificate []*x509.Certificate
+
+	if s.cfg.IntermediateCert {
+		cert = []byte(identity.Certificate + identity.CaCertBundle)
+		block, _ := pem.Decode(cert)
+		certificate, err = x509.ParseCertificates(block.Bytes)
+	} else {
+		cert = []byte(identity.Certificate)
+		block, _ := pem.Decode(cert)
+		certificate[0], err = x509.ParseCertificate(block.Bytes)
+	}
+	if err != nil {
+		return nil, ErrInvalidCert
+	}
+
+	// update cert cache and expiration
+	s.setCert(cert)
+	s.expiration = certificate[0].NotAfter
+
+	return cert, nil
+}
+
+func (s *svcCertService) setCert(svcCert []byte) {
+	s.svcCert.Store(svcCert)
 }

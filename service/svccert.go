@@ -1,3 +1,5 @@
+package service
+
 /*
 Copyright (C)  2018 Yahoo Japan Corporation Athenz team.
 
@@ -13,7 +15,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
-package service
 
 import (
 	"bytes"
@@ -45,9 +46,6 @@ import (
 var (
 	// defaultRefreshDuration represents the default time to refresh the goroutine.
 	defaultSvcCertRefreshDuration = time.Hour * 24
-
-	// defaultexpiration represents the default expiration time for certificate
-	// defaultSvcCertExpiration = time.Hour * 24 * 20
 
 	// ErrCertNotFound represents an error when failed to fetch the svccert from SvcCertProvider.
 	ErrCertNotFound = errors.New("Failed to fetch service cert")

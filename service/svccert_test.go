@@ -60,6 +60,39 @@ func TestNewSvcCertService(t *testing.T) {
 			}
 		}(),
 		func() test {
+			dur, _ := time.ParseDuration("30m")
+			token := func() (string, error) { return "", nil }
+
+			return test{
+				name: "Success to initialize SvcCertService using EC PRIVATE KEY",
+				args: args{
+					cfg: config.Config{
+						Token: config.Token{
+							PrivateKeyPath: "./assets/dummyECServer.key",
+						},
+						ServiceCert: config.ServiceCert{
+							AthenzRootCA:    "./assets/dummyCa.pem",
+							RefreshDuration: "30m",
+						},
+					},
+					token: token,
+				},
+				want: &svcCertService{
+					cfg: config.ServiceCert{
+						AthenzRootCA:    "./assets/dummyCa.pem",
+						RefreshDuration: "30m",
+					},
+					token:           token,
+					refreshDuration: dur,
+				},
+				checkfunc: func(actual, expected *svcCertService) bool {
+					return true
+				},
+				wantErr: nil,
+			}
+		}(),
+
+		func() test {
 			token := func() (string, error) { return "", nil }
 
 			return test{

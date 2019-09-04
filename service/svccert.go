@@ -51,6 +51,12 @@ var (
 
 	// ErrInvalidCert represents an error when failed to parse the svccert from SvcCertProvider.
 	ErrInvalidCert = errors.New("Failed to parse service cert")
+
+	// ErrLoadPrivateKey represents an error when failed to load privatekey.
+	ErrLoadPrivateKey = errors.New("PrivateKey does not exist")
+
+	// ErrFailedToInitialize represents an error when failed to initialize a service.
+	ErrFailedToInitialize = errors.New("Failed to initialize a service")
 )
 
 type signer struct {
@@ -111,12 +117,13 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 	// load private key
 	keyBytes, err := ioutil.ReadFile(cfg.Token.PrivateKeyPath)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, ErrLoadPrivateKey
 	}
+
 	// get our private key signer for csr
 	pkSigner, err := newSigner(keyBytes)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, ErrFailedToInitialize
 	}
 
 	// generate a csr for this service
@@ -137,7 +144,7 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 
 	csrData, err := generateCSR(pkSigner, subj, host, "", "")
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, ErrFailedToInitialize
 	}
 
 	// if we're given a certificate then we'll use that otherwise
@@ -147,7 +154,7 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 
 	client, err := ztsClient(cfg.ServiceCert, keyBytes)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, ErrFailedToInitialize
 	}
 
 	// if we're given provider then we're going to use our

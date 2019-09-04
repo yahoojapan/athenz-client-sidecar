@@ -43,7 +43,7 @@ import (
 )
 
 var (
-	// defaultRefreshDuration represents the default time to refresh the goroutine.
+	// defaultSvcCertRefreshDuration represents the default time to refresh the goroutine.
 	defaultSvcCertRefreshDuration = time.Hour * 24
 
 	// ErrCertNotFound represents an error when failed to fetch the svccert from SvcCertProvider.

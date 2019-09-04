@@ -73,7 +73,6 @@ type SvcCertService interface {
 // svcCertService represents the implementation of athenz RoleService
 type svcCertService struct {
 	cfg             config.ServiceCert
-	tokenCfg        config.Token
 	token           ntokend.TokenProvider
 	svcCert         *atomic.Value
 	group           singleflight.Group
@@ -100,7 +99,6 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertS
 
 	return &svcCertService{
 		cfg:             cfg.ServiceCert,
-		tokenCfg:        cfg.Token,
 		svcCert:         &atomic.Value{},
 		token:           token,
 		refreshDuration: dur,
@@ -147,22 +145,14 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 	// we're using copper argos which only uses tls and the attestation
 	// data contains the authentication details
 
-	client, err := ztsClient(
-		cfg.ServiceCert.AthenzURL,
-		cfg.Token.AthenzDomain,
-		cfg.Token.ServiceName,
-		cfg.Token.KeyVersion,
-		cfg.ServiceCert.AthenzRootCA,
-		cfg.ServiceCert.PrincipalAuthHeaderName,
-		keyBytes,
-	)
+	client, err := ztsClient(cfg.ServiceCert, keyBytes)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	// if we're given provider then we're going to use our
 	// copper argos model to request the certificate
-	expiryTime32 := int32(1)
+	expiryTime32 := int32(0)
 	req := &zts.InstanceRefreshRequest{
 		Csr:        csrData,
 		KeyId:      cfg.Token.KeyVersion,
@@ -239,16 +229,16 @@ func generateCSR(keySigner *signer, subj pkix.Name, host, ip, uri string) (strin
 	return buf.String(), nil
 }
 
-func ztsClient(ztsURL, domain, service, keyID, caCertFile, hdr string, keyBytes []byte) (*zts.ZTSClient, error) {
+func ztsClient(cfg config.ServiceCert, keyBytes []byte) (*zts.ZTSClient, error) {
 	transport := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		ResponseHeaderTimeout: 30 * time.Second,
 	}
 
-	if caCertFile != "" {
+	if cfg.AthenzRootCA != "" {
 		config := &tls.Config{}
 		certPool := x509.NewCertPool()
-		caCert, err := ioutil.ReadFile(caCertFile)
+		caCert, err := ioutil.ReadFile(cfg.AthenzRootCA)
 		if err != nil {
 			return nil, err
 		}
@@ -257,7 +247,7 @@ func ztsClient(ztsURL, domain, service, keyID, caCertFile, hdr string, keyBytes 
 		transport.TLSClientConfig = config
 	}
 
-	client := zts.NewClient(ztsURL, transport)
+	client := zts.NewClient(cfg.AthenzURL, transport)
 
 	return &client, nil
 }

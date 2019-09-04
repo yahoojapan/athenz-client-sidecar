@@ -262,11 +262,7 @@ func ztsClient(cfg config.ServiceCert, keyBytes []byte) (*zts.ZTSClient, error) 
 func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService {
 	go func() {
 		var err error
-		_, err = s.refreshSvcCert()
 		fch := make(chan struct{})
-		if err != nil {
-			fch <- struct{}{}
-		}
 
 		ticker := time.NewTicker(s.refreshDuration)
 		for {
@@ -311,44 +307,52 @@ func (s *svcCertService) getSvcCert() ([]byte, error) {
 }
 
 func (s *svcCertService) refreshSvcCert() ([]byte, error) {
-	ntoken, err := s.token()
+	svccert, err, _ := s.group.Do("", func() (interface{}, error) {
+		ntoken, err := s.token()
+		if err != nil {
+			return nil, err
+		}
+
+		s.client.AddCredentials(s.cfg.PrincipalAuthHeaderName, ntoken)
+
+		// request a tls certificate for this service
+		identity, err := s.client.PostInstanceRefreshRequest(
+			s.refreshRequest.compoundName,
+			s.refreshRequest.simpleName,
+			s.refreshRequest.req,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		var cert []byte
+		var certificate []*x509.Certificate
+
+		if s.cfg.IntermediateCert {
+			cert = []byte(identity.Certificate + identity.CaCertBundle)
+			block, _ := pem.Decode(cert)
+			certificate, err = x509.ParseCertificates(block.Bytes)
+		} else {
+			cert = []byte(identity.Certificate)
+			block, _ := pem.Decode(cert)
+			certificate[0], err = x509.ParseCertificate(block.Bytes)
+		}
+		if err != nil {
+			return nil, ErrInvalidCert
+		}
+
+		// update cert cache and expiration
+		s.setCert(cert)
+		s.expiration = certificate[0].NotAfter
+
+		return cert, nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
-	s.client.AddCredentials(s.cfg.PrincipalAuthHeaderName, ntoken)
-
-	// request a tls certificate for this service
-	identity, err := s.client.PostInstanceRefreshRequest(
-		s.refreshRequest.compoundName,
-		s.refreshRequest.simpleName,
-		s.refreshRequest.req,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	var cert []byte
-	var certificate []*x509.Certificate
-
-	if s.cfg.IntermediateCert {
-		cert = []byte(identity.Certificate + identity.CaCertBundle)
-		block, _ := pem.Decode(cert)
-		certificate, err = x509.ParseCertificates(block.Bytes)
-	} else {
-		cert = []byte(identity.Certificate)
-		block, _ := pem.Decode(cert)
-		certificate[0], err = x509.ParseCertificate(block.Bytes)
-	}
-	if err != nil {
-		return nil, ErrInvalidCert
-	}
-
-	// update cert cache and expiration
-	s.setCert(cert)
-	s.expiration = certificate[0].NotAfter
-
-	return cert, nil
+	return svccert.([]byte), nil
 }
 
 func (s *svcCertService) setCert(svcCert []byte) {

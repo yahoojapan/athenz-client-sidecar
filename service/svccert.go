@@ -330,22 +330,21 @@ func (s *svcCertService) refreshSvcCert() ([]byte, error) {
 			return nil, err
 		}
 
-		var cert []byte
-		var certificate *x509.Certificate
-
-		if s.cfg.IntermediateCert {
-			var certificates []*x509.Certificate
-			cert = []byte(identity.Certificate + identity.CaCertBundle)
-			block, _ := pem.Decode(cert)
-			certificates, err = x509.ParseCertificates(block.Bytes)
-			certificate = certificates[0]
-		} else {
-			cert = []byte(identity.Certificate)
-			block, _ := pem.Decode(cert)
-			certificate, err = x509.ParseCertificate(block.Bytes)
+		block, _ := pem.Decode([]byte(identity.Certificate))
+		if block == nil {
+			return nil, ErrInvalidCert
 		}
+
+		certificate, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
 			return nil, ErrInvalidCert
+		}
+
+		var cert []byte
+		if s.cfg.IntermediateCert {
+			cert = []byte(identity.Certificate + identity.CaCertBundle)
+		} else {
+			cert = []byte(identity.Certificate)
 		}
 
 		// update cert cache and expiration

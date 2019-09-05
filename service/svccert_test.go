@@ -286,7 +286,7 @@ func Test_svccertService_refreshSvcCert(t *testing.T) {
 	type test struct {
 		name           string
 		svcCertService SvcCertService
-		want           string
+		want           []byte
 		wantErr        error
 	}
 
@@ -332,7 +332,7 @@ func Test_svccertService_refreshSvcCert(t *testing.T) {
 			return test{
 				name:           "refreshSvcCert returns correct when IntermediateCert is true",
 				svcCertService: svcCertService,
-				want:           string(dummyCertBytes) + string(dummyCaCertBytes),
+				want:           append(dummyCertBytes, dummyCaCertBytes...),
 				wantErr:        nil,
 			}
 		}(),
@@ -377,8 +377,142 @@ func Test_svccertService_refreshSvcCert(t *testing.T) {
 			return test{
 				name:           "refreshSvcCert returns correct when IntermediateCert is false",
 				svcCertService: svcCertService,
-				want:           string(dummyCertBytes),
+				want:           dummyCertBytes,
 				wantErr:        nil,
+			}
+		}(),
+		func() test {
+			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.crt")
+			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
+			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
+
+			dummyResponce := fmt.Sprintf(
+				`{"name": "dummy", "certificate":"%s", "caCertBundle": "%s"}`, dummyCert, dummyCaCert,
+			)
+			token := func() (string, error) { return "", fmt.Errorf("ntoken error") }
+
+			transpoter := &mockTransporter{
+				StatusCode: 200,
+				Body:       []byte(dummyResponce),
+				Method:     "GET",
+				Error:      nil,
+			}
+
+			cfg := config.Config{
+				Token: config.Token{
+					PrivateKeyPath: "./assets/dummyServer.key",
+					AthenzDomain:   "dummyDomain",
+					ServiceName:    "dummyService",
+				},
+				ServiceCert: config.ServiceCert{
+					AthenzRootCA:            "./assets/dummyCa.pem",
+					AthenzURL:               "http://dummy",
+					RefreshDuration:         "30m",
+					PrincipalAuthHeaderName: "Athenz-Principal",
+					IntermediateCert:        false,
+				},
+			}
+
+			s, _ := NewSvcCertService(cfg, token)
+			svcCertService := s.(*svcCertService)
+
+			svcCertService.client.Transport = transpoter
+
+			return test{
+				name:           "refreshSvcCert fail when ntokend returns error",
+				svcCertService: svcCertService,
+				want:           nil,
+				wantErr:        fmt.Errorf("ntoken error"),
+			}
+		}(),
+		func() test {
+			token := func() (string, error) { return "dummyToken", nil }
+
+			transpoter := &mockTransporter{
+				StatusCode: 200,
+				Body:       []byte("{}"),
+				Method:     "GET",
+				Error:      fmt.Errorf("request error"),
+			}
+
+			cfg := config.Config{
+				Token: config.Token{
+					PrivateKeyPath: "./assets/dummyServer.key",
+					AthenzDomain:   "dummyDomain",
+					ServiceName:    "dummyService",
+				},
+				ServiceCert: config.ServiceCert{
+					AthenzRootCA:            "./assets/dummyCa.pem",
+					AthenzURL:               "http://dummy",
+					RefreshDuration:         "30m",
+					PrincipalAuthHeaderName: "Athenz-Principal",
+					IntermediateCert:        false,
+				},
+			}
+
+			s, _ := NewSvcCertService(cfg, token)
+			svcCertService := s.(*svcCertService)
+
+			svcCertService.client.Transport = transpoter
+
+			wantErr := fmt.Errorf(
+				"Post %s/instance/%s/%s/refresh: request error",
+				cfg.ServiceCert.AthenzURL,
+				cfg.Token.AthenzDomain,
+				cfg.Token.ServiceName,
+			)
+
+			return test{
+				name:           "refreshSvcCert fail when request failed",
+				svcCertService: svcCertService,
+				want:           nil,
+				wantErr:        wantErr,
+			}
+		}(),
+		func() test {
+			dummyCertBytes, _ := ioutil.ReadFile("./assets/invalid_dummyServer.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.crt")
+			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
+			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
+
+			dummyResponce := fmt.Sprintf(
+				`{"name": "dummy", "certificate":"%s", "caCertBundle": "%s"}`, dummyCert, dummyCaCert,
+			)
+			token := func() (string, error) { return "dummyToken", nil }
+
+			transpoter := &mockTransporter{
+				StatusCode: 200,
+				Body:       []byte(dummyResponce),
+				Method:     "GET",
+				Error:      nil,
+			}
+
+			cfg := config.Config{
+				Token: config.Token{
+					PrivateKeyPath: "./assets/dummyServer.key",
+					AthenzDomain:   "dummyDomain",
+					ServiceName:    "dummyService",
+				},
+				ServiceCert: config.ServiceCert{
+					AthenzRootCA:            "./assets/dummyCa.pem",
+					AthenzURL:               "http://dummy",
+					RefreshDuration:         "30m",
+					PrincipalAuthHeaderName: "Athenz-Principal",
+					IntermediateCert:        false,
+				},
+			}
+
+			s, _ := NewSvcCertService(cfg, token)
+			svcCertService := s.(*svcCertService)
+
+			svcCertService.client.Transport = transpoter
+
+			return test{
+				name:           "refreshSvcCert fail when recieved cert is invalid",
+				svcCertService: svcCertService,
+				want:           nil,
+				wantErr:        ErrInvalidCert,
 			}
 		}(),
 	}
@@ -393,7 +527,7 @@ func Test_svccertService_refreshSvcCert(t *testing.T) {
 				if tt.wantErr.Error() != err.Error() {
 					t.Errorf("error not the same, want: %v, got: %v", tt.wantErr, err)
 				}
-			} else if tt.want != string(cert) {
+			} else if string(tt.want) != string(cert) {
 				t.Errorf("refreshSvcCert got: %v, want: %v", string(cert), tt.want)
 			}
 		})

@@ -142,7 +142,12 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 		Country:            []string{cfg.ServiceCert.Subject.Country},
 	}
 
-	csrData, err := generateCSR(pkSigner, subj, host, "", "")
+	uri := ""
+	if cfg.ServiceCert.Spiffe {
+		uri = fmt.Sprintf("spiffe://%s/sa/%s", cfg.Token.AthenzDomain, cfg.Token.ServiceName)
+	}
+
+	csrData, err := generateCSR(pkSigner, subj, host, "", uri)
 	if err != nil {
 		return nil, nil, ErrFailedToInitialize
 	}

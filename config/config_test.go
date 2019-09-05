@@ -102,6 +102,7 @@ func TestNew(t *testing.T) {
 					RefreshDuration:         "30m",
 					IntermediateCert:        true,
 					PrincipalAuthHeaderName: "Athenz-Principal",
+					Spiffe:                  false,
 					Subject: Subject{
 						Country:            "US",
 						Organization:       "Oath Inc.",

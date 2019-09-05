@@ -120,7 +120,40 @@ func TestNewSvcCertService(t *testing.T) {
 				wantErr: nil,
 			}
 		}(),
+		func() test {
+			dur, _ := time.ParseDuration("30m")
+			token := func() (string, error) { return "", nil }
 
+			return test{
+				name: "Success to initialize SvcCertService when spiffe is true",
+				args: args{
+					cfg: config.Config{
+						Token: config.Token{
+							PrivateKeyPath: "./assets/dummyServer.key",
+						},
+						ServiceCert: config.ServiceCert{
+							AthenzRootCA:    "./assets/dummyCa.pem",
+							RefreshDuration: "30m",
+							Spiffe:          true,
+						},
+					},
+					token: token,
+				},
+				want: &svcCertService{
+					cfg: config.ServiceCert{
+						AthenzRootCA:    "./assets/dummyCa.pem",
+						RefreshDuration: "30m",
+						Spiffe:          true,
+					},
+					token:           token,
+					refreshDuration: dur,
+				},
+				checkfunc: func(actual, expected *svcCertService) bool {
+					return actual.cfg.Spiffe == expected.cfg.Spiffe
+				},
+				wantErr: nil,
+			}
+		}(),
 		func() test {
 			token := func() (string, error) { return "", nil }
 

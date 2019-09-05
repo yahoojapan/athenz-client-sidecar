@@ -37,6 +37,7 @@ service_cert:
   refresh_duration: 30m
   intermediate_cert: true
   auth_header_key: Athenz-Principal
+  spiffe: false
   subject:
     country: US
     organization: "Oath Inc."

@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kpango/fastime"
 	"github.com/kpango/glg"
 	"github.com/kpango/ntokend"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
@@ -61,6 +62,42 @@ func TestNewSvcCertService(t *testing.T) {
 				},
 				checkfunc: func(actual, expected *svcCertService) bool {
 					return true
+				},
+				wantErr: nil,
+			}
+		}(),
+		func() test {
+			dur, _ := time.ParseDuration("30m")
+			beforeDur, _ := time.ParseDuration("-1h")
+			token := func() (string, error) { return "", nil }
+
+			return test{
+				name: "Success to initialize SvcCertService with before_expiration",
+				args: args{
+					cfg: config.Config{
+						Token: config.Token{
+							PrivateKeyPath: "./assets/dummyServer.key",
+						},
+						ServiceCert: config.ServiceCert{
+							AthenzRootCA:     "./assets/dummyCa.pem",
+							RefreshDuration:  "30m",
+							BeforeExpiration: "1h",
+						},
+					},
+					token: token,
+				},
+				want: &svcCertService{
+					cfg: config.ServiceCert{
+						AthenzRootCA:     "./assets/dummyCa.pem",
+						RefreshDuration:  "30m",
+						BeforeExpiration: "1h",
+					},
+					token:            token,
+					refreshDuration:  dur,
+					beforeExpiration: beforeDur,
+				},
+				checkfunc: func(actual, expected *svcCertService) bool {
+					return actual.beforeExpiration == expected.beforeExpiration
 				},
 				wantErr: nil,
 			}
@@ -158,6 +195,41 @@ func TestNewSvcCertService(t *testing.T) {
 				},
 				checkfunc: func(actual, expected *svcCertService) bool {
 					return true
+				},
+				wantErr: nil,
+			}
+		}(),
+		func() test {
+			dur, _ := time.ParseDuration("30m")
+			token := func() (string, error) { return "", nil }
+
+			return test{
+				name: "Fail to parse before_expiration",
+				args: args{
+					cfg: config.Config{
+						Token: config.Token{
+							PrivateKeyPath: "./assets/dummyServer.key",
+						},
+						ServiceCert: config.ServiceCert{
+							AthenzRootCA:     "./assets/dummyCa.pem",
+							RefreshDuration:  "30m",
+							BeforeExpiration: "error",
+						},
+					},
+					token: token,
+				},
+				want: &svcCertService{
+					cfg: config.ServiceCert{
+						AthenzRootCA:     "./assets/dummyCa.pem",
+						RefreshDuration:  "30m",
+						BeforeExpiration: "error",
+					},
+					token:            token,
+					refreshDuration:  dur,
+					beforeExpiration: defaultSvcCertBeforeExpiration,
+				},
+				checkfunc: func(actual, expected *svcCertService) bool {
+					return actual.beforeExpiration == expected.beforeExpiration
 				},
 				wantErr: nil,
 			}
@@ -298,6 +370,173 @@ func (m *mockTransporter) RoundTrip(req *http.Request) (*http.Response, error) {
 			Method: m.Method,
 		},
 	}, m.Error
+}
+
+func Test_svccertService_getSvcCert(t *testing.T) {
+	type test struct {
+		name           string
+		svcCertService SvcCertService
+		want           []byte
+		wantErr        error
+	}
+
+	tests := []test{
+		func() test {
+			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.crt")
+			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
+			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
+
+			dummyResponce := fmt.Sprintf(
+				`{"name": "dummy", "certificate":"%s", "caCertBundle": "%s"}`, dummyCert, dummyCaCert,
+			)
+			token := func() (string, error) { return "dummyToken", nil }
+
+			transpoter := &mockTransporter{
+				StatusCode: 200,
+				Body:       []byte(dummyResponce),
+				Method:     "GET",
+				Error:      nil,
+			}
+
+			cfg := config.Config{
+				Token: config.Token{
+					PrivateKeyPath: "./assets/dummyServer.key",
+					AthenzDomain:   "dummyDomain",
+					ServiceName:    "dummyService",
+				},
+				ServiceCert: config.ServiceCert{
+					AthenzRootCA:            "./assets/dummyCa.pem",
+					AthenzURL:               "http://dummy",
+					RefreshDuration:         "30m",
+					PrincipalAuthHeaderName: "Athenz-Principal",
+					IntermediateCert:        true,
+				},
+			}
+
+			s, _ := NewSvcCertService(cfg, token)
+			svcCertService := s.(*svcCertService)
+
+			svcCertService.client.Transport = transpoter
+			svcCertService.svcCert.Store(dummyCertBytes)
+			svcCertService.expiration = fastime.Now().Add(time.Hour)
+
+			return test{
+				name:           "getSvcCert returns stored value.",
+				svcCertService: svcCertService,
+				want:           dummyCertBytes,
+				wantErr:        nil,
+			}
+		}(),
+		func() test {
+			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.crt")
+			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
+			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
+
+			dummyResponce := fmt.Sprintf(
+				`{"name": "dummy", "certificate":"%s", "caCertBundle": "%s"}`, dummyCert, dummyCaCert,
+			)
+			token := func() (string, error) { return "dummyToken", nil }
+
+			transpoter := &mockTransporter{
+				StatusCode: 200,
+				Body:       []byte(dummyResponce),
+				Method:     "GET",
+				Error:      nil,
+			}
+
+			cfg := config.Config{
+				Token: config.Token{
+					PrivateKeyPath: "./assets/dummyServer.key",
+					AthenzDomain:   "dummyDomain",
+					ServiceName:    "dummyService",
+				},
+				ServiceCert: config.ServiceCert{
+					AthenzRootCA:            "./assets/dummyCa.pem",
+					AthenzURL:               "http://dummy",
+					RefreshDuration:         "30m",
+					PrincipalAuthHeaderName: "Athenz-Principal",
+					IntermediateCert:        true,
+				},
+			}
+
+			s, _ := NewSvcCertService(cfg, token)
+			svcCertService := s.(*svcCertService)
+
+			svcCertService.client.Transport = transpoter
+
+			return test{
+				name:           "getSvcCert returns value from refreshSvcCert",
+				svcCertService: svcCertService,
+				want:           append(dummyCertBytes, dummyCaCertBytes...),
+				wantErr:        nil,
+			}
+		}(),
+		func() test {
+			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.crt")
+			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
+			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
+
+			dummyResponce := fmt.Sprintf(
+				`{"name": "dummy", "certificate":"%s", "caCertBundle": "%s"}`, dummyCert, dummyCaCert,
+			)
+			token := func() (string, error) { return "dummyToken", nil }
+
+			transpoter := &mockTransporter{
+				StatusCode: 200,
+				Body:       []byte(dummyResponce),
+				Method:     "GET",
+				Error:      nil,
+			}
+
+			cfg := config.Config{
+				Token: config.Token{
+					PrivateKeyPath: "./assets/dummyServer.key",
+					AthenzDomain:   "dummyDomain",
+					ServiceName:    "dummyService",
+				},
+				ServiceCert: config.ServiceCert{
+					AthenzRootCA:            "./assets/dummyCa.pem",
+					AthenzURL:               "http://dummy",
+					RefreshDuration:         "30m",
+					PrincipalAuthHeaderName: "Athenz-Principal",
+					IntermediateCert:        true,
+					BeforeExpiration:        "1000h",
+				},
+			}
+
+			s, _ := NewSvcCertService(cfg, token)
+			svcCertService := s.(*svcCertService)
+			svcCertService.svcCert.Store(dummyCertBytes)
+
+			svcCertService.client.Transport = transpoter
+
+			return test{
+				name:           "getSvcCert returns value from refreshSvcCert when expiration is before now.",
+				svcCertService: svcCertService,
+				want:           append(dummyCertBytes, dummyCaCertBytes...),
+				wantErr:        nil,
+			}
+		}(),
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.svcCertService.(*svcCertService)
+			cert, err := s.getSvcCert()
+
+			if tt.wantErr == nil && err != nil {
+				t.Errorf("failed to instantiate, err: %v", err)
+			} else if tt.wantErr != nil {
+				if tt.wantErr.Error() != err.Error() {
+					t.Errorf("error not the same, want: %v, got: %v", tt.wantErr, err)
+				}
+			} else if string(tt.want) != string(cert) {
+				t.Errorf("refreshSvcCert got: %v, want: %v", string(cert), string(tt.want))
+			}
+		})
+	}
 }
 
 func Test_svccertService_refreshSvcCert(t *testing.T) {

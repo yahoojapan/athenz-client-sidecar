@@ -28,7 +28,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -158,7 +157,7 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 		uri = fmt.Sprintf("spiffe://%s/sa/%s", cfg.Token.AthenzDomain, cfg.Token.ServiceName)
 	}
 
-	csrData, err := generateCSR(pkSigner, subj, host, "", uri)
+	csrData, err := generateCSR(pkSigner, subj, host, uri)
 	if err != nil {
 		return nil, nil, ErrFailedToInitialize
 	}
@@ -213,7 +212,7 @@ func newSigner(privateKeyPEM []byte) (*signer, error) {
 	}
 }
 
-func generateCSR(keySigner *signer, subj pkix.Name, host, ip, uri string) (string, error) {
+func generateCSR(keySigner *signer, subj pkix.Name, host, uri string) (string, error) {
 	template := x509.CertificateRequest{
 		Subject:            subj,
 		SignatureAlgorithm: keySigner.algorithm,
@@ -221,17 +220,10 @@ func generateCSR(keySigner *signer, subj pkix.Name, host, ip, uri string) (strin
 	if host != "" {
 		template.DNSNames = []string{host}
 	}
-	if ip != "" {
-		template.IPAddresses = []net.IP{net.ParseIP(ip)}
-	}
 	if uri != "" {
 		uriptr, err := url.Parse(uri)
 		if err == nil {
-			if len(template.URIs) > 0 {
-				template.URIs = append(template.URIs, uriptr)
-			} else {
-				template.URIs = []*url.URL{uriptr}
-			}
+			template.URIs = []*url.URL{uriptr}
 		}
 	}
 
@@ -303,10 +295,6 @@ func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService
 		}
 	}()
 	return s
-}
-
-func (s *svcCertService) handleExpiredHook(ctx context.Context, key string) {
-	s.refreshSvcCert()
 }
 
 // GetSvcCertProvider returns a function pointer to get the svccert.

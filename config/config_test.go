@@ -100,6 +100,7 @@ func TestNew(t *testing.T) {
 					AthenzRootCA:            "/etc/ssl/cert.pem",
 					DNSDomain:               "www.athenz.com",
 					RefreshDuration:         "30m",
+					BeforeExpiration:        "30h",
 					IntermediateCert:        true,
 					PrincipalAuthHeaderName: "Athenz-Principal",
 					Spiffe:                  false,

@@ -32,10 +32,10 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync/atomic"
 	"time"
 
-	"github.com/kpango/glg"
+	"github.com/kpango/fastime"
+	"github.com/kpango/gache"
 	ntokend "github.com/kpango/ntokend"
 	"github.com/yahoo/athenz/clients/go/zts"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
@@ -57,6 +57,9 @@ var (
 
 	// ErrFailedToInitialize represents an error when failed to initialize a service.
 	ErrFailedToInitialize = errors.New("Failed to initialize a service")
+
+	// 	cacheSvcCertKey is a key in cache.
+	cacheSvcCertKey = "svccert"
 )
 
 type signer struct {
@@ -80,10 +83,9 @@ type SvcCertService interface {
 type svcCertService struct {
 	cfg             config.ServiceCert
 	token           ntokend.TokenProvider
-	svcCert         *atomic.Value
+	svcCert         gache.Gache
 	group           singleflight.Group
 	refreshDuration time.Duration
-	expiration      time.Time
 	client          *zts.ZTSClient
 	refreshRequest  *requestTemplate
 }
@@ -105,7 +107,7 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertS
 
 	return &svcCertService{
 		cfg:             cfg.ServiceCert,
-		svcCert:         &atomic.Value{},
+		svcCert:         gache.New(),
 		token:           token,
 		refreshDuration: dur,
 		client:          client,
@@ -265,33 +267,12 @@ func ztsClient(cfg config.ServiceCert, keyBytes []byte) (*zts.ZTSClient, error) 
 }
 
 func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService {
-	go func() {
-		var err error
-		fch := make(chan struct{})
-
-		ticker := time.NewTicker(s.refreshDuration)
-		for {
-			select {
-			case <-ctx.Done():
-				ticker.Stop()
-				return
-			case <-fch:
-				_, err = s.refreshSvcCert()
-				if err != nil {
-					glg.Error(err)
-					time.Sleep(time.Second)
-					fch <- struct{}{}
-				}
-			case <-ticker.C:
-				_, err = s.refreshSvcCert()
-				if err != nil {
-					glg.Error(err)
-					fch <- struct{}{}
-				}
-			}
-		}
-	}()
+	s.svcCert.EnableExpiredHook().SetExpiredHook(s.handleExpiredHook).StartExpired(ctx, s.refreshDuration)
 	return s
+}
+
+func (s *svcCertService) handleExpiredHook(ctx context.Context, key string) {
+	s.refreshSvcCert()
 }
 
 // GetSvcCertProvider returns a function pointer to get the svccert.
@@ -303,16 +284,16 @@ func (s *svcCertService) GetSvcCertProvider() SvcCertProvider {
 // This function is thread-safe. This function will return the svccert stored in the atomic variable,
 // or return the error when the svccert is not initialized or cannot be generated
 func (s *svcCertService) getSvcCert() ([]byte, error) {
-	cert := s.svcCert.Load()
+	cert, ok := s.svcCert.Get(cacheSvcCertKey)
 
-	if cert == nil || s.expiration.Before(time.Now()) {
+	if !ok {
 		return s.refreshSvcCert()
 	}
 	return cert.([]byte), nil
 }
 
 func (s *svcCertService) refreshSvcCert() ([]byte, error) {
-	svccert, err, _ := s.group.Do("", func() (interface{}, error) {
+	svccert, err, _ := s.group.Do(cacheSvcCertKey, func() (interface{}, error) {
 		ntoken, err := s.token()
 		if err != nil {
 			return nil, err
@@ -348,8 +329,7 @@ func (s *svcCertService) refreshSvcCert() ([]byte, error) {
 		}
 
 		// update cert cache and expiration
-		s.setCert(cert)
-		s.expiration = certificate.NotAfter
+		s.setCert(cert, certificate.NotAfter)
 
 		return cert, nil
 	})
@@ -361,6 +341,6 @@ func (s *svcCertService) refreshSvcCert() ([]byte, error) {
 	return svccert.([]byte), nil
 }
 
-func (s *svcCertService) setCert(svcCert []byte) {
-	s.svcCert.Store(svcCert)
+func (s *svcCertService) setCert(svcCert []byte, notAfter time.Time) {
+	s.svcCert.SetWithExpire(cacheSvcCertKey, svcCert, notAfter.Sub(fastime.Now()))
 }

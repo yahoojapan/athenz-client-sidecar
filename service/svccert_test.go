@@ -15,34 +15,11 @@ import (
 	"github.com/yahoojapan/athenz-client-sidecar/config"
 )
 
-// mockTransporter is the mock of RoundTripper
-type mockTransporter struct {
-	StatusCode int
-	Body       []byte
-	Method     string
-	URL        *url.URL
-	Error      error
-}
-
-// RoundTrip is used to crate a mock http response
-func (m *mockTransporter) RoundTrip(req *http.Request) (*http.Response, error) {
-	readcloser := ioutil.NopCloser(bytes.NewBuffer(m.Body))
-	return &http.Response{
-		Status:     fmt.Sprintf("%d %s", m.StatusCode, http.StatusText(m.StatusCode)),
-		StatusCode: m.StatusCode,
-		Body:       readcloser,
-		Request: &http.Request{
-			URL:    m.URL,
-			Method: m.Method,
-		},
-	}, m.Error
-}
-
 func init() {
 	glg.Get().SetMode(glg.NONE)
 }
 
-func Test_svccertService_NewSvcCertService(t *testing.T) {
+func TestNewSvcCertService(t *testing.T) {
 	type args struct {
 		cfg   config.Config
 		token ntokend.TokenProvider
@@ -299,6 +276,29 @@ func Test_svccertService_GetSvcCertProvider(t *testing.T) {
 	if svcCertService.GetSvcCertProvider() == nil {
 		t.Error("GetSvcCertProvider is nil")
 	}
+}
+
+// mockTransporter is the mock of RoundTripper
+type mockTransporter struct {
+	StatusCode int
+	Body       []byte
+	Method     string
+	URL        *url.URL
+	Error      error
+}
+
+// RoundTrip is used to crate a mock http response
+func (m *mockTransporter) RoundTrip(req *http.Request) (*http.Response, error) {
+	readcloser := ioutil.NopCloser(bytes.NewBuffer(m.Body))
+	return &http.Response{
+		Status:     fmt.Sprintf("%d %s", m.StatusCode, http.StatusText(m.StatusCode)),
+		StatusCode: m.StatusCode,
+		Body:       readcloser,
+		Request: &http.Request{
+			URL:    m.URL,
+			Method: m.Method,
+		},
+	}, m.Error
 }
 
 func Test_svccertService_refreshSvcCert(t *testing.T) {

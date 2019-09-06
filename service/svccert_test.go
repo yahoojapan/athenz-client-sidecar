@@ -42,7 +42,7 @@ func init() {
 	glg.Get().SetMode(glg.NONE)
 }
 
-func TestNewSvcCertService(t *testing.T) {
+func Test_svccertService_NewSvcCertService(t *testing.T) {
 	type args struct {
 		cfg   config.Config
 		token ntokend.TokenProvider
@@ -279,6 +279,25 @@ func TestNewSvcCertService(t *testing.T) {
 				t.Errorf("TestNewSvcCertService failed expected: %+v, actual: %+v", expectedSvcCertService, actualSvcCertService)
 			}
 		})
+	}
+}
+
+func Test_svccertService_GetSvcCertProvider(t *testing.T) {
+	svcCertService, _ := NewSvcCertService(
+		config.Config{
+			Token: config.Token{
+				PrivateKeyPath: "./assets/dummyServer.key",
+			},
+			ServiceCert: config.ServiceCert{
+				AthenzRootCA:    "./assets/dummyCa.pem",
+				RefreshDuration: "30m",
+			},
+		},
+		func() (string, error) { return "ntoken", nil },
+	)
+
+	if svcCertService.GetSvcCertProvider() == nil {
+		t.Error("GetSvcCertProvider is nil")
 	}
 }
 

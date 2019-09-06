@@ -287,13 +287,12 @@ type mockTransporter struct {
 	Error      error
 }
 
-// RoundTrip is used to crate a mock http response
+// RoundTrip is used to create a mock http response
 func (m *mockTransporter) RoundTrip(req *http.Request) (*http.Response, error) {
-	readcloser := ioutil.NopCloser(bytes.NewBuffer(m.Body))
 	return &http.Response{
 		Status:     fmt.Sprintf("%d %s", m.StatusCode, http.StatusText(m.StatusCode)),
 		StatusCode: m.StatusCode,
-		Body:       readcloser,
+		Body:       ioutil.NopCloser(bytes.NewBuffer(m.Body)),
 		Request: &http.Request{
 			URL:    m.URL,
 			Method: m.Method,

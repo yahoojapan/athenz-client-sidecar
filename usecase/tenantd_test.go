@@ -88,7 +88,7 @@ func TestNew(t *testing.T) {
 						panic(err)
 					}
 					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
-					svccert := service.NewSvcCertService(cfg, token.GetTokenProvider())
+					svccert, _ := service.NewSvcCertService(cfg, token.GetTokenProvider())
 
 					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider(), svccert.GetSvcCertProvider()))
 					server := service.NewServer(
@@ -168,7 +168,7 @@ func Test_clientd_Start(t *testing.T) {
 				Token: config.Token{
 					AthenzDomain:    strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
 					ServiceName:     strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					PrivateKeyPath:  keyKey,
+					PrivateKeyPath:  key,
 					ValidateToken:   false,
 					RefreshDuration: "1m",
 					KeyVersion:      "1",
@@ -182,6 +182,10 @@ func Test_clientd_Start(t *testing.T) {
 						Cert:    certKey,
 						Key:     keyKey,
 					},
+				},
+				ServiceCert: config.ServiceCert{
+					AthenzRootCA:    "./assets/dummyCa.pem",
+					RefreshDuration: "",
 				},
 			}
 
@@ -198,7 +202,7 @@ func Test_clientd_Start(t *testing.T) {
 						panic(err)
 					}
 					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
-					svccert := service.NewSvcCertService(cfg, token.GetTokenProvider())
+					svccert, _ := service.NewSvcCertService(cfg, token.GetTokenProvider())
 
 					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider(), svccert.GetSvcCertProvider()))
 					server := service.NewServer(

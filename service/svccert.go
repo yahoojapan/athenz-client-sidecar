@@ -87,7 +87,7 @@ type svcCertService struct {
 	group            singleflight.Group
 	refreshDuration  time.Duration
 	beforeExpiration time.Duration
-	expiration       time.Time
+	expiration       *atomic.Value
 	client           *zts.ZTSClient
 	refreshRequest   *requestTemplate
 }
@@ -112,12 +112,16 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertS
 		return nil, err
 	}
 
+	expiration := &atomic.Value{}
+	expiration.Store(fastime.Now())
+
 	return &svcCertService{
 		cfg:              cfg.ServiceCert,
 		svcCert:          &atomic.Value{},
 		token:            token,
 		refreshDuration:  dur,
 		beforeExpiration: beforeDur,
+		expiration:       expiration,
 		client:           client,
 		refreshRequest:   reqTemp,
 	}, nil
@@ -282,14 +286,20 @@ func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService
 				_, err = s.refreshSvcCert()
 				if err != nil {
 					glg.Error(err)
-					time.Sleep(time.Hour * 12)
-					fch <- struct{}{}
+					time.Sleep(time.Hour * 1)
+					go func() {
+						time.Sleep(time.Millisecond * 100)
+						fch <- struct{}{}
+					}()
 				}
 			case <-ticker.C:
 				_, err = s.refreshSvcCert()
 				if err != nil {
 					glg.Error(err)
-					fch <- struct{}{}
+					go func() {
+						time.Sleep(time.Millisecond * 100)
+						fch <- struct{}{}
+					}()
 				}
 			}
 		}
@@ -308,7 +318,7 @@ func (s *svcCertService) GetSvcCertProvider() SvcCertProvider {
 func (s *svcCertService) getSvcCert() ([]byte, error) {
 	cert := s.svcCert.Load()
 
-	if cert == nil || s.expiration.Before(fastime.Now()) {
+	if cert == nil || s.expiration.Load().(time.Time).Before(fastime.Now()) {
 		return s.refreshSvcCert()
 	}
 	return cert.([]byte), nil
@@ -352,7 +362,7 @@ func (s *svcCertService) refreshSvcCert() ([]byte, error) {
 
 		// update cert cache and expiration
 		s.setCert(cert)
-		s.expiration = certificate.NotAfter.Add(s.beforeExpiration)
+		s.expiration.Store(certificate.NotAfter.Add(s.beforeExpiration))
 
 		return cert, nil
 	})

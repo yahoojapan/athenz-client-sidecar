@@ -422,7 +422,7 @@ func Test_svccertService_getSvcCert(t *testing.T) {
 
 			svcCertService.client.Transport = transpoter
 			svcCertService.svcCert.Store(dummyCertBytes)
-			svcCertService.expiration = fastime.Now().Add(time.Hour)
+			svcCertService.expiration.Store(fastime.Now().Add(time.Hour))
 
 			return test{
 				name:           "getSvcCert returns stored value.",
@@ -582,7 +582,7 @@ func Test_svccertService_StartSvcCertUpdater(t *testing.T) {
 				ServiceCert: config.ServiceCert{
 					AthenzRootCA:            "./assets/dummyCa.pem",
 					AthenzURL:               "http://dummy",
-					RefreshDuration:         "200ms",
+					RefreshDuration:         "100ms",
 					PrincipalAuthHeaderName: "Athenz-Principal",
 					IntermediateCert:        true,
 				},
@@ -591,9 +591,9 @@ func Test_svccertService_StartSvcCertUpdater(t *testing.T) {
 			checkFunc := func(s *svcCertService, t *testing.T) {
 				s.StartSvcCertUpdater(ctx)
 				cert1, _ := s.GetSvcCertProvider()()
-				time.Sleep(time.Millisecond * 200)
+				time.Sleep(time.Millisecond * 120)
 				cert2, _ := s.GetSvcCertProvider()()
-				if string(cert1) != string(cert2) {
+				if string(cert1) == string(cert2) {
 					t.Errorf("cert did not refreshed")
 				}
 			}
@@ -650,9 +650,9 @@ func Test_svccertService_StartSvcCertUpdater(t *testing.T) {
 			checkFunc := func(s *svcCertService, t *testing.T) {
 				s.StartSvcCertUpdater(ctx)
 				cert1, _ := s.GetSvcCertProvider()()
-				time.Sleep(time.Millisecond * 100)
+				time.Sleep(time.Millisecond * 250)
 				cert2, _ := s.GetSvcCertProvider()()
-				if string(cert1) == string(cert2) {
+				if string(cert1) != string(cert2) {
 					t.Errorf("cert refreshed")
 				}
 			}

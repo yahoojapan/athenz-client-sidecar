@@ -353,18 +353,21 @@ func Test_svccertService_GetSvcCertProvider(t *testing.T) {
 // mockTransporter is the mock of RoundTripper
 type mockTransporter struct {
 	StatusCode int
-	Body       []byte
+	Body       [][]byte
 	Method     string
 	URL        *url.URL
 	Error      error
+	Counter    int
 }
 
 // RoundTrip is used to create a mock http response
 func (m *mockTransporter) RoundTrip(req *http.Request) (*http.Response, error) {
+	i := m.Counter % len(m.Body)
+	m.Counter = i + 1
 	return &http.Response{
 		Status:     fmt.Sprintf("%d %s", m.StatusCode, http.StatusText(m.StatusCode)),
 		StatusCode: m.StatusCode,
-		Body:       ioutil.NopCloser(bytes.NewBuffer(m.Body)),
+		Body:       ioutil.NopCloser(bytes.NewBuffer(m.Body[i])),
 		Request: &http.Request{
 			URL:    m.URL,
 			Method: m.Method,
@@ -383,7 +386,7 @@ func Test_svccertService_getSvcCert(t *testing.T) {
 	tests := []test{
 		func() test {
 			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
-			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
 			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
 
@@ -394,7 +397,7 @@ func Test_svccertService_getSvcCert(t *testing.T) {
 
 			transpoter := &mockTransporter{
 				StatusCode: 200,
-				Body:       []byte(dummyResponce),
+				Body:       [][]byte{[]byte(dummyResponce)},
 				Method:     "GET",
 				Error:      nil,
 			}
@@ -430,7 +433,7 @@ func Test_svccertService_getSvcCert(t *testing.T) {
 		}(),
 		func() test {
 			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
-			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
 			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
 
@@ -441,7 +444,7 @@ func Test_svccertService_getSvcCert(t *testing.T) {
 
 			transpoter := &mockTransporter{
 				StatusCode: 200,
-				Body:       []byte(dummyResponce),
+				Body:       [][]byte{[]byte(dummyResponce)},
 				Method:     "GET",
 				Error:      nil,
 			}
@@ -475,7 +478,7 @@ func Test_svccertService_getSvcCert(t *testing.T) {
 		}(),
 		func() test {
 			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
-			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
 			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
 
@@ -486,7 +489,7 @@ func Test_svccertService_getSvcCert(t *testing.T) {
 
 			transpoter := &mockTransporter{
 				StatusCode: 200,
-				Body:       []byte(dummyResponce),
+				Body:       [][]byte{[]byte(dummyResponce)},
 				Method:     "GET",
 				Error:      nil,
 			}
@@ -539,6 +542,74 @@ func Test_svccertService_getSvcCert(t *testing.T) {
 	}
 }
 
+func Test_svccertService_StartSvcCertUpdater(t *testing.T) {
+	type test struct {
+		name           string
+		svcCertService SvcCertService
+		checkfunc      func(*svcCertService) bool
+	}
+
+	tests := []test{
+		func() test {
+			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
+			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
+			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
+
+			dummyResponce := [][]byte{
+				[]byte(fmt.Sprintf(`{"name": "dummy", "certificate":"%s", "caCertBundle": "%s"}`, dummyCert, dummyCaCert)),
+				[]byte(fmt.Sprintf(`{"name": "dummy", "certificate":"%s", "caCertBundle": "%s"}`, dummyCaCert, dummyCaCert)),
+			}
+
+			token := func() (string, error) { return "dummyToken", nil }
+
+			transpoter := &mockTransporter{
+				StatusCode: 200,
+				Body:       dummyResponce,
+				Method:     "GET",
+				Error:      nil,
+			}
+
+			cfg := config.Config{
+				Token: config.Token{
+					PrivateKeyPath: "./assets/dummyServer.key",
+					AthenzDomain:   "dummyDomain",
+					ServiceName:    "dummyService",
+				},
+				ServiceCert: config.ServiceCert{
+					AthenzRootCA:            "./assets/dummyCa.pem",
+					AthenzURL:               "http://dummy",
+					RefreshDuration:         "30m",
+					PrincipalAuthHeaderName: "Athenz-Principal",
+					IntermediateCert:        true,
+				},
+			}
+
+			s, _ := NewSvcCertService(cfg, token)
+			svcCertService := s.(*svcCertService)
+
+			svcCertService.client.Transport = transpoter
+
+			return test{
+				name:           "refreshSvcCert returns correct when IntermediateCert is true",
+				svcCertService: svcCertService,
+			}
+		}(),
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := tt.svcCertService.(*svcCertService)
+
+			if tt.checkfunc == nil {
+				t.Errorf("checkfunc is nil")
+			}
+			tt.checkfunc(s)
+		})
+	}
+
+}
+
 func Test_svccertService_refreshSvcCert(t *testing.T) {
 	type test struct {
 		name           string
@@ -550,7 +621,7 @@ func Test_svccertService_refreshSvcCert(t *testing.T) {
 	tests := []test{
 		func() test {
 			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
-			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
 			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
 
@@ -561,7 +632,7 @@ func Test_svccertService_refreshSvcCert(t *testing.T) {
 
 			transpoter := &mockTransporter{
 				StatusCode: 200,
-				Body:       []byte(dummyResponce),
+				Body:       [][]byte{[]byte(dummyResponce)},
 				Method:     "GET",
 				Error:      nil,
 			}
@@ -595,7 +666,7 @@ func Test_svccertService_refreshSvcCert(t *testing.T) {
 		}(),
 		func() test {
 			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
-			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
 			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
 
@@ -606,7 +677,7 @@ func Test_svccertService_refreshSvcCert(t *testing.T) {
 
 			transpoter := &mockTransporter{
 				StatusCode: 200,
-				Body:       []byte(dummyResponce),
+				Body:       [][]byte{[]byte(dummyResponce)},
 				Method:     "GET",
 				Error:      nil,
 			}
@@ -640,7 +711,7 @@ func Test_svccertService_refreshSvcCert(t *testing.T) {
 		}(),
 		func() test {
 			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
-			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
 			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
 
@@ -651,7 +722,7 @@ func Test_svccertService_refreshSvcCert(t *testing.T) {
 
 			transpoter := &mockTransporter{
 				StatusCode: 200,
-				Body:       []byte(dummyResponce),
+				Body:       [][]byte{[]byte(dummyResponce)},
 				Method:     "GET",
 				Error:      nil,
 			}
@@ -688,7 +759,7 @@ func Test_svccertService_refreshSvcCert(t *testing.T) {
 
 			transpoter := &mockTransporter{
 				StatusCode: 200,
-				Body:       []byte("{}"),
+				Body:       [][]byte{[]byte("{}")},
 				Method:     "GET",
 				Error:      fmt.Errorf("request error"),
 			}
@@ -729,7 +800,7 @@ func Test_svccertService_refreshSvcCert(t *testing.T) {
 		}(),
 		func() test {
 			dummyCertBytes, _ := ioutil.ReadFile("./assets/invalid_dummyServer.crt")
-			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
 			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
 
@@ -740,7 +811,7 @@ func Test_svccertService_refreshSvcCert(t *testing.T) {
 
 			transpoter := &mockTransporter{
 				StatusCode: 200,
-				Body:       []byte(dummyResponce),
+				Body:       [][]byte{[]byte(dummyResponce)},
 				Method:     "GET",
 				Error:      nil,
 			}

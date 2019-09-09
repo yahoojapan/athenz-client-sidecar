@@ -2,6 +2,7 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -362,12 +363,11 @@ type mockTransporter struct {
 
 // RoundTrip is used to create a mock http response
 func (m *mockTransporter) RoundTrip(req *http.Request) (*http.Response, error) {
-	i := m.Counter % len(m.Body)
-	m.Counter = i + 1
+	m.Counter = m.Counter + 1
 	return &http.Response{
 		Status:     fmt.Sprintf("%d %s", m.StatusCode, http.StatusText(m.StatusCode)),
 		StatusCode: m.StatusCode,
-		Body:       ioutil.NopCloser(bytes.NewBuffer(m.Body[i])),
+		Body:       ioutil.NopCloser(bytes.NewBuffer(m.Body[m.Counter-1])),
 		Request: &http.Request{
 			URL:    m.URL,
 			Method: m.Method,
@@ -546,11 +546,14 @@ func Test_svccertService_StartSvcCertUpdater(t *testing.T) {
 	type test struct {
 		name           string
 		svcCertService SvcCertService
-		checkfunc      func(*svcCertService) bool
+		checkFunc      func(*svcCertService, *testing.T)
+		afterFunc      func()
 	}
 
 	tests := []test{
 		func() test {
+			ctx, cancel := context.WithCancel(context.Background())
+
 			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
 			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
@@ -579,10 +582,20 @@ func Test_svccertService_StartSvcCertUpdater(t *testing.T) {
 				ServiceCert: config.ServiceCert{
 					AthenzRootCA:            "./assets/dummyCa.pem",
 					AthenzURL:               "http://dummy",
-					RefreshDuration:         "30m",
+					RefreshDuration:         "200ms",
 					PrincipalAuthHeaderName: "Athenz-Principal",
 					IntermediateCert:        true,
 				},
+			}
+
+			checkFunc := func(s *svcCertService, t *testing.T) {
+				s.StartSvcCertUpdater(ctx)
+				cert1, _ := s.GetSvcCertProvider()()
+				time.Sleep(time.Millisecond * 200)
+				cert2, _ := s.GetSvcCertProvider()()
+				if string(cert1) != string(cert2) {
+					t.Errorf("cert did not refreshed")
+				}
 			}
 
 			s, _ := NewSvcCertService(cfg, token)
@@ -591,8 +604,69 @@ func Test_svccertService_StartSvcCertUpdater(t *testing.T) {
 			svcCertService.client.Transport = transpoter
 
 			return test{
-				name:           "refreshSvcCert returns correct when IntermediateCert is true",
+				name:           "cert is refreshed successfully",
 				svcCertService: svcCertService,
+				checkFunc:      checkFunc,
+				afterFunc:      cancel,
+			}
+		}(),
+		func() test {
+			ctx, cancel := context.WithCancel(context.Background())
+
+			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
+			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
+			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
+
+			dummyResponce := [][]byte{
+				[]byte(fmt.Sprintf(`{"name": "dummy", "certificate":"%s", "caCertBundle": "%s"}`, dummyCert, dummyCaCert)),
+				[]byte(fmt.Sprintf(`{"name": "dummy", "certificate":"%s", "caCertBundle": "%s"}`, dummyCaCert, dummyCaCert)),
+			}
+
+			token := func() (string, error) { return "", fmt.Errorf("error") }
+
+			transpoter := &mockTransporter{
+				StatusCode: 200,
+				Body:       dummyResponce,
+				Method:     "GET",
+				Error:      nil,
+			}
+
+			cfg := config.Config{
+				Token: config.Token{
+					PrivateKeyPath: "./assets/dummyServer.key",
+					AthenzDomain:   "dummyDomain",
+					ServiceName:    "dummyService",
+				},
+				ServiceCert: config.ServiceCert{
+					AthenzRootCA:            "./assets/dummyCa.pem",
+					AthenzURL:               "http://dummy",
+					RefreshDuration:         "100ms",
+					PrincipalAuthHeaderName: "Athenz-Principal",
+					IntermediateCert:        true,
+				},
+			}
+
+			checkFunc := func(s *svcCertService, t *testing.T) {
+				s.StartSvcCertUpdater(ctx)
+				cert1, _ := s.GetSvcCertProvider()()
+				time.Sleep(time.Millisecond * 100)
+				cert2, _ := s.GetSvcCertProvider()()
+				if string(cert1) == string(cert2) {
+					t.Errorf("cert refreshed")
+				}
+			}
+
+			s, _ := NewSvcCertService(cfg, token)
+			svcCertService := s.(*svcCertService)
+
+			svcCertService.client.Transport = transpoter
+
+			return test{
+				name:           "fail to refresh cert when refreshSvcCert returns error",
+				svcCertService: svcCertService,
+				checkFunc:      checkFunc,
+				afterFunc:      cancel,
 			}
 		}(),
 	}
@@ -601,10 +675,13 @@ func Test_svccertService_StartSvcCertUpdater(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := tt.svcCertService.(*svcCertService)
 
-			if tt.checkfunc == nil {
+			defer tt.afterFunc()
+
+			if tt.checkFunc == nil {
 				t.Errorf("checkfunc is nil")
+			} else {
+				tt.checkFunc(s, t)
 			}
-			tt.checkfunc(s)
 		})
 	}
 

@@ -51,7 +51,7 @@ var (
 	defaultSvcCertBeforeExpiration = time.Hour * 24 * -10
 
 	// domainReg is used to parse the athenz domain which is contained in config
-	domainReg = regexp.MustCompile(`(([a-zA-Z_][a-zA-Z0-9_-]*\.)*[a-zA-Z_][a-zA-Z0-9_-]*)`)
+	domainReg = regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_-]*\.)*[a-zA-Z_][a-zA-Z0-9_-]*$`)
 
 	// ErrCertNotFound represents an error when failed to fetch the svccert from SvcCertProvider.
 	ErrCertNotFound = errors.New("Failed to fetch service cert")

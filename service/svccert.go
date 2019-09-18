@@ -30,6 +30,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -42,12 +43,17 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
+// ([a-zA-Z_][a-zA-Z0-9_-]*\\.)*[a-zA-Z_][a-zA-Z0-9_-]*
+
 var (
 	// defaultSvcCertRefreshDuration represents the default time to refresh the goroutine.
 	defaultSvcCertRefreshDuration = time.Hour * 24
 
 	// defaultSvcCertBeforeExpiration represents the default vaule of BeforeExpiration.
 	defaultSvcCertBeforeExpiration = time.Hour * 24 * -10
+
+	// domainReg is used to parse the athenz domain which is contained in config
+	domainReg = regexp.MustCompile(`(([a-zA-Z_][a-zA-Z0-9_-]*\.)*[a-zA-Z_][a-zA-Z0-9_-]*)`)
 
 	// ErrCertNotFound represents an error when failed to fetch the svccert from SvcCertProvider.
 	ErrCertNotFound = errors.New("Failed to fetch service cert")
@@ -61,8 +67,8 @@ var (
 	// ErrFailedToInitialize represents an error when failed to initialize a service.
 	ErrFailedToInitialize = errors.New("Failed to initialize a service")
 
-	// ErrInvalidAthenzURL represents an error when the Athenz ZTS URL is invalid.
-	ErrInvalidAthenzURL = errors.New("Invalid AthenzURL")
+	// ErrInvalidParameter represents an error when the invalid parameter is contained in config
+	ErrInvalidParameter = errors.New("Invalid parameter")
 )
 
 type signer struct {
@@ -148,6 +154,10 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 	// it is used, not the CA. So, we will always put the Athenz name in the CN
 	// (it is *not* a DNS domain name), and put the host name into the SAN.
 
+	if !domainReg.Copy().MatchString(cfg.Token.AthenzDomain) {
+		return nil, nil, ErrInvalidParameter
+	}
+
 	hyphenDomain := strings.Replace(cfg.Token.AthenzDomain, ".", "-", -1)
 	host := fmt.Sprintf("%s.%s.%s", cfg.Token.ServiceName, hyphenDomain, cfg.ServiceCert.DNSDomain)
 	commonName := fmt.Sprintf("%s.%s", cfg.Token.AthenzDomain, cfg.Token.ServiceName)
@@ -171,7 +181,7 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 
 	_, err = url.Parse(cfg.ServiceCert.AthenzURL)
 	if err != nil {
-		return nil, nil, ErrInvalidAthenzURL
+		return nil, nil, ErrInvalidParameter
 	}
 
 	// if we're given a certificate then we'll use that otherwise

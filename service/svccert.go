@@ -60,6 +60,9 @@ var (
 
 	// ErrFailedToInitialize represents an error when failed to initialize a service.
 	ErrFailedToInitialize = errors.New("Failed to initialize a service")
+
+	// ErrInvalidAthenzURL represents an error when the Athenz ZTS URL is invalid.
+	ErrInvalidAthenzURL = errors.New("Invalid AthenzURL")
 )
 
 type signer struct {
@@ -164,6 +167,11 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 	csrData, err := generateCSR(pkSigner, subj, host, uri)
 	if err != nil {
 		return nil, nil, ErrFailedToInitialize
+	}
+
+	_, err = url.Parse(cfg.ServiceCert.AthenzURL)
+	if err != nil {
+		return nil, nil, ErrInvalidAthenzURL
 	}
 
 	// if we're given a certificate then we'll use that otherwise

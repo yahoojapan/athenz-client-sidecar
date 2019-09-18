@@ -21,7 +21,7 @@ func init() {
 	glg.Get().SetMode(glg.NONE)
 }
 
-func TestDomainValidator(t *testing.T) {
+func TestIsDomainValid(t *testing.T) {
 	cases := []struct {
 		domain string
 		expect bool
@@ -49,7 +49,7 @@ func TestDomainValidator(t *testing.T) {
 	}
 
 	for _, c := range cases {
-		if c.expect != domainValidator(c.domain) {
+		if c.expect != isDomainValid(c.domain) {
 			t.Errorf("Failed to validate : %s", c.domain)
 		}
 	}

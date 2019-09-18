@@ -43,8 +43,6 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-// ([a-zA-Z_][a-zA-Z0-9_-]*\\.)*[a-zA-Z_][a-zA-Z0-9_-]*
-
 var (
 	// defaultSvcCertRefreshDuration represents the default time to refresh the goroutine.
 	defaultSvcCertRefreshDuration = time.Hour * 24

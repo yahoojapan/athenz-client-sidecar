@@ -298,7 +298,7 @@ func ztsClient(cfg config.ServiceCert, keyBytes []byte) (*zts.ZTSClient, error) 
 func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService {
 	go func() {
 		var err error
-		fch := make(chan struct{})
+		fch := make(chan struct{}, 1)
 
 		ticker := time.NewTicker(s.refreshDuration)
 		for {
@@ -310,20 +310,13 @@ func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService
 				_, err = s.refreshSvcCert()
 				if err != nil {
 					glg.Error(err)
-					time.Sleep(time.Hour * 1)
-					go func() {
-						time.Sleep(time.Millisecond * 100)
-						fch <- struct{}{}
-					}()
+					fch <- struct{}{}
 				}
 			case <-ticker.C:
 				_, err = s.refreshSvcCert()
 				if err != nil {
 					glg.Error(err)
-					go func() {
-						time.Sleep(time.Millisecond * 100)
-						fch <- struct{}{}
-					}()
+					fch <- struct{}{}
 				}
 			}
 		}

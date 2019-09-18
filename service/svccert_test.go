@@ -21,6 +21,40 @@ func init() {
 	glg.Get().SetMode(glg.NONE)
 }
 
+func TestDomainValidator(t *testing.T) {
+	cases := []struct {
+		domain string
+		expect bool
+	}{
+		{
+			domain: "test.domain",
+			expect: true,
+		},
+		{
+			domain: "_testtttdomain.example",
+			expect: true,
+		},
+		{
+			domain: "Top.level-domain",
+			expect: true,
+		},
+		{
+			domain: "01domain",
+			expect: false,
+		},
+		{
+			domain: "-sample.domain",
+			expect: false,
+		},
+	}
+
+	for _, c := range cases {
+		if c.expect != domainValidator(c.domain) {
+			t.Errorf("Failed to validate : %s", c.domain)
+		}
+	}
+}
+
 func TestNewSvcCertService(t *testing.T) {
 	type args struct {
 		cfg   config.Config

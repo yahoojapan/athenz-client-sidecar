@@ -134,6 +134,14 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertS
 	}, nil
 }
 
+func domainValidator(domain string) bool {
+	if !domainReg.Copy().MatchString(domain) {
+		return false
+	}
+
+	return true
+}
+
 func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 	// load private key
 	keyBytes, err := ioutil.ReadFile(cfg.Token.PrivateKeyPath)
@@ -152,7 +160,7 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 	// it is used, not the CA. So, we will always put the Athenz name in the CN
 	// (it is *not* a DNS domain name), and put the host name into the SAN.
 
-	if !domainReg.Copy().MatchString(cfg.Token.AthenzDomain) {
+	if !domainValidator(cfg.Token.AthenzDomain) {
 		return nil, nil, ErrInvalidParameter
 	}
 

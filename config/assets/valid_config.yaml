@@ -41,5 +41,6 @@ service_cert:
   spiffe: false
   subject:
     country: US
+    province: California
     organization: "Oath Inc."
     organizational_unit: Athenz

@@ -149,6 +149,7 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 		CommonName:         commonName,
 		OrganizationalUnit: []string{cfg.ServiceCert.Subject.OrganizationalUnit},
 		Organization:       []string{cfg.ServiceCert.Subject.Organization},
+		Province:           []string{cfg.ServiceCert.Subject.Province},
 		Country:            []string{cfg.ServiceCert.Subject.Country},
 	}
 

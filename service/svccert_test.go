@@ -392,7 +392,7 @@ func TestNewSvcCertService(t *testing.T) {
 	}
 }
 
-func Test_svccertService_GetSvcCertProvider(t *testing.T) {
+func TestSvcCertService_GetSvcCertProvider(t *testing.T) {
 	svcCertService, _ := NewSvcCertService(
 		config.Config{
 			Token: config.Token{
@@ -436,7 +436,7 @@ func (m *mockTransporter) RoundTrip(req *http.Request) (*http.Response, error) {
 	}, m.Error
 }
 
-func TestSvcCertServiceGetSvcCert(t *testing.T) {
+func TestSvcCertService_GetSvcCert(t *testing.T) {
 	type test struct {
 		name           string
 		svcCertService SvcCertService
@@ -574,7 +574,7 @@ func TestSvcCertServiceGetSvcCert(t *testing.T) {
 			s, _ := NewSvcCertService(cfg, token)
 			svcCertService := s.(*svcCertService)
 			svcCertService.svcCert.Store(dummyCertBytes)
-
+			svcCertService.expiration.Store(fastime.Now().Add(-time.Hour))
 			svcCertService.client.Transport = transpoter
 
 			return test{
@@ -603,7 +603,7 @@ func TestSvcCertServiceGetSvcCert(t *testing.T) {
 	}
 }
 
-func Test_svccertService_StartSvcCertUpdater(t *testing.T) {
+func TestSvcCertService_StartSvcCertUpdater(t *testing.T) {
 	type test struct {
 		name           string
 		svcCertService SvcCertService
@@ -748,7 +748,7 @@ func Test_svccertService_StartSvcCertUpdater(t *testing.T) {
 
 }
 
-func Test_svccertService_refreshSvcCert(t *testing.T) {
+func TestSvcCertService_refreshSvcCert(t *testing.T) {
 	type test struct {
 		name           string
 		svcCertService SvcCertService

@@ -106,6 +106,7 @@ func TestNew(t *testing.T) {
 					Spiffe:                  false,
 					Subject: Subject{
 						Country:            "US",
+						Province:           "California",
 						Organization:       "Oath Inc.",
 						OrganizationalUnit: "Athenz",
 					},

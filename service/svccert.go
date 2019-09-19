@@ -30,6 +30,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -49,6 +50,9 @@ var (
 	// defaultSvcCertBeforeExpiration represents the default vaule of BeforeExpiration.
 	defaultSvcCertBeforeExpiration = time.Hour * 24 * -10
 
+	// domainReg is used to parse the athenz domain which is contained in config
+	domainReg = regexp.MustCompile(`^([a-zA-Z_][a-zA-Z0-9_-]*\.)*[a-zA-Z_][a-zA-Z0-9_-]*$`)
+
 	// ErrCertNotFound represents an error when failed to fetch the svccert from SvcCertProvider.
 	ErrCertNotFound = errors.New("Failed to fetch service cert")
 
@@ -60,6 +64,9 @@ var (
 
 	// ErrFailedToInitialize represents an error when failed to initialize a service.
 	ErrFailedToInitialize = errors.New("Failed to initialize a service")
+
+	// ErrInvalidParameter represents an error when the invalid parameter is contained in config
+	ErrInvalidParameter = errors.New("Invalid parameter")
 )
 
 type signer struct {
@@ -127,6 +134,14 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertS
 	}, nil
 }
 
+func isValidDomain(domain string) bool {
+	if !domainReg.Copy().MatchString(domain) {
+		return false
+	}
+
+	return true
+}
+
 func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 	// load private key
 	keyBytes, err := ioutil.ReadFile(cfg.Token.PrivateKeyPath)
@@ -144,6 +159,10 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 	// note: RFC 6125 states that if the SAN (Subject Alternative Name) exists,
 	// it is used, not the CA. So, we will always put the Athenz name in the CN
 	// (it is *not* a DNS domain name), and put the host name into the SAN.
+
+	if !isValidDomain(cfg.Token.AthenzDomain) {
+		return nil, nil, ErrInvalidParameter
+	}
 
 	hyphenDomain := strings.Replace(cfg.Token.AthenzDomain, ".", "-", -1)
 	host := fmt.Sprintf("%s.%s.%s", cfg.Token.ServiceName, hyphenDomain, cfg.ServiceCert.DNSDomain)
@@ -165,6 +184,11 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 	csrData, err := generateCSR(pkSigner, subj, host, uri)
 	if err != nil {
 		return nil, nil, ErrFailedToInitialize
+	}
+
+	_, err = url.Parse(cfg.ServiceCert.AthenzURL)
+	if err != nil {
+		return nil, nil, ErrInvalidParameter
 	}
 
 	// if we're given a certificate then we'll use that otherwise
@@ -275,7 +299,7 @@ func ztsClient(cfg config.ServiceCert, keyBytes []byte) (*zts.ZTSClient, error) 
 func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService {
 	go func() {
 		var err error
-		fch := make(chan struct{})
+		fch := make(chan struct{}, 1)
 
 		ticker := time.NewTicker(s.refreshDuration)
 		for {
@@ -287,20 +311,14 @@ func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService
 				_, err = s.refreshSvcCert()
 				if err != nil {
 					glg.Error(err)
-					time.Sleep(time.Hour * 1)
-					go func() {
-						time.Sleep(time.Millisecond * 100)
-						fch <- struct{}{}
-					}()
+					time.Sleep(time.Minute * 10)
+					fch <- struct{}{}
 				}
 			case <-ticker.C:
 				_, err = s.refreshSvcCert()
 				if err != nil {
 					glg.Error(err)
-					go func() {
-						time.Sleep(time.Millisecond * 100)
-						fch <- struct{}{}
-					}()
+					fch <- struct{}{}
 				}
 			}
 		}

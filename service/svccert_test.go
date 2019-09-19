@@ -21,6 +21,44 @@ func init() {
 	glg.Get().SetMode(glg.NONE)
 }
 
+func TestIsValidDomain(t *testing.T) {
+	cases := []struct {
+		domain string
+		expect bool
+	}{
+		{
+			domain: "test.domain",
+			expect: true,
+		},
+		{
+			domain: "_testtttdomain.example",
+			expect: true,
+		},
+		{
+			domain: "Top.level-domain",
+			expect: true,
+		},
+		{
+			domain: "01domain",
+			expect: false,
+		},
+		{
+			domain: "-sample.domain",
+			expect: false,
+		},
+		{
+			domain: `%x%sdomain`,
+			expect: false,
+		},
+	}
+
+	for _, c := range cases {
+		if c.expect != isValidDomain(c.domain) {
+			t.Errorf("Failed to validate : %s", c.domain)
+		}
+	}
+}
+
 func TestNewSvcCertService(t *testing.T) {
 	type args struct {
 		cfg   config.Config
@@ -44,6 +82,7 @@ func TestNewSvcCertService(t *testing.T) {
 				args: args{
 					cfg: config.Config{
 						Token: config.Token{
+							AthenzDomain:   "test.domain",
 							PrivateKeyPath: "./assets/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
@@ -77,6 +116,7 @@ func TestNewSvcCertService(t *testing.T) {
 				args: args{
 					cfg: config.Config{
 						Token: config.Token{
+							AthenzDomain:   "test.domain",
 							PrivateKeyPath: "./assets/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
@@ -112,6 +152,7 @@ func TestNewSvcCertService(t *testing.T) {
 				args: args{
 					cfg: config.Config{
 						Token: config.Token{
+							AthenzDomain:   "test.domain",
 							PrivateKeyPath: "./assets/dummyECServer.key",
 						},
 						ServiceCert: config.ServiceCert{
@@ -144,6 +185,7 @@ func TestNewSvcCertService(t *testing.T) {
 				args: args{
 					cfg: config.Config{
 						Token: config.Token{
+							AthenzDomain:   "test.domain",
 							PrivateKeyPath: "./assets/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
@@ -177,6 +219,7 @@ func TestNewSvcCertService(t *testing.T) {
 				args: args{
 					cfg: config.Config{
 						Token: config.Token{
+							AthenzDomain:   "test.domain",
 							PrivateKeyPath: "./assets/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
@@ -209,6 +252,7 @@ func TestNewSvcCertService(t *testing.T) {
 				args: args{
 					cfg: config.Config{
 						Token: config.Token{
+							AthenzDomain:   "test.domain",
 							PrivateKeyPath: "./assets/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
@@ -243,6 +287,7 @@ func TestNewSvcCertService(t *testing.T) {
 				args: args{
 					cfg: config.Config{
 						Token: config.Token{
+							AthenzDomain:   "test.domain",
 							PrivateKeyPath: "/not/exist.key",
 						},
 						ServiceCert: config.ServiceCert{
@@ -267,6 +312,7 @@ func TestNewSvcCertService(t *testing.T) {
 				args: args{
 					cfg: config.Config{
 						Token: config.Token{
+							AthenzDomain:   "test.domain",
 							PrivateKeyPath: "./assets/invalid_dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
@@ -291,6 +337,7 @@ func TestNewSvcCertService(t *testing.T) {
 				args: args{
 					cfg: config.Config{
 						Token: config.Token{
+							AthenzDomain:   "test.domain",
 							PrivateKeyPath: "./assets/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
@@ -302,6 +349,57 @@ func TestNewSvcCertService(t *testing.T) {
 				},
 				want:    &svcCertService{},
 				wantErr: ErrFailedToInitialize,
+				checkfunc: func(actual, expected *svcCertService) bool {
+					return true
+				},
+			}
+		}(),
+		func() test {
+			token := func() (string, error) { return "", nil }
+
+			return test{
+				name: "Invalid Athenz URL",
+				args: args{
+					cfg: config.Config{
+						Token: config.Token{
+							AthenzDomain:   "test.domain",
+							PrivateKeyPath: "./assets/dummyServer.key",
+						},
+						ServiceCert: config.ServiceCert{
+							AthenzRootCA:    "./assets/dummyCa.pem",
+							AthenzURL:       "%2This is not URL",
+							RefreshDuration: "30m",
+						},
+					},
+					token: token,
+				},
+				want:    &svcCertService{},
+				wantErr: ErrInvalidParameter,
+				checkfunc: func(actual, expected *svcCertService) bool {
+					return true
+				},
+			}
+		}(),
+		func() test {
+			token := func() (string, error) { return "", nil }
+
+			return test{
+				name: "Invalid Athenz Domain",
+				args: args{
+					cfg: config.Config{
+						Token: config.Token{
+							AthenzDomain:   "0001_invalid.domain",
+							PrivateKeyPath: "./assets/dummyServer.key",
+						},
+						ServiceCert: config.ServiceCert{
+							AthenzRootCA:    "./assets/dummyCa.pem",
+							RefreshDuration: "30m",
+						},
+					},
+					token: token,
+				},
+				want:    &svcCertService{},
+				wantErr: ErrInvalidParameter,
 				checkfunc: func(actual, expected *svcCertService) bool {
 					return true
 				},
@@ -332,10 +430,11 @@ func TestNewSvcCertService(t *testing.T) {
 	}
 }
 
-func Test_svccertService_GetSvcCertProvider(t *testing.T) {
+func TestSvcCertService_GetSvcCertProvider(t *testing.T) {
 	svcCertService, _ := NewSvcCertService(
 		config.Config{
 			Token: config.Token{
+				AthenzDomain:   "test.domain",
 				PrivateKeyPath: "./assets/dummyServer.key",
 			},
 			ServiceCert: config.ServiceCert{
@@ -375,7 +474,7 @@ func (m *mockTransporter) RoundTrip(req *http.Request) (*http.Response, error) {
 	}, m.Error
 }
 
-func Test_svccertService_getSvcCert(t *testing.T) {
+func TestSvcCertService_GetSvcCert(t *testing.T) {
 	type test struct {
 		name           string
 		svcCertService SvcCertService
@@ -513,7 +612,7 @@ func Test_svccertService_getSvcCert(t *testing.T) {
 			s, _ := NewSvcCertService(cfg, token)
 			svcCertService := s.(*svcCertService)
 			svcCertService.svcCert.Store(dummyCertBytes)
-
+			svcCertService.expiration.Store(fastime.Now().Add(-time.Hour))
 			svcCertService.client.Transport = transpoter
 
 			return test{
@@ -542,7 +641,7 @@ func Test_svccertService_getSvcCert(t *testing.T) {
 	}
 }
 
-func Test_svccertService_StartSvcCertUpdater(t *testing.T) {
+func TestSvcCertService_StartSvcCertUpdater(t *testing.T) {
 	type test struct {
 		name           string
 		svcCertService SvcCertService
@@ -687,7 +786,7 @@ func Test_svccertService_StartSvcCertUpdater(t *testing.T) {
 
 }
 
-func Test_svccertService_refreshSvcCert(t *testing.T) {
+func TestSvcCertService_refreshSvcCert(t *testing.T) {
 	type test struct {
 		name           string
 		svcCertService SvcCertService

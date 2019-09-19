@@ -174,6 +174,9 @@ type Subject struct {
 	// Country is the Subject C/Country field of certificate
 	Country string `yaml:"country"`
 
+	// Province is the Subject ST/State or Province field of certificate
+	Province string `yaml:"province"`
+
 	// Organization is the Subject O/Organization field of the certificate
 	Organization string `yaml:"organization"`
 

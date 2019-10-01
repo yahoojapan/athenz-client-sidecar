@@ -40,7 +40,7 @@ func TestIsValidDomain(t *testing.T) {
 		},
 		{
 			domain: "01domain",
-			expect: false,
+			expect: true,
 		},
 		{
 			domain: "-sample.domain",
@@ -388,7 +388,7 @@ func TestNewSvcCertService(t *testing.T) {
 				args: args{
 					cfg: config.Config{
 						Token: config.Token{
-							AthenzDomain:   "0001_invalid.domain",
+							AthenzDomain:   "+_invalid.domain",
 							PrivateKeyPath: "./assets/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{

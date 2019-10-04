@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/kpango/glg"
 	ntokend "github.com/kpango/ntokend"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"github.com/yahoojapan/athenz-client-sidecar/handler"
@@ -70,7 +71,12 @@ func New(cfg config.Config) (Tenant, error) {
 // Start returns a error slice channel. This error channel contains the error returned by client sidecar daemon.
 func (t *clientd) Start(ctx context.Context) chan []error {
 	t.token.StartTokenUpdater(ctx)
-	t.role.StartRoleUpdater(ctx)
+	go func() {
+		for {
+			err := <-t.role.StartRoleUpdater(ctx)
+			glg.Error(err)
+		}
+	}()
 	return t.server.ListenAndServe(ctx)
 }
 

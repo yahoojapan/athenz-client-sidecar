@@ -142,6 +142,10 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 		group                 singleflight.Group
 		expiry                time.Duration
 		httpClient            *http.Client
+
+		refreshInterval  time.Duration
+		errRetryMaxCount int
+		errRetryInterval time.Duration
 	}
 	type args struct {
 		ctx context.Context
@@ -150,7 +154,7 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 		name      string
 		fields    fields
 		args      args
-		checkFunc func(RoleService) error
+		checkFunc func(RoleService, <-chan error) error
 		want      RoleService
 	}
 	tests := []test{
@@ -190,11 +194,14 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 					token: func() (string, error) {
 						return dummyToken2, nil
 					},
+					refreshInterval:  time.Minute,
+					errRetryMaxCount: 5,
+					errRetryInterval: time.Second,
 				},
 				args: args{
 					ctx: context.Background(),
 				},
-				checkFunc: func(RoleService) error {
+				checkFunc: func(rs RoleService, errs <-chan error) error {
 
 					roleTok1, ok := domainRoleCache.Get("dummyDomain-dummyRole")
 					if !ok {
@@ -228,9 +235,12 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
+				refreshInterval:       tt.fields.refreshInterval,
+				errRetryMaxCount:      tt.fields.errRetryMaxCount,
+				errRetryInterval:      tt.fields.errRetryInterval,
 			}
 			got := r.StartRoleUpdater(tt.args.ctx)
-			if err := tt.checkFunc(got); err != nil {
+			if err := tt.checkFunc(r, got); err != nil {
 				t.Errorf("roleService.StartRoleUpdater(), error: %v", err)
 			}
 		})
@@ -586,7 +596,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					minExpiry:         time.Second,
 					maxExpiry:         time.Second,
 				},
-				wantErr: fmt.Errorf("Get https://127.0.0.1:9876/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1000000000&maxExpiryTime=1000000000&proxyForPrincipal=dummyProxy: dial tcp 127.0.0.1:9876: connect: connection refused"),
+				wantErr: fmt.Errorf("Get https://127.0.0.1:9876/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1&maxExpiryTime=1&proxyForPrincipal=dummyProxy: dial tcp 127.0.0.1:9876: connect: connection refused"),
 			}
 		}(),
 		func() test {
@@ -902,7 +912,7 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 				maxExpiry:         time.Second,
 				proxyForPrincipal: "dummyProxyForPrincipal",
 			},
-			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1000000000&maxExpiryTime=1000000000&proxyForPrincipal=dummyProxyForPrincipal",
+			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1&maxExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal",
 		},
 		{
 			name: "getRoleTokenAthenzURL correct null minExpiry",
@@ -913,7 +923,7 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 				maxExpiry:         time.Second,
 				proxyForPrincipal: "dummyProxyForPrincipal",
 			},
-			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&maxExpiryTime=1000000000&proxyForPrincipal=dummyProxyForPrincipal",
+			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&maxExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal",
 		},
 		{
 			name: "getRoleTokenAthenzURL correct null maxExpiry",
@@ -924,7 +934,7 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 				minExpiry:         time.Second,
 				proxyForPrincipal: "dummyProxyForPrincipal",
 			},
-			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1000000000&maxExpiryTime=0&proxyForPrincipal=dummyProxyForPrincipal",
+			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1&maxExpiryTime=0&proxyForPrincipal=dummyProxyForPrincipal",
 		},
 		{
 			name: "getRoleTokenAthenzURL correct null proxyForPrincipal",
@@ -935,7 +945,7 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 				minExpiry: time.Second,
 				maxExpiry: time.Second,
 			},
-			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1000000000&maxExpiryTime=1000000000&proxyForPrincipal=",
+			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1&maxExpiryTime=1&proxyForPrincipal=",
 		},
 	}
 	for _, tt := range tests {

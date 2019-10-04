@@ -3,6 +3,7 @@ module github.com/yahoojapan/athenz-client-sidecar
 go 1.13
 
 require (
+	bou.ke/monkey v1.0.1 // indirect
 	github.com/kpango/fastime v1.0.15
 	github.com/kpango/gache v1.1.22
 	github.com/kpango/glg v1.4.6

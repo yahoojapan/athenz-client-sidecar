@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -155,6 +156,7 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 		fields    fields
 		args      args
 		checkFunc func(RoleService, <-chan error) error
+		afterFunc func()
 		want      RoleService
 	}
 	tests := []test{
@@ -179,12 +181,12 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
-			domainRoleCache.SetWithExpire("dummyDomain-dummyRole", &cacheData{
+			domainRoleCache.SetWithExpire("dummyDomain;dummyRole", &cacheData{
 				token: dummyRoleToken,
-			}, time.Second)
+			}, time.Minute)
 
 			return test{
-				name: "StartRoleUpdater",
+				name: "StartRoleUpdater can update cache periodically",
 				fields: fields{
 					httpClient:            dummyServer.Client(),
 					domainRoleCache:       domainRoleCache,
@@ -192,9 +194,9 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "Athenz-Principal",
 					token: func() (string, error) {
-						return dummyToken2, nil
+						return "dummy ntoken", nil
 					},
-					refreshInterval:  time.Minute,
+					refreshInterval:  time.Second,
 					errRetryMaxCount: 5,
 					errRetryInterval: time.Second,
 				},
@@ -202,15 +204,14 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 					ctx: context.Background(),
 				},
 				checkFunc: func(rs RoleService, errs <-chan error) error {
-
-					roleTok1, ok := domainRoleCache.Get("dummyDomain-dummyRole")
+					roleTok1, ok := domainRoleCache.Get("dummyDomain;dummyRole")
 					if !ok {
 						return fmt.Errorf("cannot get first role token")
 					}
 
 					time.Sleep(time.Second * 2)
 
-					roleTok2, ok := domainRoleCache.Get("dummyDomain-dummyRole")
+					roleTok2, ok := domainRoleCache.Get("dummyDomain;dummyRole")
 					if !ok {
 						return fmt.Errorf("cannot get second role token")
 					}
@@ -221,9 +222,80 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 
 					return nil
 				},
+				afterFunc: func() {
+					dummyServer.Close()
+				},
+			}
+		}(),
+		func() test {
+			dummyTok := "dummyToken"
+			dummyExpTime := int64(1)
+			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+			dummyRoleToken := &RoleToken{
+				Token:      dummyToken,
+				ExpiryTime: dummyExpTime,
+			}
+
+			// set the first token into cache
+			domainRoleCache := gache.New()
+
+			// create dummy server to mock the updateRoleToken
+			dummyTok2 := "dummyToken2"
+			dummyToken2 := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok2, dummyExpTime)
+
+			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintf(w, dummyToken2)
+			})
+			dummyServer := httptest.NewTLSServer(sampleHandler)
+
+			domainRoleCache.SetWithExpire("dummyDomain;dummyRole", &cacheData{
+				token: dummyRoleToken,
+			}, time.Second)
+
+			return test{
+				name: "StartRoleUpdater can update cache using expired hook",
+				fields: fields{
+					httpClient:            dummyServer.Client(),
+					domainRoleCache:       domainRoleCache,
+					expiry:                time.Second * 2,
+					athenzURL:             dummyServer.URL,
+					athenzPrincipleHeader: "Athenz-Principal",
+					token: func() (string, error) {
+						return "dummy ntoken", nil
+					},
+					refreshInterval:  time.Hour,
+					errRetryMaxCount: 5,
+					errRetryInterval: time.Second,
+				},
+				args: args{
+					ctx: context.Background(),
+				},
+				checkFunc: func(rs RoleService, errs <-chan error) error {
+					roleTok1, ok := domainRoleCache.Get("dummyDomain;dummyRole")
+					if !ok {
+						return fmt.Errorf("cannot get first role token")
+					}
+
+					time.Sleep(time.Second * 2)
+
+					roleTok2, ok := domainRoleCache.Get("dummyDomain;dummyRole")
+					if !ok {
+						return fmt.Errorf("cannot get second role token")
+					}
+
+					if reflect.DeepEqual(roleTok1, roleTok2) {
+						return fmt.Errorf("Token did not updated, role token 1: %v, role token 2: %v", roleTok1, roleTok2)
+					}
+
+					return nil
+				},
+				afterFunc: func() {
+					dummyServer.Close()
+				},
 			}
 		}(),
 	}
+	m := sync.Mutex{}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			r := &roleService{
@@ -242,6 +314,11 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 			got := r.StartRoleUpdater(tt.args.ctx)
 			if err := tt.checkFunc(r, got); err != nil {
 				t.Errorf("roleService.StartRoleUpdater(), error: %v", err)
+			}
+			if tt.afterFunc != nil {
+				m.Lock()
+				tt.afterFunc()
+				m.Unlock()
 			}
 		})
 	}
@@ -371,7 +448,7 @@ func Test_roleService_getRoleToken(t *testing.T) {
 				ExpiryTime: dummyExpTime,
 			}
 			gac := gache.New()
-			gac.Set("dummyDomain-dummyRole", &cacheData{
+			gac.Set("dummyDomain;dummyRole;dummyProxy", &cacheData{
 				token: dummyRoleToken,
 			})
 
@@ -438,25 +515,40 @@ func Test_roleService_handleExpiredHook(t *testing.T) {
 		fctx context.Context
 		key  string
 	}
-	tests := []struct {
+	type test struct {
 		name   string
 		fields fields
 		args   args
-	}{
-		{
-			name: "handleExpiredHook can run",
-			fields: fields{
-				httpClient:      httptest.NewTLSServer(nil).Client(),
-				domainRoleCache: gache.New(),
-				token: func() (string, error) {
-					return "dummyToken", nil
+	}
+	tests := []test{
+		func() test {
+			dummyTok := "dummyToken"
+			dummyExpTime := int64(999999999)
+			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+
+			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintf(w, dummyToken)
+			})
+			dummyServer := httptest.NewTLSServer(sampleHandler)
+
+			return test{
+				name: "handleExpiredHook can run",
+				fields: fields{
+					httpClient:      dummyServer.Client(),
+					domainRoleCache: gache.New(),
+					token: func() (string, error) {
+						return "dummyToken", nil
+					},
+					athenzURL:             dummyServer.URL,
+					athenzPrincipleHeader: "Athenz-Principal",
 				},
-			},
-			args: args{
-				fctx: context.Background(),
-				key:  "dummyKey",
-			},
-		},
+				args: args{
+					fctx: context.Background(),
+					key:  "dummyDomain;dummyRole",
+				},
+			}
+
+		}(),
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -701,7 +793,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					maxExpiry:         time.Second,
 				},
 				checkFunc: func(got, want *RoleToken) error {
-					_, ok := roleRoleCache.Get("dummyDomain-dummyRole")
+					_, ok := roleRoleCache.Get("dummyDomain;dummyRole;dummyProxy")
 					if !ok {
 						return fmt.Errorf("element cannot found in cache")
 					}
@@ -733,7 +825,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 				Token:      dummyToken2,
 				ExpiryTime: dummyExpTime,
 			}
-			domainRoleCache.SetWithExpire("dummyDomain-dummyRole", &cacheData{
+			domainRoleCache.SetWithExpire("dummyDomain;dummyRole", &cacheData{
 				token: dummyRoleToke2,
 			}, time.Second)
 
@@ -757,7 +849,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					maxExpiry:         time.Second,
 				},
 				checkFunc: func(got, want *RoleToken) error {
-					tok, ok := domainRoleCache.Get("dummyDomain-dummyRole")
+					tok, ok := domainRoleCache.Get("dummyDomain;dummyRole;dummyProxy")
 					if !ok {
 						return fmt.Errorf("element cannot found in cache")
 					}
@@ -814,8 +906,9 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 
 func Test_encode(t *testing.T) {
 	type args struct {
-		domain string
-		role   string
+		domain    string
+		role      string
+		principal string
 	}
 	tests := []struct {
 		name string
@@ -825,15 +918,16 @@ func Test_encode(t *testing.T) {
 		{
 			name: "Encode correct",
 			args: args{
-				domain: "dummyDomain",
-				role:   "dummyRole",
+				domain:    "dummyDomain",
+				role:      "dummyRole",
+				principal: "dummyPrincipal",
 			},
-			want: "dummyDomain-dummyRole",
+			want: "dummyDomain;dummyRole;dummyPrincipal",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := encode(tt.args.domain, tt.args.role); got != tt.want {
+			if got := encode(tt.args.domain, tt.args.role, tt.args.principal); got != tt.want {
 				t.Errorf("encode() = %v, want %v", got, tt.want)
 			}
 		})
@@ -849,14 +943,16 @@ func Test_decode(t *testing.T) {
 		args  args
 		want  string
 		want1 string
+		want2 string
 	}{
 		{
 			name: "decode correct",
 			args: args{
-				key: "dummyDomain-dummyRole",
+				key: "dummyDomain;dummyRole",
 			},
 			want:  "dummyDomain",
 			want1: "dummyRole",
+			want2: "",
 		},
 		{
 			name: "decode correct no hyphen",
@@ -865,24 +961,29 @@ func Test_decode(t *testing.T) {
 			},
 			want:  "dummyDomain",
 			want1: "",
+			want2: "",
 		},
 		{
 			name: "decode correct 3 hyphen",
 			args: args{
-				key: "dummyDomain-domainRole-dummy1-dummy2",
+				key: "dummyDomain;domainRole;dummy1;dummy2",
 			},
 			want:  "dummyDomain",
 			want1: "domainRole",
+			want2: "dummy1;dummy2",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := decode(tt.args.key)
+			got, got1, got2 := decode(tt.args.key)
 			if got != tt.want {
 				t.Errorf("decode() got = %v, want %v", got, tt.want)
 			}
 			if got1 != tt.want1 {
 				t.Errorf("decode() got1 = %v, want %v", got1, tt.want1)
+			}
+			if got2 != tt.want2 {
+				t.Errorf("decode() got2 = %v, want %v", got2, tt.want2)
 			}
 		})
 	}
@@ -1006,7 +1107,7 @@ func Test_roleService_getCache(t *testing.T) {
 			}
 
 			domainRoleCache := gache.New()
-			domainRoleCache.Set("dummyDomain-dummyRole", &cacheData{
+			domainRoleCache.Set("dummyDomain;dummyRole;principal", &cacheData{
 				token: roleToken,
 			})
 

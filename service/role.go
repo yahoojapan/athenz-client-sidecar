@@ -209,8 +209,8 @@ func (r *roleService) RefreshRoleTokenCache(ctx context.Context) <-chan error {
 		defer close(echan)
 
 		r.domainRoleCache.Foreach(ctx, func(key string, val interface{}, exp int64) bool {
-			domain, role := decode(key)
-			for err := range r.updateRoleTokenWithRetry(ctx, domain, role, "", r.expiry, r.expiry) {
+			domain, role, principal := decode(key)
+			for err := range r.updateRoleTokenWithRetry(ctx, domain, role, principal, r.expiry, r.expiry) {
 				echan <- err
 				return false
 			}
@@ -223,8 +223,8 @@ func (r *roleService) RefreshRoleTokenCache(ctx context.Context) <-chan error {
 
 // handleExpiredHook is a handler function for gache expired hook
 func (r *roleService) handleExpiredHook(fctx context.Context, key string) {
-	domain, role := decode(key)
-	r.updateRoleToken(fctx, domain, role, "", r.expiry, r.expiry)
+	domain, role, principal := decode(key)
+	r.updateRoleToken(fctx, domain, role, principal, r.expiry, r.expiry)
 }
 
 func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry time.Duration) <-chan error {
@@ -250,13 +250,14 @@ func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role
 // updateRoleToken returns RoleToken struct or error.
 // This function ask athenz to generate role token and return, or return any error when generating the role token.
 func (r *roleService) updateRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry time.Duration) (*RoleToken, error) {
-	rt, err, _ := r.group.Do(encode(domain, role), func() (interface{}, error) {
+	key := encode(domain, role, proxyForPrincipal)
+	rt, err, _ := r.group.Do(key, func() (interface{}, error) {
 		rt, e := r.fetchRoleToken(ctx, domain, role, proxyForPrincipal, minExpiry, maxExpiry)
 		if e != nil {
 			return nil, e
 		}
 
-		r.domainRoleCache.SetWithExpire(encode(domain, role), &cacheData{
+		r.domainRoleCache.SetWithExpire(key, &cacheData{
 			token:             rt,
 			domain:            domain,
 			role:              role,
@@ -322,23 +323,23 @@ func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyFor
 }
 
 func (r *roleService) getCache(domain, role, principal string) (*RoleToken, bool) {
-	val, ok := r.domainRoleCache.Get(encode(domain, role))
+	val, ok := r.domainRoleCache.Get(encode(domain, role, principal))
 	if !ok {
 		return nil, false
 	}
 	return val.(*cacheData).token, ok
 }
 
-func encode(domain, role string) string {
-	return fmt.Sprintf("%s-%s", domain, role)
+func encode(domain, role, principal string) string {
+	return fmt.Sprintf("%s-%s-%s", domain, role, principal)
 }
 
-func decode(key string) (string, string) {
-	keys := strings.SplitN(key, "-", 3)
-	if len(keys) < 2 {
-		return key, ""
+func decode(key string) (string, string, string) {
+	keys := strings.SplitN(key, "-", 4)
+	if len(keys) < 3 {
+		return key, "", ""
 	}
-	return keys[0], keys[1]
+	return keys[0], keys[1], keys[2]
 }
 
 func getRoleTokenAthenzURL(athenzURL, domain, role string, minExpiry, maxExpiry time.Duration, proxyForPrincipal string) string {

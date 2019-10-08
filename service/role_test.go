@@ -26,6 +26,7 @@ import (
 
 	"github.com/kpango/gache"
 	ntokend "github.com/kpango/ntokend"
+	"github.com/pkg/errors"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"golang.org/x/sync/singleflight"
 )
@@ -976,14 +977,171 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 		minExpiry         time.Duration
 		maxExpiry         time.Duration
 	}
-	tests := []struct {
+	type test struct {
 		name    string
 		fields  fields
 		args    args
 		want    *RoleToken
-		wantErr bool
-	}{
-		// TODO: Add test cases.
+		wantErr error
+	}
+	tests := []test{
+		func() test {
+			dummyTok := "dummyToken"
+			dummyExpTime := int64(999999999)
+			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+
+			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintf(w, dummyToken)
+				w.WriteHeader(http.StatusOK)
+			})
+			dummyServer := httptest.NewTLSServer(sampleHandler)
+
+			return test{
+				name: "fetch role token success",
+				fields: fields{
+					token: func() (string, error) {
+						return "dummyNtoken", nil
+					},
+					athenzURL:             dummyServer.URL,
+					athenzPrincipleHeader: "dummy-header",
+					httpClient:            dummyServer.Client(),
+				},
+				args: args{
+					ctx:               context.Background(),
+					domain:            "dummyDomain",
+					role:              "dummyRole",
+					proxyForPrincipal: "dummyProxy",
+					minExpiry:         time.Hour,
+					maxExpiry:         time.Hour,
+				},
+				want: &RoleToken{
+					Token:      dummyTok,
+					ExpiryTime: dummyExpTime,
+				},
+			}
+		}(),
+		func() test {
+			dummyTok := "dummyToken"
+			dummyExpTime := int64(999999999)
+			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+
+			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintf(w, dummyToken)
+				w.WriteHeader(http.StatusOK)
+			})
+			dummyServer := httptest.NewTLSServer(sampleHandler)
+
+			dummyErr := errors.New("dummy error")
+			return test{
+				name: "ntoken provider return error",
+				fields: fields{
+					token: func() (string, error) {
+						return "", dummyErr
+					},
+					athenzURL:             dummyServer.URL,
+					athenzPrincipleHeader: "dummy-header",
+					httpClient:            dummyServer.Client(),
+				},
+				args: args{
+					ctx:               context.Background(),
+					domain:            "dummyDomain",
+					role:              "dummyRole",
+					proxyForPrincipal: "dummyProxy",
+					minExpiry:         time.Hour,
+					maxExpiry:         time.Hour,
+				},
+				wantErr: dummyErr,
+			}
+		}(),
+		func() test {
+			dummyTok := "dummyToken"
+			dummyExpTime := int64(999999999)
+			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+
+			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintf(w, dummyToken)
+				w.WriteHeader(http.StatusOK)
+			})
+			dummyServer := httptest.NewTLSServer(sampleHandler)
+
+			return test{
+				name: "invalid athenz url set",
+				fields: fields{
+					token: func() (string, error) {
+						return "dummyNToken", nil
+					},
+					athenzURL:             "dummyAthenzURL",
+					athenzPrincipleHeader: "dummy-header",
+					httpClient:            dummyServer.Client(),
+				},
+				args: args{
+					ctx:               context.Background(),
+					domain:            "dummyDomain",
+					role:              "dummyRole",
+					proxyForPrincipal: "dummyProxy",
+					minExpiry:         time.Hour,
+					maxExpiry:         time.Hour,
+				},
+				wantErr: errors.New("Get https://dummyAthenzURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=3600&maxExpiryTime=3600&proxyForPrincipal=dummyProxy: dial tcp: lookup dummyAthenzURL: no such host"),
+			}
+		}(),
+		func() test {
+			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+			})
+			dummyServer := httptest.NewTLSServer(sampleHandler)
+
+			return test{
+				name: "athenz server return error",
+				fields: fields{
+					token: func() (string, error) {
+						return "dummyNToken", nil
+					},
+					athenzURL:             dummyServer.URL,
+					athenzPrincipleHeader: "dummy-header",
+					httpClient:            dummyServer.Client(),
+				},
+				args: args{
+					ctx:               context.Background(),
+					domain:            "dummyDomain",
+					role:              "dummyRole",
+					proxyForPrincipal: "dummyProxy",
+					minExpiry:         time.Hour,
+					maxExpiry:         time.Hour,
+				},
+				wantErr: ErrRoleTokenRequestFailed,
+			}
+		}(),
+		func() test {
+			dummyTok := "dummyToken"
+
+			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintf(w, dummyTok)
+				w.WriteHeader(http.StatusOK)
+			})
+			dummyServer := httptest.NewTLSServer(sampleHandler)
+
+			return test{
+				name: "athenz server return invalid role token",
+				fields: fields{
+					token: func() (string, error) {
+						return "dummyNToken", nil
+					},
+					athenzURL:             dummyServer.URL,
+					athenzPrincipleHeader: "dummy-header",
+					httpClient:            dummyServer.Client(),
+				},
+				args: args{
+					ctx:               context.Background(),
+					domain:            "dummyDomain",
+					role:              "dummyRole",
+					proxyForPrincipal: "dummyProxy",
+					minExpiry:         time.Hour,
+					maxExpiry:         time.Hour,
+				},
+				wantErr: errors.New("invalid character 'd' looking for beginning of value"),
+			}
+		}(),
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -1001,10 +1159,20 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 				errRetryInterval:      tt.fields.errRetryInterval,
 			}
 			got, err := r.fetchRoleToken(tt.args.ctx, tt.args.domain, tt.args.role, tt.args.proxyForPrincipal, tt.args.minExpiry, tt.args.maxExpiry)
-			if (err != nil) != tt.wantErr {
+			if err != nil {
+				if tt.wantErr == nil {
+					t.Errorf("roleService.fetchRoleToken() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+				if err.Error() != tt.wantErr.Error() {
+					t.Errorf("roleService.fetchRoleToken() error = %v, wantErr %v", err, tt.wantErr)
+					return
+				}
+			} else if tt.wantErr != nil {
 				t.Errorf("roleService.fetchRoleToken() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
+
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("roleService.fetchRoleToken() = %v, want %v", got, tt.want)
 			}

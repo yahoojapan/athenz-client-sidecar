@@ -317,8 +317,7 @@ func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyFor
 	}()
 
 	if res.StatusCode != http.StatusOK {
-		b, _ := ioutil.ReadAll(res.Body)
-		glg.Info(string(b))
+		ioutil.ReadAll(res.Body)
 		return nil, ErrRoleTokenRequestFailed
 	}
 

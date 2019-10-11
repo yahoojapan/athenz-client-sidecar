@@ -41,6 +41,7 @@ func TestNewRoleService(t *testing.T) {
 		args      args
 		checkFunc func(got, want RoleService) error
 		want      RoleService
+		wantErr   error
 	}
 	tests := []test{
 		func() test {
@@ -49,6 +50,7 @@ func TestNewRoleService(t *testing.T) {
 					TokenExpiry:             "5s",
 					AthenzURL:               "dummy",
 					PrincipalAuthHeaderName: "dummyAuthHeader",
+					RefreshInterval:         "1s",
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -124,7 +126,16 @@ func TestNewRoleService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewRoleService(tt.args.cfg, tt.args.token)
+			got, err := NewRoleService(tt.args.cfg, tt.args.token)
+
+			if tt.wantErr == nil && err != nil {
+				t.Errorf("failed to instantiate, err: %v", err)
+				return
+			} else if tt.wantErr != nil {
+				if tt.wantErr.Error() != err.Error() {
+					t.Errorf("error not the same, want: %v, got: %v", tt.wantErr, err)
+				}
+			}
 
 			if err := tt.checkFunc(got, tt.want); err != nil {
 				t.Errorf("NewRoleService() err: %v", err)
@@ -338,7 +349,8 @@ func Test_roleService_GetRoleProvider(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewRoleService(config.Role{}, nil).GetRoleProvider(); got == nil {
+			r, _ := NewRoleService(config.Role{}, nil)
+			if got := r.GetRoleProvider(); got == nil {
 				t.Error("provier is nil")
 			}
 		})
@@ -1356,6 +1368,15 @@ func Test_decode(t *testing.T) {
 }
 
 func Test_getRoleTokenAthenzURL(t *testing.T) {
+	type fields struct {
+		cfg                   config.Role
+		token                 ntokend.TokenProvider
+		athenzURL             string
+		athenzPrincipleHeader string
+		domainRoleCache       gache.Gache
+		group                 singleflight.Group
+		expiry                time.Duration
+	}
 	type args struct {
 		athenzURL         string
 		domain            string
@@ -1365,59 +1386,80 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 		proxyForPrincipal string
 	}
 	tests := []struct {
-		name string
-		args args
-		want string
+		name   string
+		args   args
+		want   string
+		fields fields
 	}{
 		{
 			name: "getRoleTokenAthenzURL correct",
 			args: args{
-				athenzURL:         "dummyUURL",
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				minExpiry:         time.Second,
 				maxExpiry:         time.Second,
 				proxyForPrincipal: "dummyProxyForPrincipal",
 			},
+			fields: fields{
+				athenzURL: "dummyUURL",
+			},
+
 			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1&maxExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal",
 		},
 		{
 			name: "getRoleTokenAthenzURL correct null minExpiry",
 			args: args{
-				athenzURL:         "dummyUURL",
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				maxExpiry:         time.Second,
 				proxyForPrincipal: "dummyProxyForPrincipal",
 			},
-			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&maxExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal",
+			fields: fields{
+				athenzURL: "dummyUURL",
+				expiry:    time.Minute,
+			},
+			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=60&maxExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal",
 		},
 		{
 			name: "getRoleTokenAthenzURL correct null maxExpiry",
 			args: args{
-				athenzURL:         "dummyUURL",
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				minExpiry:         time.Second,
 				proxyForPrincipal: "dummyProxyForPrincipal",
 			},
-			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1&maxExpiryTime=0&proxyForPrincipal=dummyProxyForPrincipal",
+			fields: fields{
+				athenzURL: "dummyUURL",
+				expiry:    time.Minute,
+			},
+			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1&maxExpiryTime=60&proxyForPrincipal=dummyProxyForPrincipal",
 		},
 		{
 			name: "getRoleTokenAthenzURL correct null proxyForPrincipal",
 			args: args{
-				athenzURL: "dummyUURL",
 				domain:    "dummyDomain",
 				role:      "dummyRole",
 				minExpiry: time.Second,
 				maxExpiry: time.Second,
 			},
-			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1&maxExpiryTime=1&proxyForPrincipal=",
+			fields: fields{
+				athenzURL: "dummyUURL",
+			},
+			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1&maxExpiryTime=1",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := getRoleTokenAthenzURL(tt.args.athenzURL, tt.args.domain, tt.args.role, tt.args.minExpiry, tt.args.maxExpiry, tt.args.proxyForPrincipal); got != tt.want {
+			r := &roleService{
+				cfg:                   tt.fields.cfg,
+				token:                 tt.fields.token,
+				athenzURL:             tt.fields.athenzURL,
+				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
+				domainRoleCache:       tt.fields.domainRoleCache,
+				group:                 tt.fields.group,
+				expiry:                tt.fields.expiry,
+			}
+			if got := r.getRoleTokenAthenzURL(tt.args.domain, tt.args.role, tt.args.minExpiry, tt.args.maxExpiry, tt.args.proxyForPrincipal); got != tt.want {
 				t.Errorf("getRoleTokenAthenzURL() = %v, want %v", got, tt.want)
 			}
 		})

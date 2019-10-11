@@ -83,11 +83,14 @@ var (
 	// ErrRoleTokenRequestFailed represent an error when failed to fetch the role token from RoleProvider.
 	ErrRoleTokenRequestFailed = errors.New("Failed to fetch RoleToken")
 
+	// ErrInvalidSetting represent an error when the config file is invalid.
+	ErrInvalidSetting = errors.New("Invalid config")
+
 	// defaultExpiry represent the default token expiry time.
 	defaultExpiry = time.Minute * 120 // https://github.com/yahoo/athenz/blob/master/utils/zts-roletoken/zts-roletoken.go#L42
 
 	// defaultRefreshInterval represent the default token refresh interval.
-	defaultRefreshInterval = time.Minute * 1
+	defaultRefreshInterval = time.Minute * 59
 
 	// defaultErrRetryMaxCount represent the default maximum error retry count.
 	defaultErrRetryMaxCount = 5
@@ -100,7 +103,7 @@ var (
 )
 
 // NewRoleService returns a RoleService to update and get the role token from athenz.
-func NewRoleService(cfg config.Role, token ntokend.TokenProvider) RoleService {
+func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, error) {
 	dur, err := time.ParseDuration(cfg.TokenExpiry)
 	if err != nil {
 		dur = defaultExpiry
@@ -109,6 +112,10 @@ func NewRoleService(cfg config.Role, token ntokend.TokenProvider) RoleService {
 	refreshInterval, err := time.ParseDuration(cfg.RefreshInterval)
 	if err != nil {
 		refreshInterval = defaultRefreshInterval
+	}
+
+	if refreshInterval > dur {
+		return nil, errors.Wrap(ErrInvalidSetting, "refresh interval > token expiry time")
 	}
 
 	errRetryMaxCount := defaultErrRetryMaxCount
@@ -156,7 +163,7 @@ func NewRoleService(cfg config.Role, token ntokend.TokenProvider) RoleService {
 		refreshInterval:       refreshInterval,
 		errRetryMaxCount:      errRetryMaxCount,
 		errRetryInterval:      errRetryInterval,
-	}
+	}, nil
 }
 
 // StartRoleUpdater returns RoleService.
@@ -293,7 +300,7 @@ func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyFor
 	}
 
 	// prepare request object
-	u := getRoleTokenAthenzURL(r.athenzURL, domain, role, minExpiry, maxExpiry, proxyForPrincipal)
+	u := r.getRoleTokenAthenzURL(domain, role, minExpiry, maxExpiry, proxyForPrincipal)
 	glg.Debugf("url: %v", u)
 	req, err := http.NewRequest(http.MethodGet, u, nil)
 	if err != nil {
@@ -354,17 +361,22 @@ func decode(key string) (string, string, string) {
 	return res[0], res[1], res[2]
 }
 
-func getRoleTokenAthenzURL(athenzURL, domain, role string, minExpiry, maxExpiry time.Duration, proxyForPrincipal string) string {
-	u := fmt.Sprintf("https://%s/domain/%s/token?role=%s", strings.TrimPrefix(strings.TrimPrefix(athenzURL, "https://"), "http://"), domain, url.QueryEscape(role))
+func (r *roleService) getRoleTokenAthenzURL(domain, role string, minExpiry, maxExpiry time.Duration, proxyForPrincipal string) string {
+	u := fmt.Sprintf("https://%s/domain/%s/token?role=%s", strings.TrimPrefix(strings.TrimPrefix(r.athenzURL, "https://"), "http://"), domain, url.QueryEscape(role))
 
-	switch {
-	case minExpiry > 0:
-		u += fmt.Sprintf("&minExpiryTime=%d", minExpiry/time.Second)
-		fallthrough
-	case maxExpiry > 0:
-		u += fmt.Sprintf("&maxExpiryTime=%d", maxExpiry/time.Second)
-		fallthrough
-	case proxyForPrincipal != "":
+	minExp := r.expiry
+	if minExpiry > 0 {
+		minExp = minExpiry
+	}
+	u += fmt.Sprintf("&minExpiryTime=%d", minExp/time.Second)
+
+	maxExp := r.expiry
+	if maxExpiry > 0 {
+		maxExp = maxExpiry
+	}
+	u += fmt.Sprintf("&maxExpiryTime=%d", maxExp/time.Second)
+
+	if proxyForPrincipal != "" {
 		u += fmt.Sprintf("&proxyForPrincipal=%s", proxyForPrincipal)
 	}
 

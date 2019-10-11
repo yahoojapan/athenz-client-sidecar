@@ -52,7 +52,10 @@ func New(cfg config.Config) (Tenant, error) {
 	}
 
 	// create role service
-	role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+	role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+	if err != nil {
+		return nil, err
+	}
 
 	serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider()))
 	srv := service.NewServer(

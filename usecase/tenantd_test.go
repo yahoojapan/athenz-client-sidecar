@@ -87,7 +87,10 @@ func TestNew(t *testing.T) {
 					if err != nil {
 						panic(err)
 					}
-					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					if err != nil {
+						panic(err)
+					}
 
 					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider()))
 					server := service.NewServer(
@@ -195,7 +198,10 @@ func Test_clientd_Start(t *testing.T) {
 					if err != nil {
 						panic(err)
 					}
-					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					if err != nil {
+						panic(err)
+					}
 
 					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider()))
 					server := service.NewServer(

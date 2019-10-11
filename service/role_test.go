@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/kpango/gache"
+	"github.com/kpango/glg"
 	ntokend "github.com/kpango/ntokend"
 	"github.com/pkg/errors"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
@@ -533,13 +534,73 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 	type args struct {
 		ctx context.Context
 	}
-	tests := []struct {
-		name   string
-		fields fields
-		args   args
-		want   <-chan error
-	}{
-		// TODO: Add test cases.
+	type test struct {
+		name      string
+		fields    fields
+		args      args
+		checkFunc func(<-chan error) error
+		//	want <-chan error
+	}
+	tests := []test{
+		func() test {
+			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				newToken := `{ "token": "newToken", "expiryTime":99999 }`
+				fmt.Fprint(w, newToken)
+			})
+			dummyServer := httptest.NewTLSServer(sampleHandler)
+
+			roleCache := gache.New()
+			data := &cacheData{
+				token:             nil,
+				domain:            "dummyDomain",
+				role:              "dummyRole",
+				proxyForPrincipal: "",
+				minExpiry:         time.Minute,
+				maxExpiry:         time.Minute,
+			}
+			roleCache.SetWithExpire("dummyDamain;dummyRole", data, time.Minute)
+
+			return test{
+				name: "Refresh role token cache success",
+				fields: fields{
+					token: func() (string, error) {
+						return "dummyNToken", nil
+					},
+					athenzURL:             dummyServer.URL,
+					athenzPrincipleHeader: "dummy",
+					domainRoleCache:       roleCache,
+					expiry:                time.Minute,
+					httpClient:            dummyServer.Client(),
+					refreshInterval:       time.Second,
+					errRetryMaxCount:      5,
+					errRetryInterval:      time.Second,
+				},
+				args: args{
+					ctx: context.Background(),
+				},
+				checkFunc: func(errChan <-chan error) error {
+					go func() {
+						glg.Debugf("error: %v", <-errChan)
+					}()
+
+					time.Sleep(time.Second)
+					newCache, ok := roleCache.Get("dummyDamain;dummyRole")
+					if !ok {
+						return errors.New("cannot get new token")
+					}
+
+					tok := newCache.(*cacheData).token
+					if tok == nil {
+						return errors.New("updated token is nil")
+					}
+					if tok.Token != "newToken" {
+						return errors.New("new token not updated")
+					}
+
+					return nil
+				},
+			}
+		}(),
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -556,8 +617,9 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 				errRetryMaxCount:      tt.fields.errRetryMaxCount,
 				errRetryInterval:      tt.fields.errRetryInterval,
 			}
-			if got := r.RefreshRoleTokenCache(tt.args.ctx); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("roleService.RefreshRoleTokenCache() = %v, want %v", got, tt.want)
+			got := r.RefreshRoleTokenCache(tt.args.ctx)
+			if err := tt.checkFunc(got); err != nil {
+				t.Errorf("roleService.RefreshRoleTokenCache() error: %s", err)
 			}
 		})
 	}

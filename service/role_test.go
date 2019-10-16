@@ -98,7 +98,7 @@ func TestNewRoleService(t *testing.T) {
 				},
 			}
 			return test{
-				name: "NewRoleService default expiry",
+				name: "NewRoleService default values",
 				args: args,
 				checkFunc: func(got, want RoleService) error {
 					gotS := got.(*roleService)
@@ -108,7 +108,10 @@ func TestNewRoleService(t *testing.T) {
 						!reflect.DeepEqual(gotS.athenzURL, wantS.athenzURL) ||
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
 						//!reflect.DeepEqual(gotS.domainRoleCache, wantS.domainRoleCache) ||
-						!reflect.DeepEqual(gotS.expiry, wantS.expiry) {
+						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
+						!reflect.DeepEqual(gotS.refreshInterval, wantS.refreshInterval) ||
+						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
+						!reflect.DeepEqual(gotS.errRetryInterval, wantS.errRetryInterval) {
 
 						return fmt.Errorf("got: %+v, want: %+v", got, want)
 					}
@@ -120,7 +123,171 @@ func TestNewRoleService(t *testing.T) {
 					athenzURL:             args.cfg.AthenzURL,
 					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
 					domainRoleCache:       gache.New(),
-					expiry:                time.Minute * 120,
+					expiry:                defaultExpiry,
+					errRetryInterval:      defaultErrRetryInterval,
+					errRetryMaxCount:      defaultErrRetryMaxCount,
+					refreshInterval:       defaultRefreshInterval,
+				},
+			}
+		}(),
+		func() test {
+			args := args{
+				cfg: config.Role{
+					AthenzURL:               "dummy",
+					PrincipalAuthHeaderName: "dummyAuthHeader",
+					RefreshInterval:         "60s",
+					TokenExpiry:             "1s",
+				},
+				token: func() (string, error) {
+					return "", nil
+				},
+			}
+			return test{
+				name:    "NewRoleService return error when refresh interval > token expiry",
+				args:    args,
+				wantErr: errors.Wrap(ErrInvalidSetting, "refresh interval > token expiry time"),
+			}
+		}(),
+		func() test {
+			cnt := 10
+			args := args{
+				cfg: config.Role{
+					AthenzURL:               "dummy",
+					PrincipalAuthHeaderName: "dummyAuthHeader",
+					ErrRetryMaxCount:        cnt,
+				},
+				token: func() (string, error) {
+					return "", nil
+				},
+			}
+			return test{
+				name: "NewRoleService specific ErrRetryMaxCount",
+				args: args,
+				checkFunc: func(got, want RoleService) error {
+					gotS := got.(*roleService)
+					wantS := want.(*roleService)
+					if !reflect.DeepEqual(gotS.cfg, wantS.cfg) ||
+						reflect.ValueOf(gotS.token).Pointer() != reflect.ValueOf(wantS.token).Pointer() ||
+						!reflect.DeepEqual(gotS.athenzURL, wantS.athenzURL) ||
+						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
+						//!reflect.DeepEqual(gotS.domainRoleCache, wantS.domainRoleCache) ||
+						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
+						!reflect.DeepEqual(gotS.refreshInterval, wantS.refreshInterval) ||
+						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
+						!reflect.DeepEqual(gotS.errRetryInterval, wantS.errRetryInterval) {
+
+						return fmt.Errorf("got: %+v, want: %+v", got, want)
+					}
+					return nil
+				},
+				want: &roleService{
+					cfg:                   args.cfg,
+					token:                 args.token,
+					athenzURL:             args.cfg.AthenzURL,
+					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
+					domainRoleCache:       gache.New(),
+					expiry:                defaultExpiry,
+					errRetryInterval:      defaultErrRetryInterval,
+					errRetryMaxCount:      cnt,
+					refreshInterval:       defaultRefreshInterval,
+				},
+			}
+		}(),
+		func() test {
+			args := args{
+				cfg: config.Role{
+					AthenzURL:               "dummy",
+					PrincipalAuthHeaderName: "dummyAuthHeader",
+					AthenzRootCA:            "assets/dummyCa.pem",
+				},
+				token: func() (string, error) {
+					return "", nil
+				},
+			}
+			return test{
+				name: "NewRoleService contains valid athenz rootCA",
+				args: args,
+				checkFunc: func(got, want RoleService) error {
+					gotS := got.(*roleService)
+					wantS := want.(*roleService)
+					if !reflect.DeepEqual(gotS.cfg, wantS.cfg) ||
+						reflect.ValueOf(gotS.token).Pointer() != reflect.ValueOf(wantS.token).Pointer() ||
+						!reflect.DeepEqual(gotS.athenzURL, wantS.athenzURL) ||
+						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
+						//!reflect.DeepEqual(gotS.domainRoleCache, wantS.domainRoleCache) ||
+						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
+						!reflect.DeepEqual(gotS.refreshInterval, wantS.refreshInterval) ||
+						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
+						!reflect.DeepEqual(gotS.errRetryInterval, wantS.errRetryInterval) {
+
+						return fmt.Errorf("got: %+v, want: %+v", got, want)
+					}
+					cp, _ := NewX509CertPool(args.cfg.AthenzRootCA)
+					t := gotS.httpClient.Transport.(*http.Transport)
+					if !reflect.DeepEqual(t.TLSClientConfig.RootCAs, cp) {
+						return fmt.Errorf("cert not match, got: %+v, want: %+v", t, cp)
+					}
+
+					return nil
+				},
+				want: &roleService{
+					cfg:                   args.cfg,
+					token:                 args.token,
+					athenzURL:             args.cfg.AthenzURL,
+					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
+					domainRoleCache:       gache.New(),
+					expiry:                defaultExpiry,
+					errRetryInterval:      defaultErrRetryInterval,
+					errRetryMaxCount:      defaultErrRetryMaxCount,
+					refreshInterval:       defaultRefreshInterval,
+				},
+			}
+		}(),
+		func() test {
+			args := args{
+				cfg: config.Role{
+					AthenzURL:               "dummy",
+					PrincipalAuthHeaderName: "dummyAuthHeader",
+					AthenzRootCA:            "assets/invalid_dummyCa.pem",
+				},
+				token: func() (string, error) {
+					return "", nil
+				},
+			}
+			return test{
+				name: "NewRoleService contains invalid athenz rootCA",
+				args: args,
+				checkFunc: func(got, want RoleService) error {
+					gotS := got.(*roleService)
+					wantS := want.(*roleService)
+					if !reflect.DeepEqual(gotS.cfg, wantS.cfg) ||
+						reflect.ValueOf(gotS.token).Pointer() != reflect.ValueOf(wantS.token).Pointer() ||
+						!reflect.DeepEqual(gotS.athenzURL, wantS.athenzURL) ||
+						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
+						//!reflect.DeepEqual(gotS.domainRoleCache, wantS.domainRoleCache) ||
+						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
+						!reflect.DeepEqual(gotS.refreshInterval, wantS.refreshInterval) ||
+						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
+						!reflect.DeepEqual(gotS.errRetryInterval, wantS.errRetryInterval) {
+
+						return fmt.Errorf("got: %+v, want: %+v", got, want)
+					}
+					if gotS.httpClient != http.DefaultClient {
+						return fmt.Errorf("http client not match, got: %+v, want: %+v", gotS.httpClient, http.DefaultClient)
+					}
+
+					return nil
+				},
+				want: &roleService{
+					cfg:                   args.cfg,
+					token:                 args.token,
+					athenzURL:             args.cfg.AthenzURL,
+					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
+					domainRoleCache:       gache.New(),
+					expiry:                defaultExpiry,
+					errRetryInterval:      defaultErrRetryInterval,
+					errRetryMaxCount:      defaultErrRetryMaxCount,
+					refreshInterval:       defaultRefreshInterval,
 				},
 			}
 		}(),
@@ -138,8 +305,10 @@ func TestNewRoleService(t *testing.T) {
 				}
 			}
 
-			if err := tt.checkFunc(got, tt.want); err != nil {
-				t.Errorf("NewRoleService() err: %v", err)
+			if tt.checkFunc != nil {
+				if err := tt.checkFunc(got, tt.want); err != nil {
+					t.Errorf("NewRoleService() err: %v", err)
+				}
 			}
 		})
 	}
@@ -579,8 +748,9 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 					ctx: context.Background(),
 				},
 				checkFunc: func(errChan <-chan error) error {
+					var err error
 					go func() {
-						glg.Debugf("error: %v", <-errChan)
+						err = <-errChan
 					}()
 
 					time.Sleep(time.Second)
@@ -597,6 +767,9 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 						return errors.New("new token not updated")
 					}
 
+					if err != nil {
+						return err
+					}
 					return nil
 				},
 			}
@@ -688,6 +861,169 @@ func Test_roleService_handleExpiredHook(t *testing.T) {
 				httpClient:            tt.fields.httpClient,
 			}
 			r.handleExpiredHook(tt.args.fctx, tt.args.key)
+		})
+	}
+}
+
+func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
+	type fields struct {
+		cfg                   config.Role
+		token                 ntokend.TokenProvider
+		athenzURL             string
+		athenzPrincipleHeader string
+		domainRoleCache       gache.Gache
+		group                 singleflight.Group
+		expiry                time.Duration
+		httpClient            *http.Client
+		refreshInterval       time.Duration
+		errRetryMaxCount      int
+		errRetryInterval      time.Duration
+	}
+	type args struct {
+		ctx               context.Context
+		domain            string
+		role              string
+		proxyForPrincipal string
+		minExpiry         time.Duration
+		maxExpiry         time.Duration
+	}
+	type test struct {
+		name      string
+		fields    fields
+		args      args
+		want      <-chan error
+		checkFunc func(<-chan error) error
+		afterFunc func() error
+	}
+	tests := []test{
+		func() test {
+			dummyTok := "dummyToken"
+			dummyExpTime := int64(999999999)
+			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+
+			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprintf(w, dummyToken)
+			})
+			dummyServer := httptest.NewTLSServer(sampleHandler)
+
+			domainRoleCache := gache.New()
+
+			return test{
+				name: "updateRoleTokenWithRetry success",
+				fields: fields{
+					httpClient:      dummyServer.Client(),
+					domainRoleCache: domainRoleCache,
+					token: func() (string, error) {
+						return dummyToken, nil
+					},
+					athenzURL:             dummyServer.URL,
+					athenzPrincipleHeader: "Athenz-Principal",
+					errRetryMaxCount:      10,
+				},
+				args: args{
+					ctx:               context.Background(),
+					domain:            "dummyDomain",
+					role:              "dummyRole",
+					proxyForPrincipal: "dummyProxy",
+				},
+				checkFunc: func(echan <-chan error) error {
+					for err := range echan {
+						return errors.Wrap(err, "Unexpected error occurred")
+					}
+
+					tok, ok := domainRoleCache.Get("dummyDomain;dummyRole;dummyProxy")
+					if !ok {
+						return errors.New("token donot set to the cache")
+					}
+
+					if tok.(*cacheData).token.Token != dummyTok {
+						return errors.New("invalid token set on the cache")
+					}
+
+					return nil
+				},
+				afterFunc: func() error {
+					dummyServer.Close()
+					return nil
+				},
+			}
+		}(),
+		func() test {
+			dummyToken := "tok"
+			// create a dummy server that returns a dummy token
+			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.WriteHeader(http.StatusInternalServerError)
+			})
+			dummyServer := httptest.NewTLSServer(sampleHandler)
+
+			domainRoleCache := gache.New()
+
+			return test{
+				name: "updateRoleTokenWithRetry returns error",
+				fields: fields{
+					httpClient:      dummyServer.Client(),
+					domainRoleCache: domainRoleCache,
+					token: func() (string, error) {
+						return dummyToken, nil
+					},
+					athenzURL:             dummyServer.URL,
+					athenzPrincipleHeader: "Athenz-Principal",
+					errRetryMaxCount:      10,
+				},
+				args: args{
+					ctx:               context.Background(),
+					domain:            "dummyDomain",
+					role:              "dummyRole",
+					proxyForPrincipal: "dummyProxy",
+				},
+				checkFunc: func(echan <-chan error) error {
+					errs := make([]error, 0, 10)
+					for err := range echan {
+						glg.Debug(err)
+						errs = append(errs, err)
+					}
+
+					// check the length
+					if len(errs) != 10 {
+						return errors.Errorf("len(err) = %v", len(errs))
+					}
+
+					// check errors
+					for _, err := range errs {
+						if err != ErrRoleTokenRequestFailed {
+							return errors.Errorf("Unexpected error: %v", err)
+						}
+					}
+
+					return nil
+				},
+				afterFunc: func() error {
+					dummyServer.Close()
+					return nil
+				},
+			}
+		}(),
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			defer tt.afterFunc()
+			r := &roleService{
+				cfg:                   tt.fields.cfg,
+				token:                 tt.fields.token,
+				athenzURL:             tt.fields.athenzURL,
+				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
+				domainRoleCache:       tt.fields.domainRoleCache,
+				group:                 tt.fields.group,
+				expiry:                tt.fields.expiry,
+				httpClient:            tt.fields.httpClient,
+				refreshInterval:       tt.fields.refreshInterval,
+				errRetryMaxCount:      tt.fields.errRetryMaxCount,
+				errRetryInterval:      tt.fields.errRetryInterval,
+			}
+			got := r.updateRoleTokenWithRetry(tt.args.ctx, tt.args.domain, tt.args.role, tt.args.proxyForPrincipal, tt.args.minExpiry, tt.args.maxExpiry)
+			if err := tt.checkFunc(got); err != nil {
+				t.Errorf("roleService.updateRoleTokenWithRetry(). error: %v", err)
+			}
 		})
 	}
 }

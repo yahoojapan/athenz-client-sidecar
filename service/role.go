@@ -87,7 +87,7 @@ var (
 	ErrInvalidSetting = errors.New("Invalid config")
 
 	// defaultExpiry represent the default token expiry time.
-	defaultExpiry = time.Minute * 120 // https://github.com/yahoo/athenz/blob/master/utils/zts-roletoken/zts-roletoken.go#L42
+	defaultExpiry = time.Minute * 240 // https://github.com/yahoo/athenz/blob/master/utils/zts-roletoken/zts-roletoken.go#L42
 
 	// defaultRefreshInterval represent the default token refresh interval.
 	defaultRefreshInterval = time.Minute * 59
@@ -119,7 +119,7 @@ func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, 
 	}
 
 	errRetryMaxCount := defaultErrRetryMaxCount
-	if cfg.ErrRetryMaxCount != 0 {
+	if cfg.ErrRetryMaxCount > 0 {
 		errRetryMaxCount = cfg.ErrRetryMaxCount
 	}
 
@@ -130,7 +130,7 @@ func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, 
 
 	var cp *x509.CertPool
 	var httpClient *http.Client
-	if len(cfg.AthenzRootCA) != 0 {
+	if len(cfg.AthenzRootCA) > 0 {
 		certPath := config.GetActualValue(cfg.AthenzRootCA)
 		_, err := os.Stat(certPath)
 		if !os.IsNotExist(err) {
@@ -248,6 +248,7 @@ func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role
 		defer close(echan)
 
 		for i := 0; i < r.errRetryMaxCount; i++ {
+			glg.Debugf("time: %v", i)
 			if _, err := r.updateRoleToken(ctx, domain, role, proxyForPrincipal, minExpiry, maxExpiry); err != nil {
 				echan <- err
 				time.Sleep(r.errRetryInterval)

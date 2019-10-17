@@ -42,7 +42,6 @@ func New(cfg config.Server, h handler.Handler) *http.ServeMux {
 	}
 
 	for _, route := range NewRoutes(h) {
-		//関数名取得
 		mux.Handle(route.Pattern, routing(route.Methods, dur, route.HandlerFunc))
 	}
 
@@ -60,6 +59,7 @@ func routing(m []string, t time.Duration, h handler.Func) http.Handler {
 				ech := make(chan error)
 				go func() {
 					ech <- h(w, r.WithContext(ctx))
+					close(ech)
 				}()
 
 				for {

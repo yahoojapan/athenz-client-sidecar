@@ -359,9 +359,7 @@ func encode(domain, role, principal string) string {
 func decode(key string) (string, string, string) {
 	keys := strings.SplitN(key, cacheKeySeparater, 3)
 	res := []string{"", "", ""}
-	for i, v := range keys {
-		res[i] = v
-	}
+	copy(res, keys)
 	return res[0], res[1], res[2]
 }
 

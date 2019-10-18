@@ -424,7 +424,7 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 			dummyToken2 := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok2, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken2)
+				fmt.Fprint(w, dummyToken2)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
@@ -708,7 +708,7 @@ func Test_roleService_getRoleToken(t *testing.T) {
 			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
@@ -1195,7 +1195,7 @@ func Test_roleService_handleExpiredHook(t *testing.T) {
 			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 

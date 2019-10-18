@@ -86,9 +86,6 @@ var (
 	// ErrInvalidSetting represent an error when the config file is invalid.
 	ErrInvalidSetting = errors.New("Invalid config")
 
-	// defaultExpiry represent the default token expiry time.
-	defaultExpiry = time.Minute * 240 // https://github.com/yahoo/athenz/blob/master/utils/zts-roletoken/zts-roletoken.go#L42
-
 	// defaultRefreshInterval represent the default token refresh interval.
 	defaultRefreshInterval = time.Minute * 59
 
@@ -100,13 +97,16 @@ var (
 
 	// separater of the internal cache key name.
 	cacheKeySeparater = ";"
+
+	defaultExpiry             = time.Duration(0)
+	expiryHookRefreshInterval = time.Minute
 )
 
 // NewRoleService returns a RoleService to update and get the role token from athenz.
 func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, error) {
-	dur, err := time.ParseDuration(cfg.TokenExpiry)
+	exp, err := time.ParseDuration(cfg.TokenExpiry)
 	if err != nil {
-		dur = defaultExpiry
+		exp = 0
 	}
 
 	refreshInterval, err := time.ParseDuration(cfg.RefreshInterval)
@@ -114,7 +114,8 @@ func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, 
 		refreshInterval = defaultRefreshInterval
 	}
 
-	if refreshInterval > dur {
+	// if user set the expiry time and refresh duration > expiry time then return error
+	if exp != 0 && refreshInterval > exp {
 		return nil, errors.Wrap(ErrInvalidSetting, "refresh interval > token expiry time")
 	}
 
@@ -158,7 +159,7 @@ func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, 
 		athenzURL:             cfg.AthenzURL,
 		athenzPrincipleHeader: cfg.PrincipalAuthHeaderName,
 		domainRoleCache:       gache.New(),
-		expiry:                dur,
+		expiry:                exp,
 		httpClient:            httpClient,
 		refreshInterval:       refreshInterval,
 		errRetryMaxCount:      errRetryMaxCount,
@@ -191,7 +192,11 @@ func (r *roleService) StartRoleUpdater(ctx context.Context) <-chan error {
 		}
 	}()
 
-	r.domainRoleCache.EnableExpiredHook().SetExpiredHook(r.handleExpiredHook).StartExpired(ctx, r.expiry/5)
+	ri := expiryHookRefreshInterval
+	if r.expiry != 0 {
+		ri = r.expiry / 5
+	}
+	r.domainRoleCache.EnableExpiredHook().SetExpiredHook(r.handleExpiredHook).StartExpired(ctx, ri)
 	return ech
 }
 
@@ -247,7 +252,6 @@ func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role
 		defer close(echan)
 
 		for i := 0; i < r.errRetryMaxCount; i++ {
-			glg.Debugf("time: %v", i)
 			if _, err := r.updateRoleToken(ctx, domain, role, proxyForPrincipal, minExpiry, maxExpiry); err != nil {
 				echan <- err
 				time.Sleep(r.errRetryInterval)
@@ -368,13 +372,17 @@ func (r *roleService) getRoleTokenAthenzURL(domain, role string, minExpiry, maxE
 	if minExpiry > 0 {
 		minExp = minExpiry
 	}
-	u += fmt.Sprintf("&minExpiryTime=%d", minExp/time.Second)
+	if minExp > 0 {
+		u += fmt.Sprintf("&minExpiryTime=%d", minExp/time.Second)
+	}
 
 	maxExp := r.expiry
 	if maxExpiry > 0 {
 		maxExp = maxExpiry
 	}
-	u += fmt.Sprintf("&maxExpiryTime=%d", maxExp/time.Second)
+	if maxExp > 0 {
+		u += fmt.Sprintf("&maxExpiryTime=%d", maxExp/time.Second)
+	}
 
 	if proxyForPrincipal != "" {
 		u += fmt.Sprintf("&proxyForPrincipal=%s", proxyForPrincipal)

@@ -2142,6 +2142,15 @@ func Test_encode(t *testing.T) {
 			},
 			want: "dummyDomain;dummyRole;dummyPrincipal",
 		},
+		{
+			name: "Encode correct without prinicipal",
+			args: args{
+				domain:    "dummyDomain",
+				role:      "dummyRole",
+				principal: "",
+			},
+			want: "dummyDomain;dummyRole",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

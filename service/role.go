@@ -328,7 +328,6 @@ func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyFor
 	}()
 
 	if res.StatusCode != http.StatusOK {
-		ioutil.ReadAll(res.Body)
 		return nil, ErrRoleTokenRequestFailed
 	}
 

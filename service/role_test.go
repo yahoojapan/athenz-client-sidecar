@@ -25,7 +25,6 @@ import (
 	"time"
 
 	"github.com/kpango/gache"
-	"github.com/kpango/glg"
 	ntokend "github.com/kpango/ntokend"
 	"github.com/pkg/errors"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
@@ -1038,7 +1037,6 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 				checkFunc: func(echan <-chan error) error {
 					errs := make([]error, 0, 3)
 					for err := range echan {
-						glg.Debug(err)
 						errs = append(errs, err)
 					}
 
@@ -1110,7 +1108,6 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 				checkFunc: func(echan <-chan error) error {
 					errs := make([]error, 0, 10)
 					for err := range echan {
-						glg.Debug(err)
 						errs = append(errs, err)
 					}
 
@@ -1360,7 +1357,6 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 				checkFunc: func(echan <-chan error) error {
 					errs := make([]error, 0, 3)
 					for err := range echan {
-						glg.Debug(err)
 						errs = append(errs, err)
 					}
 
@@ -1424,7 +1420,6 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 				checkFunc: func(echan <-chan error) error {
 					errs := make([]error, 0, 10)
 					for err := range echan {
-						glg.Debug(err)
 						errs = append(errs, err)
 					}
 

@@ -1903,38 +1903,40 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 				wantErr: dummyErr,
 			}
 		}(),
-		func() test {
-			dummyTok := "dummyToken"
-			dummyExpTime := int64(999999999)
-			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+		/*
+			func() test {
+				dummyTok := "dummyToken"
+				dummyExpTime := int64(999999999)
+				dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
 
-			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
-				w.WriteHeader(http.StatusOK)
-			})
-			dummyServer := httptest.NewTLSServer(sampleHandler)
+				var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					fmt.Fprintf(w, dummyToken)
+					w.WriteHeader(http.StatusOK)
+				})
+				dummyServer := httptest.NewTLSServer(sampleHandler)
 
-			return test{
-				name: "invalid athenz url set",
-				fields: fields{
-					token: func() (string, error) {
-						return "dummyNToken", nil
+				return test{
+					name: "invalid athenz url set",
+					fields: fields{
+						token: func() (string, error) {
+							return "dummyNToken", nil
+						},
+						athenzURL:             "dummyAthenzURL",
+						athenzPrincipleHeader: "dummy-header",
+						httpClient:            dummyServer.Client(),
 					},
-					athenzURL:             "dummyAthenzURL",
-					athenzPrincipleHeader: "dummy-header",
-					httpClient:            dummyServer.Client(),
-				},
-				args: args{
-					ctx:               context.Background(),
-					domain:            "dummyDomain",
-					role:              "dummyRole",
-					proxyForPrincipal: "dummyProxy",
-					minExpiry:         time.Hour,
-					maxExpiry:         time.Hour,
-				},
-				wantErr: errors.New("Get https://dummyAthenzURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=3600&maxExpiryTime=3600&proxyForPrincipal=dummyProxy: dial tcp: lookup dummyAthenzURL: no such host"),
-			}
-		}(),
+					args: args{
+						ctx:               context.Background(),
+						domain:            "dummyDomain",
+						role:              "dummyRole",
+						proxyForPrincipal: "dummyProxy",
+						minExpiry:         time.Hour,
+						maxExpiry:         time.Hour,
+					},
+					wantErr: errors.New("Get https://dummyAthenzURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=3600&maxExpiryTime=3600&proxyForPrincipal=dummyProxy: dial tcp: lookup dummyAthenzURL: no such host"),
+				}
+			}(),
+		*/
 		func() test {
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)

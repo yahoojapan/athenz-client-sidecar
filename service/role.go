@@ -85,7 +85,9 @@ var (
 
 	// ErrInvalidSetting represent an error when the config file is invalid.
 	ErrInvalidSetting = errors.New("Invalid config")
+)
 
+const (
 	// defaultRefreshInterval represent the default token refresh interval.
 	defaultRefreshInterval = time.Minute * 59
 
@@ -98,7 +100,7 @@ var (
 	// separater of the internal cache key name.
 	cacheKeySeparater = ";"
 
-	defaultExpiry             = time.Duration(0)
+	// default expiry hook refresh interval
 	expiryHookRefreshInterval = time.Minute
 )
 

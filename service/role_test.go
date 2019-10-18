@@ -2281,7 +2281,7 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 				athenzURL: "dummyUURL",
 				expiry:    time.Minute,
 			},
-			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1&maxExpiryTime=60&proxyForPrincipal=dummyProxyForPrincipal",
+			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal",
 		},
 		{
 			name: "getRoleTokenAthenzURL correct null proxyForPrincipal",

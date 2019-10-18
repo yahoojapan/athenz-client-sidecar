@@ -375,12 +375,9 @@ func (r *roleService) getRoleTokenAthenzURL(domain, role string, minExpiry, maxE
 		u += fmt.Sprintf("&minExpiryTime=%d", minExp/time.Second)
 	}
 
-	maxExp := r.expiry
+	// set max expiry only if user specifiy it
 	if maxExpiry > 0 {
-		maxExp = maxExpiry
-	}
-	if maxExp > 0 {
-		u += fmt.Sprintf("&maxExpiryTime=%d", maxExp/time.Second)
+		u += fmt.Sprintf("&maxExpiryTime=%d", maxExpiry/time.Second)
 	}
 
 	if proxyForPrincipal != "" {

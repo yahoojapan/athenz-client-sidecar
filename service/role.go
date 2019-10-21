@@ -102,6 +102,9 @@ const (
 	// separater of the internal cache key name.
 	cacheKeySeparater = ";"
 
+	// roleSeparater is the separater of the role names
+	roleSeparater = ","
+
 	// default expiry hook refresh interval
 	expiryHookRefreshInterval = time.Minute
 )
@@ -223,7 +226,7 @@ func (r *roleService) getRoleToken(ctx context.Context, domain, role, proxyForPr
 func (r *roleService) RefreshRoleTokenCache(ctx context.Context) <-chan error {
 	glg.Info("refreshRoleTokenCache started")
 
-	echan := make(chan error)
+	echan := make(chan error, r.domainRoleCache.Len()*r.errRetryMaxCount)
 	go func() {
 		defer close(echan)
 
@@ -329,7 +332,7 @@ func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyFor
 	if res.StatusCode != http.StatusOK {
 		buf := new(bytes.Buffer)
 		buf.ReadFrom(res.Body)
-		glg.Errorf("error return from server, response:%+v, body: %v", res, buf.String())
+		glg.Debugf("error return from server, response:%+v, body: %v", res, buf.String())
 		return nil, ErrRoleTokenRequestFailed
 	}
 
@@ -373,13 +376,10 @@ func (r *roleService) getRoleTokenAthenzURL(domain, role string, minExpiry, maxE
 }
 
 func encode(domain, role, principal string) string {
-	roles := strings.Split(role, ",")
-	for i := range roles {
-		roles[i] = strings.TrimSpace(roles[i])
-	}
+	roles := strings.Split(role, roleSeparater)
 	sort.Strings(roles)
 
-	s := []string{domain, strings.Join(roles, ","), principal}
+	s := []string{domain, strings.Join(roles, roleSeparater), principal}
 	if principal == "" {
 		return strings.Join(s[:2], cacheKeySeparater)
 	}

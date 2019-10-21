@@ -2156,7 +2156,7 @@ func Test_encode(t *testing.T) {
 			name: "Encode with sorting",
 			args: args{
 				domain:    "dummyDomain",
-				role:      "dummyRole2, dummyRole, dummyRole1",
+				role:      "dummyRole2,dummyRole,dummyRole1",
 				principal: "dummyPrincipal",
 			},
 			want: "dummyDomain;dummyRole,dummyRole1,dummyRole2;dummyPrincipal",

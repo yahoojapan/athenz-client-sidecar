@@ -508,7 +508,7 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 					},
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "Athenz-Principal",
-					errRetryMaxCount:      10,
+					errRetryMaxCount:      9,
 					refreshInterval:       time.Millisecond * 100,
 					errRetryInterval:      time.Millisecond,
 					expiry:                time.Millisecond * 200,
@@ -585,7 +585,7 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 					},
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "Athenz-Principal",
-					errRetryMaxCount:      10,
+					errRetryMaxCount:      9,
 					refreshInterval:       time.Millisecond * 700,
 					errRetryInterval:      time.Millisecond,
 					expiry:                time.Millisecond * 700,
@@ -1101,7 +1101,7 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 					},
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "Athenz-Principal",
-					errRetryMaxCount:      10,
+					errRetryMaxCount:      9,
 				},
 				args: args{
 					ctx: context.Background(),
@@ -1289,7 +1289,7 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 					},
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "Athenz-Principal",
-					errRetryMaxCount:      10,
+					errRetryMaxCount:      9,
 				},
 				args: args{
 					ctx:               context.Background(),
@@ -1347,7 +1347,7 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 					},
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "Athenz-Principal",
-					errRetryMaxCount:      10,
+					errRetryMaxCount:      9,
 				},
 				args: args{
 					ctx:               context.Background(),
@@ -1410,7 +1410,7 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 					},
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "Athenz-Principal",
-					errRetryMaxCount:      10,
+					errRetryMaxCount:      9,
 				},
 				args: args{
 					ctx:               context.Background(),

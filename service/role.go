@@ -243,7 +243,7 @@ func (r *roleService) RefreshRoleTokenCache(ctx context.Context) <-chan error {
 
 // handleExpiredHook is a handler function for gache expired hook
 func (r *roleService) handleExpiredHook(ctx context.Context, key string) {
-	glg.Debugf("handleExpiredHook(), key: %s", key)
+	glg.Warnf("handleExpiredHook(), key: %s", key)
 	domain, role, principal := decode(key)
 	glg.Debugf("decoded: %s, %s, %s", domain, role, principal)
 	_, err := r.updateRoleToken(ctx, domain, role, principal, r.expiry, r.expiry)
@@ -257,7 +257,7 @@ func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role
 	go func() {
 		defer close(echan)
 
-		for i := 0; i < r.errRetryMaxCount; i++ {
+		for i := 0; i <= r.errRetryMaxCount; i++ {
 			if _, err := r.updateRoleToken(ctx, domain, role, proxyForPrincipal, minExpiry, maxExpiry); err != nil {
 				echan <- err
 				time.Sleep(r.errRetryInterval)
@@ -388,7 +388,7 @@ func encode(domain, role, principal string) string {
 
 func decode(key string) (string, string, string) {
 	keys := strings.SplitN(key, cacheKeySeparater, 3)
-	res := []string{"", "", ""}
+	res := make([]string, 3)
 	copy(res, keys)
 	return res[0], res[1], res[2]
 }

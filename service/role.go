@@ -328,7 +328,7 @@ func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyFor
 	if res.StatusCode != http.StatusOK {
 		buf := new(bytes.Buffer)
 		if _, err := buf.ReadFrom(res.Body); err != nil {
-			glg.Debugf("cannot read response bode, err: %v", err)
+			glg.Debugf("cannot read response body, err: %v", err)
 		}
 		glg.Debugf("error return from server, response:%+v, body: %v", res, buf.String())
 		return nil, ErrRoleTokenRequestFailed

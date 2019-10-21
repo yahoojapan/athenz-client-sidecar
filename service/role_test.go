@@ -18,6 +18,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -2313,4 +2314,105 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func Test_flushAndClose(t *testing.T) {
+	type args struct {
+		readCloser io.ReadCloser
+	}
+	type testcase struct {
+		name      string
+		args      args
+		wantError error
+	}
+	tests := []testcase{
+		{
+			name: "Check flushAndClose, readCloser is nil",
+			args: args{
+				readCloser: nil,
+			},
+			wantError: nil,
+		},
+		{
+			name: "Check flushAndClose, flush & close success",
+			args: args{
+				readCloser: &readCloserMock{
+					readMock: func(p []byte) (n int, err error) {
+						return 0, io.EOF
+					},
+					closeMock: func() error {
+						return nil
+					},
+				},
+			},
+			wantError: nil,
+		},
+		{
+			name: "Check flushAndClose, flush fail",
+			args: args{
+				readCloser: &readCloserMock{
+					readMock: func(p []byte) (n int, err error) {
+						return 0, fmt.Errorf("read-error-1332")
+					},
+					closeMock: func() error {
+						return nil
+					},
+				},
+			},
+			wantError: fmt.Errorf("read-error-1332"),
+		},
+		{
+			name: "Check flushAndClose, close fail",
+			args: args{
+				readCloser: &readCloserMock{
+					readMock: func(p []byte) (n int, err error) {
+						return 0, io.EOF
+					},
+					closeMock: func() error {
+						return fmt.Errorf("close-error-1349")
+					},
+				},
+			},
+			wantError: fmt.Errorf("close-error-1349"),
+		},
+		{
+			name: "Check flushAndClose, flush & close fail",
+			args: args{
+				readCloser: &readCloserMock{
+					readMock: func(p []byte) (n int, err error) {
+						return 0, fmt.Errorf("read-error-1360")
+					},
+					closeMock: func() error {
+						return fmt.Errorf("close-error-1363")
+					},
+				},
+			},
+			wantError: fmt.Errorf("read-error-1360"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotError := flushAndClose(tt.args.readCloser)
+			if !reflect.DeepEqual(gotError, tt.wantError) {
+				t.Errorf("flushAndClose() error = %v, want %v", gotError, tt.wantError)
+			}
+		})
+	}
+}
+
+// readCloserMock is the adapter implementation of io.ReadCloser interface for mocking.
+type readCloserMock struct {
+	readMock  func(p []byte) (n int, err error)
+	closeMock func() error
+}
+
+// Read is just an adapter.
+func (r *readCloserMock) Read(p []byte) (n int, err error) {
+	return r.readMock(p)
+}
+
+// Close is just an adapter.
+func (r *readCloserMock) Close() error {
+	return r.closeMock()
 }

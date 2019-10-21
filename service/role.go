@@ -270,6 +270,7 @@ func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role
 // This function ask athenz to generate role token and return, or return any error when generating the role token.
 func (r *roleService) updateRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry time.Duration) (*RoleToken, error) {
 	key := encode(domain, role, proxyForPrincipal)
+	expTimeDelta := fastime.Now().Add(time.Minute)
 
 	rt, err, _ := r.group.Do(key, func() (interface{}, error) {
 		rt, e := r.fetchRoleToken(ctx, domain, role, proxyForPrincipal, minExpiry, maxExpiry)
@@ -284,7 +285,7 @@ func (r *roleService) updateRoleToken(ctx context.Context, domain, role, proxyFo
 			proxyForPrincipal: proxyForPrincipal,
 			minExpiry:         minExpiry,
 			maxExpiry:         maxExpiry,
-		}, time.Unix(rt.ExpiryTime, 0).Sub(fastime.Now()))
+		}, time.Unix(rt.ExpiryTime, 0).Sub(expTimeDelta))
 
 		return rt, nil
 	})
@@ -320,15 +321,7 @@ func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyFor
 		return nil, err
 	}
 
-	defer func() {
-		if res != nil {
-			io.Copy(ioutil.Discard, res.Body)
-			if res.Body != nil {
-				res.Body.Close()
-			}
-		}
-	}()
-
+	defer flushAndClose(res.Body)
 	if res.StatusCode != http.StatusOK {
 		return nil, ErrRoleTokenRequestFailed
 	}
@@ -385,4 +378,19 @@ func (r *roleService) getRoleTokenAthenzURL(domain, role string, minExpiry, maxE
 	}
 
 	return u
+}
+
+// flushAndClose helps to flush and close a ReadCloser. Used for request body internal.
+// Returns if there is any errors.
+func flushAndClose(rc io.ReadCloser) error {
+	if rc != nil {
+		// flush
+		_, err := io.Copy(ioutil.Discard, rc)
+		if err != nil {
+			return err
+		}
+		// close
+		return rc.Close()
+	}
+	return nil
 }

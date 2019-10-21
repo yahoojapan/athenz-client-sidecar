@@ -227,7 +227,8 @@ func (r *roleService) RefreshRoleTokenCache(ctx context.Context) <-chan error {
 
 		r.domainRoleCache.Foreach(ctx, func(key string, val interface{}, exp int64) bool {
 			domain, role, principal := decode(key)
-			for err := range r.updateRoleTokenWithRetry(ctx, domain, role, principal, r.expiry, r.expiry) {
+
+			for err := range r.updateRoleTokenWithRetry(ctx, domain, role, principal, val.(cacheData).minExpiry, val.(cacheData).minExpiry) {
 				echan <- err
 			}
 			return true

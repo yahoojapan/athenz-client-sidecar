@@ -179,7 +179,7 @@ func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, 
 func (r *roleService) StartRoleUpdater(ctx context.Context) <-chan error {
 	glg.Info("Starting role token updater")
 
-	ech := make(chan error, 100)
+	ech := make(chan error)
 	go func() {
 		defer close(ech)
 
@@ -199,11 +199,7 @@ func (r *roleService) StartRoleUpdater(ctx context.Context) <-chan error {
 		}
 	}()
 
-	ri := expiryHookRefreshInterval
-	if r.expiry != 0 {
-		ri = r.expiry / 5
-	}
-	r.domainRoleCache.EnableExpiredHook().SetExpiredHook(r.handleExpiredHook).StartExpired(ctx, ri)
+	r.domainRoleCache.EnableExpiredHook().SetExpiredHook(r.handleExpiredHook).StartExpired(ctx, expiryHookRefreshInterval)
 	return ech
 }
 
@@ -331,7 +327,9 @@ func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyFor
 	defer flushAndClose(res.Body)
 	if res.StatusCode != http.StatusOK {
 		buf := new(bytes.Buffer)
-		buf.ReadFrom(res.Body)
+		if _, err := buf.ReadFrom(res.Body); err != nil {
+			glg.Debugf("cannot read response bode, err: %v", err)
+		}
 		glg.Debugf("error return from server, response:%+v, body: %v", res, buf.String())
 		return nil, ErrRoleTokenRequestFailed
 	}

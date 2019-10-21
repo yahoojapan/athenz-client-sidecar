@@ -2152,6 +2152,15 @@ func Test_encode(t *testing.T) {
 			},
 			want: "dummyDomain;dummyRole",
 		},
+		{
+			name: "Encode with sorting",
+			args: args{
+				domain:    "dummyDomain",
+				role:      "dummyRole2, dummyRole, dummyRole1",
+				principal: "dummyPrincipal",
+			},
+			want: "dummyDomain;dummyRole,dummyRole1,dummyRole2;dummyPrincipal",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

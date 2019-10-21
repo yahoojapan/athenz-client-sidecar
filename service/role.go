@@ -16,6 +16,7 @@ limitations under the License.
 package service
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -26,6 +27,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -325,6 +327,9 @@ func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyFor
 
 	defer flushAndClose(res.Body)
 	if res.StatusCode != http.StatusOK {
+		buf := new(bytes.Buffer)
+		buf.ReadFrom(res.Body)
+		glg.Errorf("error return from server, response:%+v, body: %v", res, buf.String())
 		return nil, ErrRoleTokenRequestFailed
 	}
 
@@ -342,21 +347,6 @@ func (r *roleService) getCache(domain, role, principal string) (*RoleToken, bool
 		return nil, false
 	}
 	return val.(*cacheData).token, ok
-}
-
-func encode(domain, role, principal string) string {
-	s := []string{domain, role, principal}
-	if principal == "" {
-		return strings.Join(s[:2], cacheKeySeparater)
-	}
-	return strings.Join(s, cacheKeySeparater)
-}
-
-func decode(key string) (string, string, string) {
-	keys := strings.SplitN(key, cacheKeySeparater, 3)
-	res := []string{"", "", ""}
-	copy(res, keys)
-	return res[0], res[1], res[2]
 }
 
 func (r *roleService) getRoleTokenAthenzURL(domain, role string, minExpiry, maxExpiry time.Duration, proxyForPrincipal string) string {
@@ -380,6 +370,27 @@ func (r *roleService) getRoleTokenAthenzURL(domain, role string, minExpiry, maxE
 	}
 
 	return u
+}
+
+func encode(domain, role, principal string) string {
+	roles := strings.Split(role, ",")
+	for i := range roles {
+		roles[i] = strings.TrimSpace(roles[i])
+	}
+	sort.Strings(roles)
+
+	s := []string{domain, strings.Join(roles, ","), principal}
+	if principal == "" {
+		return strings.Join(s[:2], cacheKeySeparater)
+	}
+	return strings.Join(s, cacheKeySeparater)
+}
+
+func decode(key string) (string, string, string) {
+	keys := strings.SplitN(key, cacheKeySeparater, 3)
+	res := []string{"", "", ""}
+	copy(res, keys)
+	return res[0], res[1], res[2]
 }
 
 // flushAndClose helps to flush and close a ReadCloser. Used for request body internal.

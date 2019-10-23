@@ -114,8 +114,7 @@ func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, 
 	exp := time.Duration(0)
 	if cfg.TokenExpiry != "" {
 		var err error
-		exp, err = time.ParseDuration(cfg.TokenExpiry)
-		if err != nil {
+		if exp, err = time.ParseDuration(cfg.TokenExpiry); err != nil {
 			return nil, errors.Wrap(ErrInvalidSetting, "TokenExpiry: "+err.Error())
 		}
 	}

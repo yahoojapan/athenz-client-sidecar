@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/kpango/glg"
 	ntokend "github.com/kpango/ntokend"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"github.com/yahoojapan/athenz-client-sidecar/handler"
@@ -51,7 +52,10 @@ func New(cfg config.Config) (Tenant, error) {
 	}
 
 	// create role service
-	role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+	role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+	if err != nil {
+		return nil, err
+	}
 
 	serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider()))
 	srv := service.NewServer(
@@ -70,7 +74,16 @@ func New(cfg config.Config) (Tenant, error) {
 // Start returns a error slice channel. This error channel contains the error returned by client sidecar daemon.
 func (t *clientd) Start(ctx context.Context) chan []error {
 	t.token.StartTokenUpdater(ctx)
-	t.role.StartRoleUpdater(ctx)
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case err := <-t.role.StartRoleUpdater(ctx):
+				glg.Error(err)
+			}
+		}
+	}()
 	return t.server.ListenAndServe(ctx)
 }
 

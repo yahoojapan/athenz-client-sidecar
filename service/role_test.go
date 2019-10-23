@@ -135,19 +135,13 @@ func TestNewRoleService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.Role{
-					AthenzURL:               "dummy",
-					PrincipalAuthHeaderName: "dummyAuthHeader",
-					RefreshInterval:         "60s",
-					TokenExpiry:             "1s",
-				},
-				token: func() (string, error) {
-					return "", nil
+					TokenExpiry: "1x",
 				},
 			}
 			return test{
-				name:    "NewRoleService return error when refresh interval > token expiry",
+				name:    "NewRoleService return error with invalid TokenExpiry",
 				args:    args,
-				wantErr: errors.Wrap(ErrInvalidSetting, "refresh interval > token expiry time"),
+				wantErr: errors.Wrap(ErrInvalidSetting, "TokenExpiry: time: unknown unit x in duration 1x"),
 			}
 		}(),
 		func() test {

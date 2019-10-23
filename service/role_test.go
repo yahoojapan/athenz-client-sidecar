@@ -19,12 +19,14 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"testing"
 	"time"
 
+	"github.com/kpango/fastime"
 	"github.com/kpango/gache"
 	ntokend "github.com/kpango/ntokend"
 	"github.com/pkg/errors"
@@ -1665,8 +1667,8 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 		}(),
 		func() test {
 			dummyTok := "dummyToken"
-			dummyExpTime := int64(999999999)
-			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+			dummyExpTime := fastime.Now().Add(time.Hour).UTC()
+			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %d}`, dummyTok, dummyExpTime.UnixNano()/int64(time.Second))
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprintf(w, dummyToken)
@@ -1695,10 +1697,18 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					maxExpiry:         time.Second,
 				},
 				checkFunc: func(got, want *RoleToken) error {
-					_, ok := roleRoleCache.Get("dummyDomain;dummyRole;dummyProxy")
+					c, exp, ok := roleRoleCache.GetWithExpire("dummyDomain;dummyRole;dummyProxy")
 					if !ok {
 						return fmt.Errorf("element cannot found in cache")
 					}
+					if c.(*cacheData).token.Token != dummyTok {
+						return fmt.Errorf("token not matched, got: %v, want: %v", c, dummyTok)
+					}
+
+					if math.Abs(time.Unix(0, exp).Sub(dummyExpTime).Seconds()) > (time.Minute+(time.Second*3)).Seconds()*3 {
+						return errors.Errorf("cache expiry not match with policy expires, got: %d", exp)
+					}
+
 					return nil
 				},
 				afterFunc: func() error {
@@ -1709,8 +1719,8 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 		}(),
 		func() test {
 			dummyTok := "dummyToken"
-			dummyExpTime := int64(999999999)
-			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+			dummyExpTime := fastime.Now().Add(time.Hour).UTC()
+			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime.UnixNano()/int64(time.Second))
 
 			// create a dummy server that returns a dummy token
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1725,7 +1735,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			dummyToken2 := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok2, dummyExpTime)
 			dummyRoleToke2 := &RoleToken{
 				Token:      dummyToken2,
-				ExpiryTime: dummyExpTime,
+				ExpiryTime: dummyExpTime.UnixNano() / int64(time.Second),
 			}
 			domainRoleCache.SetWithExpire("dummyDomain;dummyRole", &cacheData{
 				token: dummyRoleToke2,
@@ -1751,12 +1761,16 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					maxExpiry:         time.Second,
 				},
 				checkFunc: func(got, want *RoleToken) error {
-					tok, ok := domainRoleCache.Get("dummyDomain;dummyRole;dummyProxy")
+					tok, exp, ok := domainRoleCache.GetWithExpire("dummyDomain;dummyRole;dummyProxy")
 					if !ok {
 						return fmt.Errorf("element cannot found in cache")
 					}
 					if tok.(*cacheData).token.Token != dummyTok {
 						return fmt.Errorf("Token not updated")
+					}
+
+					if math.Abs(time.Unix(0, exp).Sub(dummyExpTime).Seconds()) > (time.Minute+(time.Second*3)).Seconds()*3 {
+						return errors.Errorf("cache expiry not match with policy expires, got: %d", exp)
 					}
 					return nil
 				},

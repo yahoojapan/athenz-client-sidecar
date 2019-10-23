@@ -179,7 +179,7 @@ func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, 
 func (r *roleService) StartRoleUpdater(ctx context.Context) <-chan error {
 	glg.Info("Starting role token updater")
 
-	ech := make(chan error)
+	ech := make(chan error, 100)
 	go func() {
 		defer close(ech)
 

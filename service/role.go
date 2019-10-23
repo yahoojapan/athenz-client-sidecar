@@ -222,7 +222,7 @@ func (r *roleService) getRoleToken(ctx context.Context, domain, role, proxyForPr
 func (r *roleService) RefreshRoleTokenCache(ctx context.Context) <-chan error {
 	glg.Info("refreshRoleTokenCache started")
 
-	echan := make(chan error, r.domainRoleCache.Len()*r.errRetryMaxCount)
+	echan := make(chan error, r.domainRoleCache.Len()*(r.errRetryMaxCount+1))
 	go func() {
 		defer close(echan)
 
@@ -252,7 +252,7 @@ func (r *roleService) handleExpiredHook(ctx context.Context, key string) {
 func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry time.Duration) <-chan error {
 	glg.Debugf("updateRoleTokenWithRetry started, domain: %s, role: %s, proxyForPrincipal: %s, minExpiry: %s, maxExpiry: %s", domain, role, proxyForPrincipal, minExpiry, maxExpiry)
 
-	echan := make(chan error, r.errRetryMaxCount)
+	echan := make(chan error, r.errRetryMaxCount+1)
 	go func() {
 		defer close(echan)
 

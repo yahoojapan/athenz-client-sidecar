@@ -139,9 +139,52 @@ func TestNewRoleService(t *testing.T) {
 				},
 			}
 			return test{
-				name:    "NewRoleService return error with invalid TokenExpiry",
+				name:    "NewRoleService return error with TokenExpiry of invalid format",
 				args:    args,
 				wantErr: errors.Wrap(ErrInvalidSetting, "TokenExpiry: time: unknown unit x in duration 1x"),
+			}
+		}(),
+		func() test {
+			args := args{
+				cfg: config.Role{
+					RefreshInterval: "1x",
+				},
+			}
+			return test{
+				name:    "NewRoleService return error with RefreshInterval of invalid format",
+				args:    args,
+				wantErr: errors.Wrap(ErrInvalidSetting, "RefreshInterval: time: unknown unit x in duration 1x"),
+			}
+		}(),
+		func() test {
+			args := args{
+				cfg: config.Role{
+					ErrRetryInterval: "1x",
+				},
+			}
+			return test{
+				name:    "NewRoleService return error with ErrRetryInterval of invalid format",
+				args:    args,
+				wantErr: errors.Wrap(ErrInvalidSetting, "ErrRetryInterval: time: unknown unit x in duration 1x"),
+			}
+		}(),
+		func() test {
+			args := args{
+				cfg: config.Role{
+					ErrRetryMaxCount: -1,
+				},
+			}
+			return test{
+				name: "NewRoleService use defaultErrRetryMaxCount with invalid ErrRetryMaxCount",
+				args: args,
+				want: &roleService{
+					cfg:              args.cfg,
+					domainRoleCache:  gache.New(),
+					expiry:           0,
+					errRetryInterval: defaultErrRetryInterval,
+					errRetryMaxCount: defaultErrRetryMaxCount,
+					refreshInterval:  defaultRefreshInterval,
+				},
 			}
 		}(),
 		func() test {

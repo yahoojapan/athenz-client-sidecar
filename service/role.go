@@ -146,7 +146,7 @@ func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, 
 	if cfg.ErrRetryMaxCount > 0 {
 		errRetryMaxCount = cfg.ErrRetryMaxCount
 	} else if cfg.ErrRetryMaxCount != 0 {
-		glg.Warnf("invalid ErrRetryMaxCount, will use default errRetryMaxCount = %d", defaultErrRetryMaxCount)
+		return nil, errors.Wrap(ErrInvalidSetting, "ErrRetryMaxCount < 0")
 	}
 
 	var cp *x509.CertPool

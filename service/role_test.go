@@ -175,16 +175,9 @@ func TestNewRoleService(t *testing.T) {
 				},
 			}
 			return test{
-				name: "NewRoleService use defaultErrRetryMaxCount with invalid ErrRetryMaxCount",
-				args: args,
-				want: &roleService{
-					cfg:              args.cfg,
-					domainRoleCache:  gache.New(),
-					expiry:           0,
-					errRetryInterval: defaultErrRetryInterval,
-					errRetryMaxCount: defaultErrRetryMaxCount,
-					refreshInterval:  defaultRefreshInterval,
-				},
+				name:    "NewRoleService return error with ErrRetryMaxCount < 0",
+				args:    args,
+				wantErr: errors.Wrap(ErrInvalidSetting, "ErrRetryMaxCount < 0"),
 			}
 		}(),
 		func() test {

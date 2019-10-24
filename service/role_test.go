@@ -135,6 +135,54 @@ func TestNewRoleService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.Role{
+					TokenExpiry: "1x",
+				},
+			}
+			return test{
+				name:    "NewRoleService return error with TokenExpiry of invalid format",
+				args:    args,
+				wantErr: errors.Wrap(ErrInvalidSetting, "TokenExpiry: time: unknown unit x in duration 1x"),
+			}
+		}(),
+		func() test {
+			args := args{
+				cfg: config.Role{
+					RefreshInterval: "1x",
+				},
+			}
+			return test{
+				name:    "NewRoleService return error with RefreshInterval of invalid format",
+				args:    args,
+				wantErr: errors.Wrap(ErrInvalidSetting, "RefreshInterval: time: unknown unit x in duration 1x"),
+			}
+		}(),
+		func() test {
+			args := args{
+				cfg: config.Role{
+					ErrRetryInterval: "1x",
+				},
+			}
+			return test{
+				name:    "NewRoleService return error with ErrRetryInterval of invalid format",
+				args:    args,
+				wantErr: errors.Wrap(ErrInvalidSetting, "ErrRetryInterval: time: unknown unit x in duration 1x"),
+			}
+		}(),
+		func() test {
+			args := args{
+				cfg: config.Role{
+					ErrRetryMaxCount: -1,
+				},
+			}
+			return test{
+				name:    "NewRoleService return error with ErrRetryMaxCount < 0",
+				args:    args,
+				wantErr: errors.Wrap(ErrInvalidSetting, "ErrRetryMaxCount < 0"),
+			}
+		}(),
+		func() test {
+			args := args{
+				cfg: config.Role{
 					AthenzURL:               "dummy",
 					PrincipalAuthHeaderName: "dummyAuthHeader",
 					RefreshInterval:         "60s",

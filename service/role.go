@@ -90,35 +90,51 @@ var (
 )
 
 const (
-	// defaultRefreshInterval represent the default token refresh interval.
+	// defaultTokenExpiry represents the default role token expiration. (0 implies unspecified.)
+	defaultTokenExpiry = time.Duration(0)
+
+	// defaultRefreshInterval represents the default token refresh interval.
 	defaultRefreshInterval = time.Minute * 59
 
-	// defaultErrRetryMaxCount represent the default maximum error retry count.
+	// defaultErrRetryMaxCount represents the default maximum error retry count.
 	defaultErrRetryMaxCount = 5
 
-	// defaultErrRetryInterval represent the default error retry interval.
+	// defaultErrRetryInterval represents the default error retry interval.
 	defaultErrRetryInterval = time.Second * 5
 
-	// separater of the internal cache key name.
+	// cacheKeySeparater is the separater of the internal cache key name.
 	cacheKeySeparater = ";"
 
 	// roleSeparater is the separater of the role names
 	roleSeparater = ","
 
-	// default expiry hook refresh interval
+	// expiryHookRefreshInterval represents default expiry hook refresh interval
 	expiryHookRefreshInterval = time.Minute
 )
 
 // NewRoleService returns a RoleService to update and get the role token from athenz.
 func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, error) {
-	exp, err := time.ParseDuration(cfg.TokenExpiry)
-	if err != nil {
-		exp = 0
-	}
+	var (
+		err              error
+		exp              = defaultTokenExpiry
+		refreshInterval  = defaultRefreshInterval
+		errRetryInterval = defaultErrRetryInterval
+	)
 
-	refreshInterval, err := time.ParseDuration(cfg.RefreshInterval)
-	if err != nil {
-		refreshInterval = defaultRefreshInterval
+	if cfg.TokenExpiry != "" {
+		if exp, err = time.ParseDuration(cfg.TokenExpiry); err != nil {
+			return nil, errors.Wrap(ErrInvalidSetting, "TokenExpiry: "+err.Error())
+		}
+	}
+	if cfg.RefreshInterval != "" {
+		if refreshInterval, err = time.ParseDuration(cfg.RefreshInterval); err != nil {
+			return nil, errors.Wrap(ErrInvalidSetting, "RefreshInterval: "+err.Error())
+		}
+	}
+	if cfg.ErrRetryInterval != "" {
+		if errRetryInterval, err = time.ParseDuration(cfg.ErrRetryInterval); err != nil {
+			return nil, errors.Wrap(ErrInvalidSetting, "ErrRetryInterval: "+err.Error())
+		}
 	}
 
 	// if user set the expiry time and refresh duration > expiry time then return error
@@ -129,11 +145,8 @@ func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, 
 	errRetryMaxCount := defaultErrRetryMaxCount
 	if cfg.ErrRetryMaxCount > 0 {
 		errRetryMaxCount = cfg.ErrRetryMaxCount
-	}
-
-	errRetryInterval, err := time.ParseDuration(cfg.ErrRetryInterval)
-	if err != nil {
-		errRetryInterval = defaultErrRetryInterval
+	} else if cfg.ErrRetryMaxCount != 0 {
+		return nil, errors.Wrap(ErrInvalidSetting, "ErrRetryMaxCount < 0")
 	}
 
 	var cp *x509.CertPool

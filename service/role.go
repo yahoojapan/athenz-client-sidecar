@@ -94,7 +94,7 @@ const (
 	defaultTokenExpiry = time.Duration(0)
 
 	// defaultRefreshInterval represents the default token refresh interval.
-	defaultRefreshInterval = time.Minute * 59
+	defaultRefreshInterval = time.Minute * 30
 
 	// defaultErrRetryMaxCount represents the default maximum error retry count.
 	defaultErrRetryMaxCount = 5
@@ -108,8 +108,8 @@ const (
 	// roleSeparater is the separater of the role names
 	roleSeparater = ","
 
-	// expiryHookRefreshInterval represents default expiry hook refresh interval
-	expiryHookRefreshInterval = time.Minute
+	// expiryCheckInterval represents default cache expiration check interval
+	expiryCheckInterval = time.Minute
 )
 
 // NewRoleService returns a RoleService to update and get the role token from athenz.
@@ -188,7 +188,7 @@ func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, 
 }
 
 // StartRoleUpdater returns RoleService.
-// This function will setup a expiry hook to role token caches, and refresh the role token when it needs.
+// This function will periodically refresh the role token.
 func (r *roleService) StartRoleUpdater(ctx context.Context) <-chan error {
 	glg.Info("Starting role token updater")
 
@@ -212,7 +212,7 @@ func (r *roleService) StartRoleUpdater(ctx context.Context) <-chan error {
 		}
 	}()
 
-	r.domainRoleCache.EnableExpiredHook().SetExpiredHook(r.handleExpiredHook).StartExpired(ctx, expiryHookRefreshInterval)
+	r.domainRoleCache.StartExpired(ctx, expiryCheckInterval)
 	return ech
 }
 
@@ -251,15 +251,6 @@ func (r *roleService) RefreshRoleTokenCache(ctx context.Context) <-chan error {
 	}()
 
 	return echan
-}
-
-// handleExpiredHook is a handler function for gache expired hook
-func (r *roleService) handleExpiredHook(ctx context.Context, key string) {
-	glg.Warnf("handleExpiredHook(), key: %s", key)
-	domain, role, principal := decode(key)
-	glg.Debugf("decoded: %s, %s, %s", domain, role, principal)
-	_, err := r.updateRoleToken(ctx, domain, role, principal, r.expiry, r.expiry)
-	glg.Errorf("err: %v", err)
 }
 
 func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry time.Duration) <-chan error {

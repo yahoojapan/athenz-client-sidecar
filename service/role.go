@@ -114,10 +114,12 @@ const (
 
 // NewRoleService returns a RoleService to update and get the role token from athenz.
 func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, error) {
-	var err error
-	exp := defaultTokenExpiry
-	refreshInterval := defaultRefreshInterval
-	errRetryInterval := defaultErrRetryInterval
+	var (
+		err              error
+		exp              = defaultTokenExpiry
+		refreshInterval  = defaultRefreshInterval
+		errRetryInterval = defaultErrRetryInterval
+	)
 
 	if cfg.TokenExpiry != "" {
 		if exp, err = time.ParseDuration(cfg.TokenExpiry); err != nil {

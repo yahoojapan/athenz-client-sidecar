@@ -213,6 +213,9 @@ func (r *roleService) StartRoleUpdater(ctx context.Context) <-chan error {
 	}()
 
 	r.domainRoleCache.StartExpired(ctx, expiryCheckInterval)
+	r.domainRoleCache.EnableExpiredHook().SetExpiredHook(func(ctx context.Context, k string) {
+		glg.Warnf("the following cache is expired, key: %v", k)
+	})
 	return ech
 }
 

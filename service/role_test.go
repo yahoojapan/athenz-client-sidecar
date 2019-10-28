@@ -477,8 +477,8 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				proxyForPrincipal: "dummyProxy",
-				minExpiry:         time.Minute,
-				maxExpiry:         time.Minute,
+				minExpiry:         60,
+				maxExpiry:         60,
 			}
 			domainRoleCache.SetWithExpire("dummyDomain;dummyRole;dummyProxy", data, time.Minute)
 
@@ -554,8 +554,8 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				proxyForPrincipal: "dummyProxy",
-				minExpiry:         time.Minute,
-				maxExpiry:         time.Minute,
+				minExpiry:         60,
+				maxExpiry:         60,
 			}
 			domainRoleCache.SetWithExpire("dummyDomain;dummyRole;dummyProxy", data, time.Minute)
 
@@ -677,8 +677,8 @@ func Test_roleService_getRoleToken(t *testing.T) {
 		domain            string
 		role              string
 		proxyForPrincipal string
-		minExpiry         time.Duration
-		maxExpiry         time.Duration
+		minExpiry         int64
+		maxExpiry         int64
 	}
 	type test struct {
 		name      string
@@ -715,8 +715,8 @@ func Test_roleService_getRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         time.Second,
-					maxExpiry:         time.Second,
+					minExpiry:         1,
+					maxExpiry:         1,
 				},
 				afterFunc: func() error {
 					dummyServer.Close()
@@ -750,8 +750,8 @@ func Test_roleService_getRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         time.Second,
-					maxExpiry:         time.Second,
+					minExpiry:         1,
+					maxExpiry:         1,
 				},
 				afterFunc: func() error {
 					dummyServer.Close()
@@ -858,8 +858,8 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				proxyForPrincipal: "",
-				minExpiry:         time.Minute,
-				maxExpiry:         time.Minute,
+				minExpiry:         60,
+				maxExpiry:         60,
 			}
 			roleCache.SetWithExpire("dummyDomain;dummyRole", data, time.Minute)
 
@@ -916,8 +916,8 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				proxyForPrincipal: "",
-				minExpiry:         time.Minute,
-				maxExpiry:         time.Minute,
+				minExpiry:         60,
+				maxExpiry:         60,
 			}
 			roleCache.SetWithExpire("dummyDomain;dummyRole", data, time.Minute)
 
@@ -926,8 +926,8 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 				domain:            "dummyDomain1",
 				role:              "dummyRole1",
 				proxyForPrincipal: "",
-				minExpiry:         time.Minute,
-				maxExpiry:         time.Minute,
+				minExpiry:         60,
+				maxExpiry:         60,
 			}
 			roleCache.SetWithExpire("dummyDomain1;dummyRole1", data1, time.Minute)
 
@@ -1001,8 +1001,8 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				proxyForPrincipal: "dummyProxy",
-				minExpiry:         time.Minute,
-				maxExpiry:         time.Minute,
+				minExpiry:         60,
+				maxExpiry:         60,
 			}
 			domainRoleCache.SetWithExpire("dummyDomain;dummyRole;dummyProxy", data, time.Minute)
 
@@ -1072,8 +1072,8 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				proxyForPrincipal: "dummyProxy",
-				minExpiry:         time.Minute,
-				maxExpiry:         time.Minute,
+				minExpiry:         60,
+				maxExpiry:         60,
 			}
 			domainRoleCache.SetWithExpire("dummyDomain;dummyRole;dummyProxy", data, time.Minute)
 
@@ -1174,8 +1174,8 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 		domain            string
 		role              string
 		proxyForPrincipal string
-		minExpiry         time.Duration
-		maxExpiry         time.Duration
+		minExpiry         int64
+		maxExpiry         int64
 	}
 	type test struct {
 		name      string
@@ -1404,8 +1404,8 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 		domain            string
 		role              string
 		proxyForPrincipal string
-		minExpiry         time.Duration
-		maxExpiry         time.Duration
+		minExpiry         int64
+		maxExpiry         int64
 	}
 	type test struct {
 		name       string
@@ -1444,8 +1444,8 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         time.Second,
-					maxExpiry:         time.Second,
+					minExpiry:         1,
+					maxExpiry:         1,
 				},
 				afterFunc: func() error {
 					dummyServer.Close()
@@ -1474,8 +1474,8 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         time.Second,
-					maxExpiry:         time.Second,
+					minExpiry:         1,
+					maxExpiry:         1,
 				},
 				wantErr: dummyErr,
 			}
@@ -1506,10 +1506,10 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         time.Second,
-					maxExpiry:         time.Second,
+					minExpiry:         1,
+					maxExpiry:         1,
 				},
-				wantErr: fmt.Errorf("Get https://127.0.0.1:9876/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1&maxExpiryTime=1&proxyForPrincipal=dummyProxy: dial tcp 127.0.0.1:9876: connect: connection refused"),
+				wantErr: fmt.Errorf("Get https://127.0.0.1:9876/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1&proxyForPrincipal=dummyProxy&role=dummyRole: dial tcp 127.0.0.1:9876: connect: connection refused"),
 			}
 		}(),
 		func() test {
@@ -1538,8 +1538,8 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         time.Second,
-					maxExpiry:         time.Second,
+					minExpiry:         1,
+					maxExpiry:         1,
 				},
 				afterFunc: func() error {
 					dummyServer.Close()
@@ -1572,8 +1572,8 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         time.Second,
-					maxExpiry:         time.Second,
+					minExpiry:         1,
+					maxExpiry:         1,
 				},
 				afterFunc: func() error {
 					dummyServer.Close()
@@ -1610,8 +1610,8 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         time.Second,
-					maxExpiry:         time.Second,
+					minExpiry:         1,
+					maxExpiry:         1,
 				},
 				checkFunc: func(got, want *RoleToken) error {
 					c, exp, ok := roleRoleCache.GetWithExpire("dummyDomain;dummyRole;dummyProxy")
@@ -1674,8 +1674,8 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         time.Second,
-					maxExpiry:         time.Second,
+					minExpiry:         1,
+					maxExpiry:         1,
 				},
 				checkFunc: func(got, want *RoleToken) error {
 					tok, exp, ok := domainRoleCache.GetWithExpire("dummyDomain;dummyRole;dummyProxy")
@@ -1756,8 +1756,8 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 		domain            string
 		role              string
 		proxyForPrincipal string
-		minExpiry         time.Duration
-		maxExpiry         time.Duration
+		minExpiry         int64
+		maxExpiry         int64
 	}
 	type test struct {
 		name    string
@@ -1793,8 +1793,8 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         time.Hour,
-					maxExpiry:         time.Hour,
+					minExpiry:         3600,
+					maxExpiry:         3600,
 				},
 				want: &RoleToken{
 					Token:      dummyTok,
@@ -1829,46 +1829,12 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         time.Hour,
-					maxExpiry:         time.Hour,
+					minExpiry:         3600,
+					maxExpiry:         3600,
 				},
 				wantErr: dummyErr,
 			}
 		}(),
-		/*
-			func() test {
-				dummyTok := "dummyToken"
-				dummyExpTime := int64(999999999)
-				dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
-
-				var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					fmt.Fprintf(w, dummyToken)
-					w.WriteHeader(http.StatusOK)
-				})
-				dummyServer := httptest.NewTLSServer(sampleHandler)
-
-				return test{
-					name: "invalid athenz url set",
-					fields: fields{
-						token: func() (string, error) {
-							return "dummyNToken", nil
-						},
-						athenzURL:             "dummyAthenzURL",
-						athenzPrincipleHeader: "dummy-header",
-						httpClient:            dummyServer.Client(),
-					},
-					args: args{
-						ctx:               context.Background(),
-						domain:            "dummyDomain",
-						role:              "dummyRole",
-						proxyForPrincipal: "dummyProxy",
-						minExpiry:         time.Hour,
-						maxExpiry:         time.Hour,
-					},
-					wantErr: errors.New("Get https://dummyAthenzURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=3600&maxExpiryTime=3600&proxyForPrincipal=dummyProxy: dial tcp: lookup dummyAthenzURL: no such host"),
-				}
-			}(),
-		*/
 		func() test {
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -1890,8 +1856,8 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         time.Hour,
-					maxExpiry:         time.Hour,
+					minExpiry:         3600,
+					maxExpiry:         3600,
 				},
 				wantErr: ErrRoleTokenRequestFailed,
 			}
@@ -1920,8 +1886,8 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         time.Hour,
-					maxExpiry:         time.Hour,
+					minExpiry:         3600,
+					maxExpiry:         3600,
 				},
 				wantErr: errors.New("invalid character 'd' looking for beginning of value"),
 			}
@@ -2157,6 +2123,7 @@ func Test_decode(t *testing.T) {
 	}
 }
 
+/*
 func Test_getRoleTokenAthenzURL(t *testing.T) {
 	type fields struct {
 		cfg                   config.Role
@@ -2171,8 +2138,8 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 		athenzURL         string
 		domain            string
 		role              string
-		minExpiry         time.Duration
-		maxExpiry         time.Duration
+		minExpiry         int64
+		maxExpiry         int64
 		proxyForPrincipal string
 	}
 	tests := []struct {
@@ -2186,8 +2153,8 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 			args: args{
 				domain:            "dummyDomain",
 				role:              "dummyRole",
-				minExpiry:         time.Second,
-				maxExpiry:         time.Second,
+				minExpiry:         1,
+				maxExpiry:         1,
 				proxyForPrincipal: "dummyProxyForPrincipal",
 			},
 			fields: fields{
@@ -2201,7 +2168,7 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 			args: args{
 				domain:            "dummyDomain",
 				role:              "dummyRole",
-				maxExpiry:         time.Second,
+				maxExpiry:         1,
 				proxyForPrincipal: "dummyProxyForPrincipal",
 			},
 			fields: fields{
@@ -2215,12 +2182,12 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 			args: args{
 				domain:            "dummyDomain",
 				role:              "dummyRole",
-				minExpiry:         time.Second,
+				minExpiry:         1,
 				proxyForPrincipal: "dummyProxyForPrincipal",
 			},
 			fields: fields{
 				athenzURL: "dummyUURL",
-				expiry:    time.Minute,
+				expiry:    60,
 			},
 			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal",
 		},
@@ -2229,8 +2196,8 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 			args: args{
 				domain:    "dummyDomain",
 				role:      "dummyRole",
-				minExpiry: time.Second,
-				maxExpiry: time.Second,
+				minExpiry: 1,
+				maxExpiry: 1,
 			},
 			fields: fields{
 				athenzURL: "dummyUURL",
@@ -2255,6 +2222,7 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 		})
 	}
 }
+*/
 
 func Test_flushAndClose(t *testing.T) {
 	type args struct {

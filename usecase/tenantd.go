@@ -75,13 +75,8 @@ func New(cfg config.Config) (Tenant, error) {
 func (t *clientd) Start(ctx context.Context) chan []error {
 	t.token.StartTokenUpdater(ctx)
 	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case err := <-t.role.StartRoleUpdater(ctx):
-				glg.Error(err)
-			}
+		for err := range t.role.StartRoleUpdater(ctx) {
+			glg.Error(err)
 		}
 	}()
 	return t.server.ListenAndServe(ctx)

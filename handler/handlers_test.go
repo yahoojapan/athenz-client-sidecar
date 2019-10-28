@@ -100,7 +100,7 @@ func TestNew(t *testing.T) {
 				token: func() (string, error) {
 					return "token-85", fmt.Errorf("get-token-error-85")
 				},
-				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (*service.RoleToken, error) {
+				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry int64, maxExpiry int64) (*service.RoleToken, error) {
 					return &service.RoleToken{
 						Token:      "role-token-89",
 						ExpiryTime: 90,
@@ -531,7 +531,7 @@ func Test_handler_RoleToken(t *testing.T) {
 		{
 			name: "Check handler RoleToken, on role error",
 			fields: fields{
-				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (*service.RoleToken, error) {
+				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry int64, maxExpiry int64) (*service.RoleToken, error) {
 					return &service.RoleToken{
 						Token:      "role-token-569",
 						ExpiryTime: 570,
@@ -552,7 +552,7 @@ func Test_handler_RoleToken(t *testing.T) {
 		{
 			name: "Check handler RoleToken, on context cancel",
 			fields: fields{
-				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (roleToken *service.RoleToken, err error) {
+				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry int64, maxExpiry int64) (roleToken *service.RoleToken, err error) {
 
 					roleToken = &service.RoleToken{
 						Token:      "role-token-591",
@@ -590,7 +590,7 @@ func Test_handler_RoleToken(t *testing.T) {
 		{
 			name: "Check handler RoleToken, request got role token",
 			fields: fields{
-				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (roleToken *service.RoleToken, err error) {
+				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry int64, maxExpiry int64) (roleToken *service.RoleToken, err error) {
 					return &service.RoleToken{
 						Token:      "role-token-629",
 						ExpiryTime: 630,
@@ -710,7 +710,7 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 		{
 			name: "Check handler RoleTokenProxy, on role error",
 			fields: fields{
-				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (roleToken *service.RoleToken, err error) {
+				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry int64, maxExpiry int64) (roleToken *service.RoleToken, err error) {
 					return &service.RoleToken{
 						Token:      "role-token-747",
 						ExpiryTime: 748,
@@ -731,7 +731,7 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 		{
 			name: "Check handler RoleTokenProxy, on context cancel",
 			fields: fields{
-				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (roleToken *service.RoleToken, err error) {
+				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry int64, maxExpiry int64) (roleToken *service.RoleToken, err error) {
 
 					roleToken = &service.RoleToken{
 						Token:      "role-token-769",
@@ -789,7 +789,7 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 						},
 					},
 				},
-				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (roleToken *service.RoleToken, err error) {
+				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry int64, maxExpiry int64) (roleToken *service.RoleToken, err error) {
 					return &service.RoleToken{
 						Token: strings.Join([]string{
 							"role-token-827",
@@ -847,7 +847,7 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 						},
 					},
 				},
-				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (roleToken *service.RoleToken, err error) {
+				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry int64, maxExpiry int64) (roleToken *service.RoleToken, err error) {
 					return &service.RoleToken{
 						Token: strings.Join([]string{
 							"role-token-885",
@@ -902,7 +902,7 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 						},
 					},
 				},
-				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (roleToken *service.RoleToken, err error) {
+				role: func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry int64, maxExpiry int64) (roleToken *service.RoleToken, err error) {
 					return &service.RoleToken{
 						Token:      "role-token-939",
 						ExpiryTime: 940,

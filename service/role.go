@@ -25,9 +25,9 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"os"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -68,8 +68,8 @@ type cacheData struct {
 	domain            string
 	role              string
 	proxyForPrincipal string
-	minExpiry         time.Duration
-	maxExpiry         time.Duration
+	minExpiry         int64
+	maxExpiry         int64
 }
 
 // RoleToken represent the basic information of the role token.
@@ -79,7 +79,7 @@ type RoleToken struct {
 }
 
 // RoleProvider represent a function pointer to get the role token.
-type RoleProvider func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry time.Duration, maxExpiry time.Duration) (*RoleToken, error)
+type RoleProvider func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry int64, maxExpiry int64) (*RoleToken, error)
 
 var (
 	// ErrRoleTokenRequestFailed represent an error when failed to fetch the role token from RoleProvider.
@@ -226,7 +226,7 @@ func (r *roleService) GetRoleProvider() RoleProvider {
 
 // getRoleToken returns RoleToken struct or error.
 // This function will return the role token stored inside the cache, or fetch the role token from athenz when corresponding role token cannot be found in the cache.
-func (r *roleService) getRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry time.Duration) (*RoleToken, error) {
+func (r *roleService) getRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) (*RoleToken, error) {
 	tok, ok := r.getCache(domain, role, proxyForPrincipal)
 	if !ok {
 		return r.updateRoleToken(ctx, domain, role, proxyForPrincipal, minExpiry, maxExpiry)
@@ -256,7 +256,7 @@ func (r *roleService) RefreshRoleTokenCache(ctx context.Context) <-chan error {
 	return echan
 }
 
-func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry time.Duration) <-chan error {
+func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) <-chan error {
 	glg.Debugf("updateRoleTokenWithRetry started, domain: %s, role: %s, proxyForPrincipal: %s, minExpiry: %s, maxExpiry: %s", domain, role, proxyForPrincipal, minExpiry, maxExpiry)
 
 	echan := make(chan error, r.errRetryMaxCount+1)
@@ -268,6 +268,7 @@ func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role
 				echan <- err
 				time.Sleep(r.errRetryInterval)
 			} else {
+				glg.Debug("update success")
 				break
 			}
 		}
@@ -278,7 +279,7 @@ func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role
 
 // updateRoleToken returns RoleToken struct or error.
 // This function ask athenz to generate role token and return, or return any error when generating the role token.
-func (r *roleService) updateRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry time.Duration) (*RoleToken, error) {
+func (r *roleService) updateRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) (*RoleToken, error) {
 	key := encode(domain, role, proxyForPrincipal)
 	expTimeDelta := fastime.Now().Add(time.Minute)
 
@@ -297,6 +298,7 @@ func (r *roleService) updateRoleToken(ctx context.Context, domain, role, proxyFo
 			maxExpiry:         maxExpiry,
 		}, time.Unix(rt.ExpiryTime, 0).Sub(expTimeDelta))
 
+		glg.Debugf("token is cached, domain: %s, role: %s, proxyForPrincipal: %s, expiry time: %v", domain, role, proxyForPrincipal, rt.ExpiryTime)
 		return rt, nil
 	})
 	if err != nil {
@@ -307,8 +309,8 @@ func (r *roleService) updateRoleToken(ctx context.Context, domain, role, proxyFo
 }
 
 // fetchRoleToken fetch the role token from Athenz server, and return the decoded role token and any error if occurred.
-func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry time.Duration) (*RoleToken, error) {
-	glg.Debugf("get role token, domain: %s, role: %s, proxyForPrincipal: %s, minExpiry: %s, maxExpiry: %s", domain, role, proxyForPrincipal, minExpiry, maxExpiry)
+func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) (*RoleToken, error) {
+	glg.Debugf("get role token, domain: %s, role: %s, proxyForPrincipal: %s, minExpiry: %d, maxExpiry: %d", domain, role, proxyForPrincipal, minExpiry, maxExpiry)
 
 	// get the n-token
 	tok, err := r.token()
@@ -317,14 +319,12 @@ func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyFor
 	}
 
 	// prepare request object
-	u := r.getRoleTokenAthenzURL(domain, role, minExpiry, maxExpiry, proxyForPrincipal)
-	glg.Debugf("url: %v", u)
-	req, err := http.NewRequest(http.MethodGet, u, nil)
+	req, err := r.createGetRoleTokenRequest(domain, role, minExpiry, maxExpiry, proxyForPrincipal, tok)
 	if err != nil {
 		glg.Debugf("fail to create request object, error: %s", err)
 		return nil, err
 	}
-	req.Header.Set(r.athenzPrincipleHeader, tok)
+	glg.Debugf("request url: %v", req.URL)
 
 	res, err := r.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
@@ -357,27 +357,49 @@ func (r *roleService) getCache(domain, role, principal string) (*RoleToken, bool
 	return val.(*cacheData).token, ok
 }
 
-func (r *roleService) getRoleTokenAthenzURL(domain, role string, minExpiry, maxExpiry time.Duration, proxyForPrincipal string) string {
-	u := fmt.Sprintf("https://%s/domain/%s/token?role=%s", strings.TrimPrefix(strings.TrimPrefix(r.athenzURL, "https://"), "http://"), domain, url.QueryEscape(role))
+func (r *roleService) createGetRoleTokenRequest(domain, role string, minExpiry, maxExpiry int64, proxyForPrincipal, token string) (*http.Request, error) {
+	u := fmt.Sprintf("https://%s/domain/%s/token", strings.TrimPrefix(strings.TrimPrefix(r.athenzURL, "https://"), "http://"), domain)
 
-	minExp := r.expiry
+	req, err := http.NewRequest(http.MethodGet, u, nil)
+	if err != nil {
+		glg.Debugf("fail to create request object, error: %s", err)
+		return nil, err
+	}
+
+	getParamValue := func(dur int64) string {
+		return strconv.FormatInt(dur, 10)
+	}
+
+	// create URL query
+	q := req.URL.Query()
+
+	if role != "" {
+		q.Add("role", role)
+	}
+
+	minExp := int64(r.expiry / time.Second)
 	if minExpiry > 0 {
 		minExp = minExpiry
 	}
 	if minExp > 0 {
-		u += fmt.Sprintf("&minExpiryTime=%d", minExp/time.Second)
+		q.Add("minExpiryTime", getParamValue(minExp))
 	}
 
 	// set max expiry only if user specifiy it
 	if maxExpiry > 0 {
-		u += fmt.Sprintf("&maxExpiryTime=%d", maxExpiry/time.Second)
+		q.Add("maxExpiryTime", getParamValue(maxExpiry))
 	}
 
 	if proxyForPrincipal != "" {
-		u += fmt.Sprintf("&proxyForPrincipal=%s", proxyForPrincipal)
+		q.Add("proxyForPrincipal", proxyForPrincipal)
 	}
 
-	return u
+	req.URL.RawQuery = q.Encode()
+
+	// set authenication token
+	req.Header.Set(r.athenzPrincipleHeader, token)
+
+	return req, nil
 }
 
 func encode(domain, role, principal string) string {

@@ -402,35 +402,6 @@ func (r *roleService) createGetRoleTokenRequest(domain, role string, minExpiry, 
 	return req, nil
 }
 
-/*
-func (r *roleService) getRoleTokenAthenzURL(domain, role string, minExpiry, maxExpiry time.Duration, proxyForPrincipal string) string {
-	u := fmt.Sprintf("https://%s/domain/%s/token?", strings.TrimPrefix(strings.TrimPrefix(r.athenzURL, "https://"), "http://"), domain)
-
-	if role != "" {
-		u += fmt.Sprintf("role=%s", url.QueryEscape(role))
-	}
-
-	minExp := r.expiry
-	if minExpiry > 0 {
-		minExp = minExpiry
-	}
-	if minExp > 0 {
-		u += fmt.Sprintf("&minExpiryTime=%d", minExp/time.Second)
-	}
-
-	// set max expiry only if user specifiy it
-	if maxExpiry > 0 {
-		u += fmt.Sprintf("&maxExpiryTime=%d", maxExpiry/time.Second)
-	}
-
-	if proxyForPrincipal != "" {
-		u += fmt.Sprintf("&proxyForPrincipal=%s", proxyForPrincipal)
-	}
-
-	return u
-}
-*/
-
 func encode(domain, role, principal string) string {
 	roles := strings.Split(role, roleSeparater)
 	sort.Strings(roles)

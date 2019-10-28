@@ -2123,8 +2123,7 @@ func Test_decode(t *testing.T) {
 	}
 }
 
-/*
-func Test_getRoleTokenAthenzURL(t *testing.T) {
+func Test_createGetRoleTokenRequest(t *testing.T) {
 	type fields struct {
 		cfg                   config.Role
 		token                 ntokend.TokenProvider
@@ -2141,68 +2140,116 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 		minExpiry         int64
 		maxExpiry         int64
 		proxyForPrincipal string
+		token             string
 	}
 	tests := []struct {
-		name   string
-		args   args
-		want   string
-		fields fields
+		name    string
+		args    args
+		want    *http.Request
+		wantErr error
+		fields  fields
 	}{
 		{
-			name: "getRoleTokenAthenzURL correct",
+			name: "createGetRoleTokenRequest correct",
 			args: args{
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				minExpiry:         1,
 				maxExpiry:         1,
 				proxyForPrincipal: "dummyProxyForPrincipal",
+				token:             "dummyToken",
 			},
 			fields: fields{
-				athenzURL: "dummyUURL",
+				athenzURL:             "dummyUURL",
+				athenzPrincipleHeader: "dummyHeader",
 			},
+			want: func() *http.Request {
+				r, _ := http.NewRequest(http.MethodGet, "https://dummyUURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal&role=dummyRole", nil)
+				r.Header.Set("dummyHeader", "dummyToken")
 
-			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1&maxExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal",
+				return r
+			}(),
 		},
 		{
-			name: "getRoleTokenAthenzURL correct null minExpiry",
+			name: "createGetRoleTokenRequest correct null minExpiry use default",
 			args: args{
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				maxExpiry:         1,
 				proxyForPrincipal: "dummyProxyForPrincipal",
+				token:             "dummyToken",
 			},
 			fields: fields{
-				athenzURL: "dummyUURL",
-				expiry:    time.Minute,
+				athenzURL:             "dummyUURL",
+				athenzPrincipleHeader: "dummyHeader",
+				expiry:                time.Minute,
 			},
-			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=60&maxExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal",
+			want: func() *http.Request {
+				r, _ := http.NewRequest(http.MethodGet, "https://dummyUURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=60&proxyForPrincipal=dummyProxyForPrincipal&role=dummyRole", nil)
+				r.Header.Set("dummyHeader", "dummyToken")
+
+				return r
+			}(),
 		},
 		{
-			name: "getRoleTokenAthenzURL correct null maxExpiry",
+			name: "createGetRoleTokenRequest correct null maxExpiry",
 			args: args{
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				minExpiry:         1,
 				proxyForPrincipal: "dummyProxyForPrincipal",
+				token:             "dummyToken",
 			},
 			fields: fields{
-				athenzURL: "dummyUURL",
-				expiry:    60,
+				athenzURL:             "dummyUURL",
+				athenzPrincipleHeader: "dummyHeader",
+				expiry:                60,
 			},
-			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal",
+			want: func() *http.Request {
+				r, _ := http.NewRequest(http.MethodGet, "https://dummyUURL/domain/dummyDomain/token?minExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal&role=dummyRole", nil)
+				r.Header.Set("dummyHeader", "dummyToken")
+
+				return r
+			}(),
 		},
 		{
-			name: "getRoleTokenAthenzURL correct null proxyForPrincipal",
+			name: "createGetRoleTokenRequest correct null proxyForPrincipal",
 			args: args{
 				domain:    "dummyDomain",
 				role:      "dummyRole",
 				minExpiry: 1,
 				maxExpiry: 1,
+				token:     "dummyToken",
 			},
 			fields: fields{
-				athenzURL: "dummyUURL",
+				athenzURL:             "dummyUURL",
+				athenzPrincipleHeader: "dummyHeader",
 			},
-			want: "https://dummyUURL/domain/dummyDomain/token?role=dummyRole&minExpiryTime=1&maxExpiryTime=1",
+			want: func() *http.Request {
+				r, _ := http.NewRequest(http.MethodGet, "https://dummyUURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1&role=dummyRole", nil)
+				r.Header.Set("dummyHeader", "dummyToken")
+
+				return r
+			}(),
+		},
+		{
+			name: "createGetRoleTokenRequest correct null role",
+			args: args{
+				domain:    "dummyDomain",
+				minExpiry: 1,
+				maxExpiry: 1,
+				token:     "dummyToken",
+			},
+			fields: fields{
+				athenzURL:             "dummyUURL",
+				athenzPrincipleHeader: "dummyHeader",
+			},
+			want: func() *http.Request {
+				r, _ := http.NewRequest(http.MethodGet, "https://dummyUURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1", nil)
+				r.Header.Set("dummyHeader", "dummyToken")
+
+				return r
+			}(),
 		},
 	}
 	for _, tt := range tests {
@@ -2216,13 +2263,16 @@ func Test_getRoleTokenAthenzURL(t *testing.T) {
 				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 			}
-			if got := r.getRoleTokenAthenzURL(tt.args.domain, tt.args.role, tt.args.minExpiry, tt.args.maxExpiry, tt.args.proxyForPrincipal); got != tt.want {
-				t.Errorf("getRoleTokenAthenzURL() = %v, want %v", got, tt.want)
+			got, err := r.createGetRoleTokenRequest(tt.args.domain, tt.args.role, tt.args.minExpiry, tt.args.maxExpiry, tt.args.proxyForPrincipal, tt.args.token)
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("createGetRoleTokenRequest(), got: %+v, want: %+v", got, tt.want)
+			}
+			if err != tt.wantErr {
+				t.Errorf("createGetRoleTokenRequest() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
-*/
 
 func Test_flushAndClose(t *testing.T) {
 	type args struct {

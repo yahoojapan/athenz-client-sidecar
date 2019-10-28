@@ -16,8 +16,6 @@ limitations under the License.
 package model
 
 import (
-	"time"
-
 	"github.com/yahoojapan/athenz-client-sidecar/service"
 )
 
@@ -33,10 +31,10 @@ type RoleRequest struct {
 	ProxyForPrincipal string `json:"proxy_for_principal"`
 
 	// MinExpiry represent the MinExpiry field of the request.
-	MinExpiry time.Duration `json:"min_expiry"`
+	MinExpiry int64 `json:"min_expiry"`
 
 	// MaxExpiry represent the MaxExpiry field of the request.
-	MaxExpiry time.Duration `json:"max_expiry"`
+	MaxExpiry int64 `json:"max_expiry"`
 }
 
 // RoleResponse represent the basic information of the role token.

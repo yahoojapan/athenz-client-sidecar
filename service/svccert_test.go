@@ -120,22 +120,22 @@ func TestNewSvcCertService(t *testing.T) {
 							PrivateKeyPath: "./assets/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzRootCA:     "./assets/dummyCa.pem",
-							RefreshDuration:  "30m",
-							ExpireMargin: "1h",
+							AthenzRootCA:    "./assets/dummyCa.pem",
+							RefreshDuration: "30m",
+							ExpireMargin:    "1h",
 						},
 					},
 					token: token,
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
-						AthenzRootCA:     "./assets/dummyCa.pem",
-						RefreshDuration:  "30m",
-						ExpireMargin: "1h",
+						AthenzRootCA:    "./assets/dummyCa.pem",
+						RefreshDuration: "30m",
+						ExpireMargin:    "1h",
 					},
-					token:            token,
-					refreshDuration:  dur,
-					expireMargin: beforeDur,
+					token:           token,
+					refreshDuration: dur,
+					expireMargin:    beforeDur,
 				},
 				checkfunc: func(actual, expected *svcCertService) bool {
 					return actual.expireMargin == expected.expireMargin
@@ -256,22 +256,22 @@ func TestNewSvcCertService(t *testing.T) {
 							PrivateKeyPath: "./assets/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzRootCA:     "./assets/dummyCa.pem",
-							RefreshDuration:  "30m",
-							ExpireMargin: "error",
+							AthenzRootCA:    "./assets/dummyCa.pem",
+							RefreshDuration: "30m",
+							ExpireMargin:    "error",
 						},
 					},
 					token: token,
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
-						AthenzRootCA:     "./assets/dummyCa.pem",
-						RefreshDuration:  "30m",
-						ExpireMargin: "error",
+						AthenzRootCA:    "./assets/dummyCa.pem",
+						RefreshDuration: "30m",
+						ExpireMargin:    "error",
 					},
-					token:            token,
-					refreshDuration:  dur,
-					expireMargin: defaultSvcCertExpireMargin,
+					token:           token,
+					refreshDuration: dur,
+					expireMargin:    defaultSvcCertExpireMargin,
 				},
 				checkfunc: func(actual, expected *svcCertService) bool {
 					return actual.expireMargin == expected.expireMargin
@@ -571,7 +571,7 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 			svcCertService.client.Transport = transpoter
 
 			return test{
-				name:           "getSvcCert returns value from refreshSvcCert",
+				name:           "getSvcCert returns value from RefreshSvcCert",
 				svcCertService: svcCertService,
 				want:           append(dummyCertBytes, dummyCaCertBytes...),
 				wantErr:        nil,
@@ -608,7 +608,7 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 					RefreshDuration:         "30m",
 					PrincipalAuthHeaderName: "Athenz-Principal",
 					IntermediateCert:        true,
-					ExpireMargin:        "1000h",
+					ExpireMargin:            "1000h",
 				},
 			}
 
@@ -619,7 +619,7 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 			svcCertService.client.Transport = transpoter
 
 			return test{
-				name:           "getSvcCert returns value from refreshSvcCert when expiration is before now.",
+				name:           "getSvcCert returns value from RefreshSvcCert when expiration is before now.",
 				svcCertService: svcCertService,
 				want:           append(dummyCertBytes, dummyCaCertBytes...),
 				wantErr:        nil,
@@ -638,7 +638,7 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 					t.Errorf("error not the same, want: %v, got: %v", tt.wantErr, err)
 				}
 			} else if string(tt.want) != string(cert) {
-				t.Errorf("refreshSvcCert got: %v, want: %v", string(cert), string(tt.want))
+				t.Errorf("RefreshSvcCert got: %v, want: %v", string(cert), string(tt.want))
 			}
 		})
 	}
@@ -767,7 +767,7 @@ func TestSvcCertService_StartSvcCertUpdater(t *testing.T) {
 			svcCertService.client.Transport = transpoter
 
 			return test{
-				name:           "fail to refresh cert when refreshSvcCert returns error",
+				name:           "fail to refresh cert when RefreshSvcCert returns error",
 				svcCertService: svcCertService,
 				checkFunc:      checkFunc,
 				afterFunc:      cancel,
@@ -791,7 +791,7 @@ func TestSvcCertService_StartSvcCertUpdater(t *testing.T) {
 
 }
 
-func TestSvcCertService_refreshSvcCert(t *testing.T) {
+func TestSvcCertService_RefreshSvcCert(t *testing.T) {
 	type test struct {
 		name           string
 		svcCertService SvcCertService
@@ -840,7 +840,7 @@ func TestSvcCertService_refreshSvcCert(t *testing.T) {
 			svcCertService.client.Transport = transpoter
 
 			return test{
-				name:           "refreshSvcCert returns correct when IntermediateCert is true",
+				name:           "RefreshSvcCert returns correct when IntermediateCert is true",
 				svcCertService: svcCertService,
 				want:           append(dummyCertBytes, dummyCaCertBytes...),
 				wantErr:        nil,
@@ -886,7 +886,7 @@ func TestSvcCertService_refreshSvcCert(t *testing.T) {
 			svcCertService.client.Transport = transpoter
 
 			return test{
-				name:           "refreshSvcCert returns correct when IntermediateCert is false",
+				name:           "RefreshSvcCert returns correct when IntermediateCert is false",
 				svcCertService: svcCertService,
 				want:           dummyCertBytes,
 				wantErr:        nil,
@@ -932,7 +932,7 @@ func TestSvcCertService_refreshSvcCert(t *testing.T) {
 			svcCertService.client.Transport = transpoter
 
 			return test{
-				name:           "refreshSvcCert fail when ntokend returns error",
+				name:           "RefreshSvcCert fail when ntokend returns error",
 				svcCertService: svcCertService,
 				want:           nil,
 				wantErr:        fmt.Errorf("ntoken error"),
@@ -977,7 +977,7 @@ func TestSvcCertService_refreshSvcCert(t *testing.T) {
 			)
 
 			return test{
-				name:           "refreshSvcCert fail when request failed",
+				name:           "RefreshSvcCert fail when request failed",
 				svcCertService: svcCertService,
 				want:           nil,
 				wantErr:        wantErr,
@@ -1023,7 +1023,7 @@ func TestSvcCertService_refreshSvcCert(t *testing.T) {
 			svcCertService.client.Transport = transpoter
 
 			return test{
-				name:           "refreshSvcCert fail when recieved cert is invalid",
+				name:           "RefreshSvcCert fail when recieved cert is invalid",
 				svcCertService: svcCertService,
 				want:           nil,
 				wantErr:        ErrInvalidCert,
@@ -1033,7 +1033,7 @@ func TestSvcCertService_refreshSvcCert(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := tt.svcCertService.(*svcCertService)
-			cert, err := s.refreshSvcCert()
+			cert, err := s.RefreshSvcCert()
 
 			if tt.wantErr == nil && err != nil {
 				t.Errorf("failed to instantiate, err: %v", err)
@@ -1042,7 +1042,7 @@ func TestSvcCertService_refreshSvcCert(t *testing.T) {
 					t.Errorf("error not the same, want: %v, got: %v", tt.wantErr, err)
 				}
 			} else if string(tt.want) != string(cert) {
-				t.Errorf("refreshSvcCert got: %v, want: %v", string(cert), tt.want)
+				t.Errorf("RefreshSvcCert got: %v, want: %v", string(cert), tt.want)
 			}
 		})
 	}

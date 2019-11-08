@@ -84,19 +84,20 @@ type requestTemplate struct {
 type SvcCertService interface {
 	StartSvcCertUpdater(context.Context) SvcCertService
 	GetSvcCertProvider() SvcCertProvider
+	RefreshSvcCert() ([]byte, error)
 }
 
 // svcCertService represents the implementation of athenz RoleService
 type svcCertService struct {
-	cfg              config.ServiceCert
-	token            ntokend.TokenProvider
-	svcCert          *atomic.Value
-	group            singleflight.Group
-	refreshDuration  time.Duration
-	expireMargin     time.Duration
-	expiration       *atomic.Value
-	client           *zts.ZTSClient
-	refreshRequest   *requestTemplate
+	cfg             config.ServiceCert
+	token           ntokend.TokenProvider
+	svcCert         *atomic.Value
+	group           singleflight.Group
+	refreshDuration time.Duration
+	expireMargin    time.Duration
+	expiration      *atomic.Value
+	client          *zts.ZTSClient
+	refreshRequest  *requestTemplate
 }
 
 // SvcCertProvider represents a function pointer to get the svccert.
@@ -123,14 +124,14 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertS
 	expiration.Store(fastime.Now())
 
 	return &svcCertService{
-		cfg:              cfg.ServiceCert,
-		svcCert:          &atomic.Value{},
-		token:            token,
-		refreshDuration:  dur,
-		expireMargin: beforeDur,
-		expiration:       expiration,
-		client:           client,
-		refreshRequest:   reqTemp,
+		cfg:             cfg.ServiceCert,
+		svcCert:         &atomic.Value{},
+		token:           token,
+		refreshDuration: dur,
+		expireMargin:    beforeDur,
+		expiration:      expiration,
+		client:          client,
+		refreshRequest:  reqTemp,
 	}, nil
 }
 
@@ -309,14 +310,14 @@ func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService
 					ticker.Stop()
 					return
 				case <-fch:
-					_, err = s.refreshSvcCert()
+					_, err = s.RefreshSvcCert()
 					if err != nil {
 						glg.Error(err)
 						time.Sleep(time.Minute * 10)
 						fch <- struct{}{}
 					}
 				case <-ticker.C:
-					_, err = s.refreshSvcCert()
+					_, err = s.RefreshSvcCert()
 					if err != nil {
 						glg.Error(err)
 						fch <- struct{}{}
@@ -340,12 +341,12 @@ func (s *svcCertService) getSvcCert() ([]byte, error) {
 	cert := s.svcCert.Load()
 
 	if cert == nil || s.expiration.Load().(time.Time).Before(fastime.Now()) {
-		return s.refreshSvcCert()
+		return s.RefreshSvcCert()
 	}
 	return cert.([]byte), nil
 }
 
-func (s *svcCertService) refreshSvcCert() ([]byte, error) {
+func (s *svcCertService) RefreshSvcCert() ([]byte, error) {
 	svccert, err, _ := s.group.Do("", func() (interface{}, error) {
 		ntoken, err := s.token()
 		if err != nil {

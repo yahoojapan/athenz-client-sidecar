@@ -374,7 +374,7 @@ func TestNewSvcCertService(t *testing.T) {
 					token: token,
 				},
 				want:    &svcCertService{},
-				wantErr: ErrInvalidParameter,
+				wantErr: ErrFailedToInitialize,
 				checkfunc: func(actual, expected *svcCertService) bool {
 					return true
 				},

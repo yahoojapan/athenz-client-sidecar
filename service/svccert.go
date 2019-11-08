@@ -187,11 +187,6 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 		return nil, nil, ErrFailedToInitialize
 	}
 
-	_, err = url.Parse(cfg.ServiceCert.AthenzURL)
-	if err != nil {
-		return nil, nil, ErrInvalidParameter
-	}
-
 	// if we're given a certificate then we'll use that otherwise
 	// we're going to generate a ntoken for our request unless
 	// we're using copper argos which only uses tls and the attestation
@@ -275,6 +270,11 @@ func generateCSR(keySigner *signer, subj pkix.Name, host, uri string) (string, e
 }
 
 func ztsClient(cfg config.ServiceCert, keyBytes []byte) (*zts.ZTSClient, error) {
+	_, err := url.Parse(cfg.AthenzURL)
+	if err != nil {
+		return nil, ErrInvalidParameter
+	}
+
 	transport := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		ResponseHeaderTimeout: 30 * time.Second,

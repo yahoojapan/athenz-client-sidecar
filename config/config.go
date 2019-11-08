@@ -140,6 +140,9 @@ type Role struct {
 
 // ServiceCert represent the service cert configuration
 type ServiceCert struct {
+	// Enable decides wheather use service cert
+	Enable bool `yaml:"enable"`
+
 	// AthenzURL represent the athenz URL to get the role token
 	AthenzURL string `yaml:"athenz_url"`
 

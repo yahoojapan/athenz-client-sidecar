@@ -96,6 +96,7 @@ func TestNew(t *testing.T) {
 					BufferSize:              1024,
 				},
 				ServiceCert: ServiceCert{
+					Enable:                  true,
 					AthenzURL:               "https://www.athenz.com:4443/zts/v1",
 					AthenzRootCA:            "/etc/ssl/cert.pem",
 					DNSDomain:               "www.athenz.com",

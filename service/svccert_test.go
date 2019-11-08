@@ -508,6 +508,7 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
+					Enable:                  true,
 					AthenzRootCA:            "./assets/dummyCa.pem",
 					AthenzURL:               "http://dummy",
 					RefreshDuration:         "30m",
@@ -555,6 +556,7 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
+					Enable:                  true,
 					AthenzRootCA:            "./assets/dummyCa.pem",
 					AthenzURL:               "http://dummy",
 					RefreshDuration:         "30m",
@@ -600,6 +602,7 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
+					Enable:                  true,
 					AthenzRootCA:            "./assets/dummyCa.pem",
 					AthenzURL:               "http://dummy",
 					RefreshDuration:         "30m",
@@ -679,6 +682,7 @@ func TestSvcCertService_StartSvcCertUpdater(t *testing.T) {
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
+					Enable:                  true,
 					AthenzRootCA:            "./assets/dummyCa.pem",
 					AthenzURL:               "http://dummy",
 					RefreshDuration:         "100ms",
@@ -738,6 +742,7 @@ func TestSvcCertService_StartSvcCertUpdater(t *testing.T) {
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
+					Enable:                  true,
 					AthenzRootCA:            "./assets/dummyCa.pem",
 					AthenzURL:               "http://dummy",
 					RefreshDuration:         "100ms",
@@ -820,6 +825,7 @@ func TestSvcCertService_refreshSvcCert(t *testing.T) {
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
+					Enable:                  true,
 					AthenzRootCA:            "./assets/dummyCa.pem",
 					AthenzURL:               "http://dummy",
 					RefreshDuration:         "30m",
@@ -865,6 +871,7 @@ func TestSvcCertService_refreshSvcCert(t *testing.T) {
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
+					Enable:                  true,
 					AthenzRootCA:            "./assets/dummyCa.pem",
 					AthenzURL:               "http://dummy",
 					RefreshDuration:         "30m",
@@ -910,6 +917,7 @@ func TestSvcCertService_refreshSvcCert(t *testing.T) {
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
+					Enable:                  true,
 					AthenzRootCA:            "./assets/dummyCa.pem",
 					AthenzURL:               "http://dummy",
 					RefreshDuration:         "30m",
@@ -947,6 +955,7 @@ func TestSvcCertService_refreshSvcCert(t *testing.T) {
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
+					Enable:                  true,
 					AthenzRootCA:            "./assets/dummyCa.pem",
 					AthenzURL:               "http://dummy",
 					RefreshDuration:         "30m",
@@ -999,6 +1008,7 @@ func TestSvcCertService_refreshSvcCert(t *testing.T) {
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
+					Enable:                  true,
 					AthenzRootCA:            "./assets/dummyCa.pem",
 					AthenzURL:               "http://dummy",
 					RefreshDuration:         "30m",

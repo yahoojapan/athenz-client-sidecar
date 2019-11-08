@@ -31,6 +31,7 @@ proxy:
   role_header_key: Athenz-Role-Auth
   buffer_size: 1024
 service_cert:
+  enable: true
   athenz_url: https://www.athenz.com:4443/zts/v1
   athenz_root_ca: /etc/ssl/cert.pem
   dns_domain: www.athenz.com

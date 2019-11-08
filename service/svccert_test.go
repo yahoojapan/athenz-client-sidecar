@@ -122,7 +122,7 @@ func TestNewSvcCertService(t *testing.T) {
 						ServiceCert: config.ServiceCert{
 							AthenzRootCA:     "./assets/dummyCa.pem",
 							RefreshDuration:  "30m",
-							BeforeExpiration: "1h",
+							ExpireMargin: "1h",
 						},
 					},
 					token: token,
@@ -131,14 +131,14 @@ func TestNewSvcCertService(t *testing.T) {
 					cfg: config.ServiceCert{
 						AthenzRootCA:     "./assets/dummyCa.pem",
 						RefreshDuration:  "30m",
-						BeforeExpiration: "1h",
+						ExpireMargin: "1h",
 					},
 					token:            token,
 					refreshDuration:  dur,
-					beforeExpiration: beforeDur,
+					expireMargin: beforeDur,
 				},
 				checkfunc: func(actual, expected *svcCertService) bool {
-					return actual.beforeExpiration == expected.beforeExpiration
+					return actual.expireMargin == expected.expireMargin
 				},
 				wantErr: nil,
 			}
@@ -258,7 +258,7 @@ func TestNewSvcCertService(t *testing.T) {
 						ServiceCert: config.ServiceCert{
 							AthenzRootCA:     "./assets/dummyCa.pem",
 							RefreshDuration:  "30m",
-							BeforeExpiration: "error",
+							ExpireMargin: "error",
 						},
 					},
 					token: token,
@@ -267,14 +267,14 @@ func TestNewSvcCertService(t *testing.T) {
 					cfg: config.ServiceCert{
 						AthenzRootCA:     "./assets/dummyCa.pem",
 						RefreshDuration:  "30m",
-						BeforeExpiration: "error",
+						ExpireMargin: "error",
 					},
 					token:            token,
 					refreshDuration:  dur,
-					beforeExpiration: defaultSvcCertBeforeExpiration,
+					expireMargin: defaultSvcCertExpireMargin,
 				},
 				checkfunc: func(actual, expected *svcCertService) bool {
-					return actual.beforeExpiration == expected.beforeExpiration
+					return actual.expireMargin == expected.expireMargin
 				},
 				wantErr: nil,
 			}
@@ -608,7 +608,7 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 					RefreshDuration:         "30m",
 					PrincipalAuthHeaderName: "Athenz-Principal",
 					IntermediateCert:        true,
-					BeforeExpiration:        "1000h",
+					ExpireMargin:        "1000h",
 				},
 			}
 

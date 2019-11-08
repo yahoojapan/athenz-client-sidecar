@@ -36,7 +36,7 @@ service_cert:
   athenz_root_ca: /etc/ssl/cert.pem
   dns_domain: www.athenz.com
   refresh_duration: 30m
-  before_expiration: 30h
+  expire_margin: 30h
   intermediate_cert: true
   auth_header_key: Athenz-Principal
   spiffe: false

@@ -155,9 +155,9 @@ type ServiceCert struct {
 	// RefreshDuration represent the svccert refresh duration
 	RefreshDuration string `yaml:"refresh_duration"`
 
-	// BeforeExpiration represent the duration.
-	// Certificate is updated before BeforeExpiration in "Not After" field.
-	BeforeExpiration string `yaml:"before_expiration"`
+	// ExpireMargin represent the duration.
+	// Certificate is updated before ExpireMargin in "Not After" field.
+	ExpireMargin string `yaml:"expire_margin"`
 
 	// IntermediateCert decides wheather concatinate intermediate cert to end-entity cert
 	IntermediateCert bool `yaml:"intermediate_cert"`

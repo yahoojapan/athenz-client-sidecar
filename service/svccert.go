@@ -47,8 +47,8 @@ var (
 	// defaultSvcCertRefreshDuration represents the default time to refresh the goroutine.
 	defaultSvcCertRefreshDuration = time.Hour * 24
 
-	// defaultSvcCertBeforeExpiration represents the default vaule of BeforeExpiration.
-	defaultSvcCertBeforeExpiration = time.Hour * 24 * -10
+	// defaultSvcCertExpireMargin represents the default vaule of ExpireMargin.
+	defaultSvcCertExpireMargin = time.Hour * 24 * -10
 
 	// domainReg is used to parse the athenz domain which is contained in config
 	domainReg = regexp.MustCompile(`^([a-zA-Z0-9_][a-zA-Z0-9_-]*\.)*[a-zA-Z0-9_][a-zA-Z0-9_-]*$`)
@@ -93,7 +93,7 @@ type svcCertService struct {
 	svcCert          *atomic.Value
 	group            singleflight.Group
 	refreshDuration  time.Duration
-	beforeExpiration time.Duration
+	expireMargin     time.Duration
 	expiration       *atomic.Value
 	client           *zts.ZTSClient
 	refreshRequest   *requestTemplate
@@ -109,9 +109,9 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertS
 		dur = defaultSvcCertRefreshDuration
 	}
 
-	beforeDur, err := time.ParseDuration("-" + cfg.ServiceCert.BeforeExpiration)
+	beforeDur, err := time.ParseDuration("-" + cfg.ServiceCert.ExpireMargin)
 	if err != nil {
-		beforeDur = defaultSvcCertBeforeExpiration
+		beforeDur = defaultSvcCertExpireMargin
 	}
 
 	reqTemp, client, err := setup(cfg)
@@ -127,7 +127,7 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertS
 		svcCert:          &atomic.Value{},
 		token:            token,
 		refreshDuration:  dur,
-		beforeExpiration: beforeDur,
+		expireMargin: beforeDur,
 		expiration:       expiration,
 		client:           client,
 		refreshRequest:   reqTemp,
@@ -383,7 +383,7 @@ func (s *svcCertService) refreshSvcCert() ([]byte, error) {
 
 		// update cert cache and expiration
 		s.setCert(cert)
-		s.expiration.Store(certificate.NotAfter.Add(s.beforeExpiration))
+		s.expiration.Store(certificate.NotAfter.Add(s.expireMargin))
 
 		return cert, nil
 	})

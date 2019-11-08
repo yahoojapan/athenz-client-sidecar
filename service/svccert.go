@@ -87,15 +87,19 @@ type SvcCertService interface {
 	RefreshSvcCert() ([]byte, error)
 }
 
+type certCache struct {
+	cert []byte
+	exp  time.Time
+}
+
 // svcCertService represents the implementation of athenz RoleService
 type svcCertService struct {
 	cfg             config.ServiceCert
 	token           ntokend.TokenProvider
-	svcCert         *atomic.Value
+	certCache       *atomic.Value
 	group           singleflight.Group
 	refreshDuration time.Duration
 	expireMargin    time.Duration
-	expiration      *atomic.Value
 	client          *zts.ZTSClient
 	refreshRequest  *requestTemplate
 }
@@ -123,13 +127,20 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertS
 	expiration := &atomic.Value{}
 	expiration.Store(fastime.Now())
 
+	cache := &atomic.Value{}
+	cache.Store(
+		certCache{
+			cert: nil,
+			exp:  fastime.Now(),
+		},
+	)
+
 	return &svcCertService{
 		cfg:             cfg.ServiceCert,
-		svcCert:         &atomic.Value{},
+		certCache:       cache,
 		token:           token,
 		refreshDuration: dur,
 		expireMargin:    beforeDur,
-		expiration:      expiration,
 		client:          client,
 		refreshRequest:  reqTemp,
 	}, nil
@@ -338,12 +349,12 @@ func (s *svcCertService) GetSvcCertProvider() SvcCertProvider {
 // This function is thread-safe. This function will return the svccert stored in the atomic variable,
 // or return the error when the svccert is not initialized or cannot be generated
 func (s *svcCertService) getSvcCert() ([]byte, error) {
-	cert := s.svcCert.Load()
+	cache := s.certCache.Load().(certCache)
 
-	if cert == nil || s.expiration.Load().(time.Time).Before(fastime.Now()) {
+	if cache.cert == nil || cache.exp.Before(fastime.Now()) {
 		return s.RefreshSvcCert()
 	}
-	return cert.([]byte), nil
+	return cache.cert, nil
 }
 
 func (s *svcCertService) RefreshSvcCert() ([]byte, error) {
@@ -383,8 +394,11 @@ func (s *svcCertService) RefreshSvcCert() ([]byte, error) {
 		}
 
 		// update cert cache and expiration
-		s.setCert(cert)
-		s.expiration.Store(certificate.NotAfter.Add(s.expireMargin))
+		cache := certCache{
+			cert: cert,
+			exp:  certificate.NotAfter.Add(s.expireMargin),
+		}
+		s.setCert(cache)
 
 		return cert, nil
 	})
@@ -396,6 +410,6 @@ func (s *svcCertService) RefreshSvcCert() ([]byte, error) {
 	return svccert.([]byte), nil
 }
 
-func (s *svcCertService) setCert(svcCert []byte) {
-	s.svcCert.Store(svcCert)
+func (s *svcCertService) setCert(cache certCache) {
+	s.certCache.Store(cache)
 }

@@ -521,8 +521,11 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 			svcCertService := s.(*svcCertService)
 
 			svcCertService.client.Transport = transpoter
-			svcCertService.svcCert.Store(dummyCertBytes)
-			svcCertService.expiration.Store(fastime.Now().Add(time.Hour))
+			cache := certCache{
+				cert: dummyCertBytes,
+				exp:  fastime.Now().Add(time.Hour),
+			}
+			svcCertService.certCache.Store(cache)
 
 			return test{
 				name:           "getSvcCert returns stored value.",
@@ -614,8 +617,13 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 
 			s, _ := NewSvcCertService(cfg, token)
 			svcCertService := s.(*svcCertService)
-			svcCertService.svcCert.Store(dummyCertBytes)
-			svcCertService.expiration.Store(fastime.Now().Add(-time.Hour))
+
+			cache := certCache{
+				cert: dummyCertBytes,
+				exp:  fastime.Now().Add(-time.Hour),
+			}
+			svcCertService.certCache.Store(cache)
+
 			svcCertService.client.Transport = transpoter
 
 			return test{

@@ -136,7 +136,7 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertS
 }
 
 func isValidDomain(domain string) bool {
-	if !domainReg.Copy().MatchString(domain) {
+	if !domainReg.MatchString(domain) {
 		return false
 	}
 

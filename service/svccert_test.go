@@ -633,6 +633,106 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 				wantErr:        nil,
 			}
 		}(),
+		func() test {
+			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
+			token := func() (string, error) { return "dummyToken", nil }
+
+			transpoter := &mockTransporter{
+				StatusCode: 500,
+				Body:       [][]byte{[]byte{}},
+				Method:     "GET",
+				Error:      fmt.Errorf("request error"),
+			}
+
+			cfg := config.Config{
+				Token: config.Token{
+					PrivateKeyPath: "./assets/dummyServer.key",
+					AthenzDomain:   "dummyDomain",
+					ServiceName:    "dummyService",
+				},
+				ServiceCert: config.ServiceCert{
+					Enable:                  true,
+					AthenzRootCA:            "./assets/dummyCa.pem",
+					AthenzURL:               "http://dummy",
+					RefreshDuration:         "30m",
+					PrincipalAuthHeaderName: "Athenz-Principal",
+					IntermediateCert:        true,
+					ExpireMargin:            "10d",
+				},
+			}
+
+			s, _ := NewSvcCertService(cfg, token)
+			svcCertService := s.(*svcCertService)
+
+			cache := certCache{
+				cert: dummyCertBytes,
+				exp:  fastime.Now().Add(-time.Hour),
+			}
+			svcCertService.certCache.Store(cache)
+
+			svcCertService.client.Transport = transpoter
+
+			return test{
+				name:           "getSvcCert returns value from cache when failed to refresh and Not After of cache is after now.",
+				svcCertService: svcCertService,
+				want:           append(dummyCertBytes),
+				wantErr:        nil,
+			}
+		}(),
+		func() test {
+			dummyCertBytes, _ := ioutil.ReadFile("./assets/expired_dummyServer.crt")
+
+			token := func() (string, error) { return "dummyToken", nil }
+
+			transpoter := &mockTransporter{
+				StatusCode: 500,
+				Body:       [][]byte{[]byte{}},
+				Method:     "GET",
+				Error:      fmt.Errorf("request error"),
+			}
+
+			cfg := config.Config{
+				Token: config.Token{
+					PrivateKeyPath: "./assets/dummyServer.key",
+					AthenzDomain:   "dummyDomain",
+					ServiceName:    "dummyService",
+				},
+				ServiceCert: config.ServiceCert{
+					Enable:                  true,
+					AthenzRootCA:            "./assets/dummyCa.pem",
+					AthenzURL:               "http://dummy",
+					RefreshDuration:         "30m",
+					PrincipalAuthHeaderName: "Athenz-Principal",
+					IntermediateCert:        true,
+					ExpireMargin:            "1s",
+				},
+			}
+
+			s, _ := NewSvcCertService(cfg, token)
+			svcCertService := s.(*svcCertService)
+
+			cache := certCache{
+				cert: dummyCertBytes,
+				exp:  fastime.Now().Add(-time.Hour),
+			}
+			svcCertService.certCache.Store(cache)
+
+			svcCertService.client.Transport = transpoter
+
+			wantErr := fmt.Errorf(
+				"Post %s/instance/%s/%s/refresh: request error",
+				cfg.ServiceCert.AthenzURL,
+				cfg.Token.AthenzDomain,
+				cfg.Token.ServiceName,
+			)
+
+			return test{
+				name:           "getSvcCert returns error when failed to refresh and cached cert is expired.",
+				svcCertService: svcCertService,
+				want:           nil,
+				wantErr:        wantErr,
+			}
+		}(),
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

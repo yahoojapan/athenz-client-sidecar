@@ -1111,6 +1111,7 @@ func Test_handler_ServiceCert(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest(http.MethodGet, "http://url-336", nil),
 			},
+			// In this case, h.ServiceCert is expected to return error.
 			want:      want{},
 			wantError: fmt.Errorf("svccert error"),
 		},

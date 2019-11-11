@@ -84,19 +84,24 @@ type requestTemplate struct {
 type SvcCertService interface {
 	StartSvcCertUpdater(context.Context) SvcCertService
 	GetSvcCertProvider() SvcCertProvider
+	RefreshSvcCert() ([]byte, error)
+}
+
+type certCache struct {
+	cert []byte
+	exp  time.Time
 }
 
 // svcCertService represents the implementation of athenz RoleService
 type svcCertService struct {
-	cfg              config.ServiceCert
-	token            ntokend.TokenProvider
-	svcCert          *atomic.Value
-	group            singleflight.Group
-	refreshDuration  time.Duration
-	expireMargin     time.Duration
-	expiration       *atomic.Value
-	client           *zts.ZTSClient
-	refreshRequest   *requestTemplate
+	cfg             config.ServiceCert
+	token           ntokend.TokenProvider
+	certCache       *atomic.Value
+	group           singleflight.Group
+	refreshDuration time.Duration
+	expireMargin    time.Duration
+	client          *zts.ZTSClient
+	refreshRequest  *requestTemplate
 }
 
 // SvcCertProvider represents a function pointer to get the svccert.
@@ -122,20 +127,27 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertS
 	expiration := &atomic.Value{}
 	expiration.Store(fastime.Now())
 
+	cache := &atomic.Value{}
+	cache.Store(
+		certCache{
+			cert: nil,
+			exp:  fastime.Now(),
+		},
+	)
+
 	return &svcCertService{
-		cfg:              cfg.ServiceCert,
-		svcCert:          &atomic.Value{},
-		token:            token,
-		refreshDuration:  dur,
-		expireMargin: beforeDur,
-		expiration:       expiration,
-		client:           client,
-		refreshRequest:   reqTemp,
+		cfg:             cfg.ServiceCert,
+		certCache:       cache,
+		token:           token,
+		refreshDuration: dur,
+		expireMargin:    beforeDur,
+		client:          client,
+		refreshRequest:  reqTemp,
 	}, nil
 }
 
 func isValidDomain(domain string) bool {
-	if !domainReg.Copy().MatchString(domain) {
+	if !domainReg.MatchString(domain) {
 		return false
 	}
 
@@ -184,11 +196,6 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 	csrData, err := generateCSR(pkSigner, subj, host, uri)
 	if err != nil {
 		return nil, nil, ErrFailedToInitialize
-	}
-
-	_, err = url.Parse(cfg.ServiceCert.AthenzURL)
-	if err != nil {
-		return nil, nil, ErrInvalidParameter
 	}
 
 	// if we're given a certificate then we'll use that otherwise
@@ -274,6 +281,11 @@ func generateCSR(keySigner *signer, subj pkix.Name, host, uri string) (string, e
 }
 
 func ztsClient(cfg config.ServiceCert, keyBytes []byte) (*zts.ZTSClient, error) {
+	_, err := url.Parse(cfg.AthenzURL)
+	if err != nil {
+		return nil, ErrInvalidParameter
+	}
+
 	transport := &http.Transport{
 		Proxy:                 http.ProxyFromEnvironment,
 		ResponseHeaderTimeout: 30 * time.Second,
@@ -309,14 +321,14 @@ func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService
 					ticker.Stop()
 					return
 				case <-fch:
-					_, err = s.refreshSvcCert()
+					_, err = s.RefreshSvcCert()
 					if err != nil {
 						glg.Error(err)
 						time.Sleep(time.Minute * 10)
 						fch <- struct{}{}
 					}
 				case <-ticker.C:
-					_, err = s.refreshSvcCert()
+					_, err = s.RefreshSvcCert()
 					if err != nil {
 						glg.Error(err)
 						fch <- struct{}{}
@@ -337,15 +349,26 @@ func (s *svcCertService) GetSvcCertProvider() SvcCertProvider {
 // This function is thread-safe. This function will return the svccert stored in the atomic variable,
 // or return the error when the svccert is not initialized or cannot be generated
 func (s *svcCertService) getSvcCert() ([]byte, error) {
-	cert := s.svcCert.Load()
-
-	if cert == nil || s.expiration.Load().(time.Time).Before(fastime.Now()) {
-		return s.refreshSvcCert()
+	if !s.cfg.Enable {
+		return nil, fmt.Errorf("service cert is not enable")
 	}
-	return cert.([]byte), nil
+	cache := s.certCache.Load().(certCache)
+
+	if cache.cert == nil || cache.exp.Before(fastime.Now()) {
+		cert, err := s.RefreshSvcCert()
+		if err != nil {
+			//  NOTE: When RefreshSvcCert is failed, return the cached certificate if it is not expired
+			if cache.cert != nil && cache.exp.Add(-s.expireMargin).After(fastime.Now()) {
+				return cache.cert, nil
+			}
+			return nil, err
+		}
+		return cert, nil
+	}
+	return cache.cert, nil
 }
 
-func (s *svcCertService) refreshSvcCert() ([]byte, error) {
+func (s *svcCertService) RefreshSvcCert() ([]byte, error) {
 	svccert, err, _ := s.group.Do("", func() (interface{}, error) {
 		ntoken, err := s.token()
 		if err != nil {
@@ -382,8 +405,11 @@ func (s *svcCertService) refreshSvcCert() ([]byte, error) {
 		}
 
 		// update cert cache and expiration
-		s.setCert(cert)
-		s.expiration.Store(certificate.NotAfter.Add(s.expireMargin))
+		cache := certCache{
+			cert: cert,
+			exp:  certificate.NotAfter.Add(s.expireMargin),
+		}
+		s.setCert(cache)
 
 		return cert, nil
 	})
@@ -395,6 +421,6 @@ func (s *svcCertService) refreshSvcCert() ([]byte, error) {
 	return svccert.([]byte), nil
 }
 
-func (s *svcCertService) setCert(svcCert []byte) {
-	s.svcCert.Store(svcCert)
+func (s *svcCertService) setCert(cache certCache) {
+	s.certCache.Store(cache)
 }

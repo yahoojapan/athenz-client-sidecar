@@ -1101,7 +1101,7 @@ func Test_handler_ServiceCert(t *testing.T) {
 			wantError: nil,
 		},
 		{
-			name: "Check ServiceCert, get svccert success",
+			name: "Check ServiceCert, get svccert fail",
 			fields: fields{
 				cert: func() (cert []byte, err error) {
 					return nil, fmt.Errorf("svccert error")
@@ -1111,11 +1111,8 @@ func Test_handler_ServiceCert(t *testing.T) {
 				w: httptest.NewRecorder(),
 				r: httptest.NewRequest(http.MethodGet, "http://url-336", nil),
 			},
-			want: want{
-				code:   http.StatusOK,
-				header: map[string]string{},
-				body:   []byte{},
-			},
+			// In this case, h.ServiceCert is expected to return error.
+			want:      want{},
 			wantError: fmt.Errorf("svccert error"),
 		},
 	}
@@ -1133,6 +1130,9 @@ func Test_handler_ServiceCert(t *testing.T) {
 			}
 			if err != nil {
 				t.Errorf("handler.ServiceCert() %v", err)
+				return
+			}
+			if tt.wantError != nil {
 				return
 			}
 			err = EqualResponse(tt.args.w, tt.want.code, tt.want.header, tt.want.body)

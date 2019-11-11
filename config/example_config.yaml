@@ -30,14 +30,17 @@ proxy:
   role_header_key: Athenz-Role-Auth
   buffer_size: 1024
 service_cert:
+  enable: true
   athenz_url: https://www.athenz.com:4443/zts/v1
   athenz_root_ca: /etc/ssl/cert.pem
   dns_domain: www.athenz.com
-  expiration: 480h
-  refresh_duration: 24h
+  refresh_duration: 30m
+  expire_margin: 30h
   intermediate_cert: true
   auth_header_key: Athenz-Principal
+  spiffe: false
   subject:
     country: US
+    province: California
     organization: "Oath Inc."
     organizational_unit: Athenz

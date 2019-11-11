@@ -354,7 +354,7 @@ func (s *svcCertService) getSvcCert() ([]byte, error) {
 	if cache.cert == nil || cache.exp.Before(fastime.Now()) {
 		cert, err := s.RefreshSvcCert()
 		if err != nil {
-			if cache.exp.Add(-s.expireMargin).After(fastime.Now()) {
+			if cache.cert != nil && cache.exp.Add(-s.expireMargin).After(fastime.Now()) {
 				return cache.cert, nil
 			}
 			return nil, err

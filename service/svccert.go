@@ -349,6 +349,9 @@ func (s *svcCertService) GetSvcCertProvider() SvcCertProvider {
 // This function is thread-safe. This function will return the svccert stored in the atomic variable,
 // or return the error when the svccert is not initialized or cannot be generated
 func (s *svcCertService) getSvcCert() ([]byte, error) {
+	if !s.cfg.Enable {
+		return nil, fmt.Errorf("service cert is not enable")
+	}
 	cache := s.certCache.Load().(certCache)
 
 	if cache.cert == nil || cache.exp.Before(fastime.Now()) {

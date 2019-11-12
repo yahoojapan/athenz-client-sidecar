@@ -359,8 +359,10 @@ func (s *svcCertService) getSvcCert() ([]byte, error) {
 		if err != nil {
 			//  NOTE: When RefreshSvcCert is failed, return the cached certificate if it is not expired
 			if cache.cert != nil && cache.exp.Add(-s.expireMargin).After(fastime.Now()) {
+				glg.Warn("Cached certificate is not expired. Return from cache. Error: " + err.Error())
 				return cache.cert, nil
 			}
+			glg.Error(err)
 			return nil, err
 		}
 		return cert, nil

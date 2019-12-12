@@ -104,8 +104,14 @@ func main() {
 	}
 
 	if p.showVersion {
-		glg.Infof("athenz clientd version -> %s", getVersion())
-		glg.Infof("athenz clientd config version -> %s", config.GetVersion())
+		err := glg.Infof("athenz clientd version -> %s", getVersion())
+		if err != nil {
+			glg.Fatal(err)
+		}
+		err = glg.Infof("athenz clientd config version -> %s", config.GetVersion())
+		if err != nil {
+			glg.Fatal(err)
+		}
 		return
 	}
 

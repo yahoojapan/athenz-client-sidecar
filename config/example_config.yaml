@@ -33,7 +33,7 @@ service_cert:
   enable: true
   athenz_url: https://www.athenz.com:4443/zts/v1
   athenz_root_ca: /etc/ssl/cert.pem
-  dns_domain: www.athenz.com
+  dns_suffix: athenz.cloud
   refresh_duration: 30m
   expire_margin: 30h
   intermediate_cert: true

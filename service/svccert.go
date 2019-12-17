@@ -177,7 +177,7 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 	}
 
 	hyphenDomain := strings.Replace(cfg.Token.AthenzDomain, ".", "-", -1)
-	host := fmt.Sprintf("%s.%s.%s", cfg.Token.ServiceName, hyphenDomain, cfg.ServiceCert.DNSDomain)
+	host := fmt.Sprintf("%s.%s.%s", cfg.Token.ServiceName, hyphenDomain, cfg.ServiceCert.DNSSuffix)
 	commonName := fmt.Sprintf("%s.%s", cfg.Token.AthenzDomain, cfg.Token.ServiceName)
 
 	subj := pkix.Name{

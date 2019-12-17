@@ -99,7 +99,7 @@ func TestNew(t *testing.T) {
 					Enable:                  true,
 					AthenzURL:               "https://www.athenz.com:4443/zts/v1",
 					AthenzRootCA:            "/etc/ssl/cert.pem",
-					DNSDomain:               "www.athenz.com",
+					DNSSuffix:               "athenz.cloud",
 					RefreshDuration:         "30m",
 					ExpireMargin:            "30h",
 					IntermediateCert:        true,

@@ -149,8 +149,8 @@ type ServiceCert struct {
 	// AthenzRootCA represent the Athenz server Root Certificate
 	AthenzRootCA string `yaml:"athenz_root_ca"`
 
-	// DNSDomain is the suffix of SAN
-	DNSDomain string `yaml:"dns_domain"`
+	// DNSSuffix is the suffix of SAN
+	DNSSuffix string `yaml:"dns_suffix"`
 
 	// RefreshDuration represent the svccert refresh duration
 	RefreshDuration string `yaml:"refresh_duration"`

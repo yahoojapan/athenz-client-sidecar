@@ -309,34 +309,32 @@ func ztsClient(cfg config.ServiceCert, keyBytes []byte) (*zts.ZTSClient, error) 
 }
 
 func (s *svcCertService) StartSvcCertUpdater(ctx context.Context) SvcCertService {
-	if s.cfg.Enable {
-		go func() {
-			var err error
-			fch := make(chan struct{}, 1)
+	go func() {
+		var err error
+		fch := make(chan struct{}, 1)
 
-			ticker := time.NewTicker(s.refreshDuration)
-			for {
-				select {
-				case <-ctx.Done():
-					ticker.Stop()
-					return
-				case <-fch:
-					_, err = s.RefreshSvcCert()
-					if err != nil {
-						glg.Error(err)
-						time.Sleep(time.Minute * 10)
-						fch <- struct{}{}
-					}
-				case <-ticker.C:
-					_, err = s.RefreshSvcCert()
-					if err != nil {
-						glg.Error(err)
-						fch <- struct{}{}
-					}
+		ticker := time.NewTicker(s.refreshDuration)
+		for {
+			select {
+			case <-ctx.Done():
+				ticker.Stop()
+				return
+			case <-fch:
+				_, err = s.RefreshSvcCert()
+				if err != nil {
+					glg.Error(err)
+					time.Sleep(time.Minute * 10)
+					fch <- struct{}{}
+				}
+			case <-ticker.C:
+				_, err = s.RefreshSvcCert()
+				if err != nil {
+					glg.Error(err)
+					fch <- struct{}{}
 				}
 			}
-		}()
-	}
+		}
+	}()
 	return s
 }
 
@@ -349,9 +347,6 @@ func (s *svcCertService) GetSvcCertProvider() SvcCertProvider {
 // This function is thread-safe. This function will return the svccert stored in the atomic variable,
 // or return the error when the svccert is not initialized or cannot be generated
 func (s *svcCertService) getSvcCert() ([]byte, error) {
-	if !s.cfg.Enable {
-		return nil, fmt.Errorf("service cert is not enable")
-	}
 	cache := s.certCache.Load().(certCache)
 
 	if cache.cert == nil || cache.exp.Before(fastime.Now()) {

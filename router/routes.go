@@ -18,6 +18,7 @@ package router
 import (
 	"net/http"
 
+	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"github.com/yahoojapan/athenz-client-sidecar/handler"
 )
 
@@ -28,8 +29,8 @@ type Route struct {
 	HandlerFunc handler.Func
 }
 
-func NewRoutes(h handler.Handler) []Route {
-	return []Route{
+func NewRoutes(cfg config.Config, h handler.Handler) []Route {
+	r := []Route{
 		{
 			"NToken Handler",
 			[]string{
@@ -62,13 +63,18 @@ func NewRoutes(h handler.Handler) []Route {
 			"/proxy/ntoken",
 			h.NTokenProxy,
 		},
-		{
+	}
+
+	if cfg.ServiceCert.Enable {
+		r = append(r, Route{
 			"Service Cert Handler",
 			[]string{
 				http.MethodGet,
 			},
 			"/svccert",
 			h.ServiceCert,
-		},
+		})
 	}
+
+	return r
 }

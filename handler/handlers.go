@@ -40,7 +40,7 @@ type Handler interface {
 	RoleTokenProxy(http.ResponseWriter, *http.Request) error
 	// ServiceCert handles get svccert requests.
 	ServiceCert(http.ResponseWriter, *http.Request) error
-
+	// EnableSvcCert assigns the SvcCertProvider to handler.svcCert
 	EnableSvcCert(service.SvcCertProvider)
 }
 
@@ -68,6 +68,7 @@ func New(cfg config.Proxy, bp httputil.BufferPool, token ntokend.TokenProvider, 
 	}
 }
 
+// EnableSvcCert assign a SvcCertProvider function to handler.svcCert. If the svcCert service is disabled, this function is not called by the calling instance has the handler instance.
 func (h *handler) EnableSvcCert(svcCert service.SvcCertProvider) {
 	h.svcCert = svcCert
 }

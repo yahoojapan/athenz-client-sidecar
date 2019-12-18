@@ -73,6 +73,9 @@ func TestNew(t *testing.T) {
 				Server: config.Server{
 					HealthzPath: "/dummyPath",
 				},
+				ServiceCert: config.ServiceCert{
+					Enable: true,
+				},
 			}
 
 			return test{
@@ -88,9 +91,21 @@ func TestNew(t *testing.T) {
 						panic(err)
 					}
 					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
-					svccert, _ := service.NewSvcCertService(cfg, token.GetTokenProvider())
 
-					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider(), svccert.GetSvcCertProvider()))
+					h := handler.New(
+						cfg.Proxy,
+						infra.NewBuffer(cfg.Proxy.BufferSize),
+						token.GetTokenProvider(),
+						role.GetRoleProvider(),
+					)
+
+					var svccert service.SvcCertService
+					if cfg.ServiceCert.Enable {
+						svccert, _ = service.NewSvcCertService(cfg, token.GetTokenProvider())
+						h.EnableSvcCert(svccert.GetSvcCertProvider())
+					}
+
+					serveMux := router.New(cfg, h)
 					server := service.NewServer(
 						service.WithServerConfig(cfg.Server),
 						service.WithServerHandler(serveMux),
@@ -202,9 +217,20 @@ func Test_clientd_Start(t *testing.T) {
 						panic(err)
 					}
 					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
-					svccert, _ := service.NewSvcCertService(cfg, token.GetTokenProvider())
+					h := handler.New(
+						cfg.Proxy,
+						infra.NewBuffer(cfg.Proxy.BufferSize),
+						token.GetTokenProvider(),
+						role.GetRoleProvider(),
+					)
 
-					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider(), svccert.GetSvcCertProvider()))
+					var svccert service.SvcCertService
+					if cfg.ServiceCert.Enable {
+						svccert, _ := service.NewSvcCertService(cfg, token.GetTokenProvider())
+						h.EnableSvcCert(svccert.GetSvcCertProvider())
+					}
+
+					serveMux := router.New(cfg, h)
 					server := service.NewServer(
 						service.WithServerConfig(cfg.Server),
 						service.WithServerHandler(serveMux),

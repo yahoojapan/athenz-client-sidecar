@@ -40,7 +40,7 @@ type Handler interface {
 	RoleTokenProxy(http.ResponseWriter, *http.Request) error
 	// ServiceCert handles get svccert requests.
 	ServiceCert(http.ResponseWriter, *http.Request) error
-	// EnableSvcCert assigns the SvcCertProvider to handler.svcCert
+	// EnableSvcCert assigns the SvcCertProvider to handler.svcCert.
 	EnableSvcCert(service.SvcCertProvider)
 }
 

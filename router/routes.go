@@ -22,6 +22,7 @@ import (
 	"github.com/yahoojapan/athenz-client-sidecar/handler"
 )
 
+// Route manages the routing for sidecar.
 type Route struct {
 	Name        string
 	Methods     []string
@@ -29,6 +30,7 @@ type Route struct {
 	HandlerFunc handler.Func
 }
 
+// NewRoutes returns Route slice.
 func NewRoutes(cfg config.Config, h handler.Handler) []Route {
 	r := []Route{
 		{

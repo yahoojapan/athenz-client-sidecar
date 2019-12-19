@@ -95,6 +95,7 @@ func (t *clientd) Start(ctx context.Context) chan []error {
 	t.token.StartTokenUpdater(ctx)
 	t.role.StartRoleUpdater(ctx)
 
+	// t.svccert only is null when the configuration of ServiceCert is disabled
 	if t.svccert != nil {
 		t.svccert.StartSvcCertUpdater(ctx)
 	}

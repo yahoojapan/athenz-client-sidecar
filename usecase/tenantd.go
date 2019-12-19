@@ -54,13 +54,28 @@ func New(cfg config.Config) (Tenant, error) {
 	// create role service
 	role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
 
+	// create handler
+	h := handler.New(
+		cfg.Proxy,
+		infra.NewBuffer(cfg.Proxy.BufferSize),
+		token.GetTokenProvider(),
+		role.GetRoleProvider(),
+	)
+
 	// create svccert service
-	svccert, err := service.NewSvcCertService(cfg, token.GetTokenProvider())
-	if err != nil {
-		return nil, err
+	var svccert service.SvcCertService
+
+	// Assign the svccert service. If a user does not set enable, sidecar does not handle the request to get the certificate.
+	// And it is disabled by default.
+	if cfg.ServiceCert.Enable {
+		svccert, err := service.NewSvcCertService(cfg, token.GetTokenProvider())
+		if err != nil {
+			return nil, err
+		}
+		h.EnableSvcCert(svccert.GetSvcCertProvider())
 	}
 
-	serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider(), svccert.GetSvcCertProvider()))
+	serveMux := router.New(cfg, h)
 	srv := service.NewServer(
 		service.WithServerConfig(cfg.Server),
 		service.WithServerHandler(serveMux),
@@ -79,7 +94,11 @@ func New(cfg config.Config) (Tenant, error) {
 func (t *clientd) Start(ctx context.Context) chan []error {
 	t.token.StartTokenUpdater(ctx)
 	t.role.StartRoleUpdater(ctx)
-	t.svccert.StartSvcCertUpdater(ctx)
+
+	// t.svccert only is null when the configuration of ServiceCert is disabled
+	if t.svccert != nil {
+		t.svccert.StartSvcCertUpdater(ctx)
+	}
 
 	return t.server.ListenAndServe(ctx)
 }

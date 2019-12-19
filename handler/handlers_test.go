@@ -164,7 +164,8 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := New(tt.args.cfg, tt.args.bp, tt.args.token, tt.args.role, tt.args.svcCert)
+			got := New(tt.args.cfg, tt.args.bp, tt.args.token, tt.args.role)
+			got.EnableSvcCert(tt.args.svcCert)
 			if err := tt.checkFunc(got.(*handler), tt.want); err != nil {
 				t.Errorf("New() %v", err)
 				return

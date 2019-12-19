@@ -42,6 +42,7 @@ type Config struct {
 	// Proxy represent the configuration of the reverse proxy server to connect to athenz to get N-token and role token.
 	Proxy Proxy `yaml:"proxy"`
 
+	// ServiceCert represent the configuration of the service identify in the form of short-lived X.509 certificates that can be used instead of N-token in athenz.
 	ServiceCert ServiceCert `yaml:"service_cert"`
 }
 

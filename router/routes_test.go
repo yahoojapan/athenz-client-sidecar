@@ -26,7 +26,8 @@ import (
 
 func TestNewRoutes(t *testing.T) {
 	type args struct {
-		h handler.Handler
+		cfg config.Config
+		h   handler.Handler
 	}
 	type test struct {
 		name string
@@ -42,11 +43,16 @@ func TestNewRoutes(t *testing.T) {
 				RoleAuthHeaderName:      "X-test-role-header",
 				BufferSize:              1024,
 			}
-			h := handler.New(proxyConfig, nil, nil, nil, nil)
+			h := handler.New(proxyConfig, nil, nil, nil)
 
 			return test{
 				name: "Run NewRoutes successfully",
 				args: args{
+					cfg: config.Config{
+						ServiceCert: config.ServiceCert{
+							Enable: true,
+						},
+					},
 					h: h,
 				},
 				want: []Route{
@@ -93,11 +99,66 @@ func TestNewRoutes(t *testing.T) {
 				},
 			}
 		}(),
+		func() test {
+			// prepare handler.Handler for calling NewRoutes()
+			proxyConfig := config.Proxy{
+				PrincipalAuthHeaderName: "X-test-auth-header",
+				RoleAuthHeaderName:      "X-test-role-header",
+				BufferSize:              1024,
+			}
+			h := handler.New(proxyConfig, nil, nil, nil)
+
+			return test{
+				name: "Run NewRoutes successfully without ServiceCert",
+				args: args{
+					cfg: config.Config{
+						ServiceCert: config.ServiceCert{
+							Enable: false,
+						},
+					},
+					h: h,
+				},
+				want: []Route{
+					{
+						"NToken Handler",
+						[]string{
+							http.MethodGet,
+						},
+						"/ntoken",
+						h.NToken,
+					},
+					{
+						"RoleToken Handler",
+						[]string{
+							http.MethodPost,
+						},
+						"/roletoken",
+						h.RoleToken,
+					},
+					{
+						"RoleToken proxy Handler",
+						[]string{
+							"*",
+						},
+						"/proxy/roletoken",
+						h.RoleTokenProxy,
+					},
+					{
+						"NToken proxy Handler",
+						[]string{
+							"*",
+						},
+						"/proxy/ntoken",
+						h.NTokenProxy,
+					},
+				},
+			}
+		}(),
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := NewRoutes(tt.args.h)
+			got := NewRoutes(tt.args.cfg, tt.args.h)
 			if got == nil {
 				t.Errorf("NewRoutes() = %v, want %v", got, tt.want)
 				return

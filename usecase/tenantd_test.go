@@ -227,7 +227,7 @@ func TestNew(t *testing.T) {
 			}
 
 			return test{
-				name: "Check success",
+				name: "Check success without svccert settings",
 				args: args{
 					cfg: cfg,
 				},

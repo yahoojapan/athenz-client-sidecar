@@ -9,9 +9,9 @@ server:
   probe_wait_time: 9s
   tls:
     enabled: true
-    cert: cert
-    key: key
-    ca: ca
+    cert: _cert_
+    key: _key_
+    ca: _ca_
 ntoken:
   athenz_domain:  _athenz_domain_
   service_name: _service_name_
@@ -24,6 +24,7 @@ ntoken:
 roletoken:
   auth_header_key: Athenz-Principal
   athenz_url: https://www.athenz.com:4443/zts/v1
+  athenz_root_ca: _athenz_root_ca_
   expiration: 30m
   proxy_principal: ""
 proxy:

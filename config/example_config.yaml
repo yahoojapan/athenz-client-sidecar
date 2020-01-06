@@ -8,9 +8,9 @@ server:
   shutdown_duration: 5s
   tls:
     enabled: true
-    cert_key: cert
-    key_key: key
-    ca_key: ca
+    cert: _cert_
+    key: _key_
+    ca: _ca_
 ntoken:
   athenz_domain:  _athenz_domain_
   service_name: _service_name_
@@ -23,10 +23,11 @@ ntoken:
 roletoken:
   auth_header_key: Athenz-Principal
   athenz_url: https://www.athenz.com:4443/zts/v1
+  athenz_root_ca: _athenz_root_ca_
+  # athenz_root_ca: /etc/ssl/cert.pem
   expiration: 30m
   proxy_principal: ""
 proxy:
   auth_header_key: Athenz-Principal
   role_header_key: Athenz-Role-Auth
   buffer_size: 1024
-

@@ -223,7 +223,6 @@ func setup(cfg config.Config, expiration int32) (*requestTemplate, *zts.ZTSClien
 	// copper argos model to request the certificate
 	req := &zts.InstanceRefreshRequest{
 		Csr:        csrData,
-		KeyId:      cfg.Token.KeyVersion,
 		ExpiryTime: &expiration,
 	}
 

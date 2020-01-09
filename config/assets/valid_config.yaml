@@ -37,6 +37,7 @@ service_cert:
   dns_suffix: athenz.cloud
   refresh_duration: 30m
   expire_margin: 30h
+  expiration: 720h
   intermediate_cert: true
   auth_header_key: Athenz-Principal
   spiffe: false

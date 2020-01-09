@@ -102,6 +102,7 @@ func TestNew(t *testing.T) {
 					DNSSuffix:               "athenz.cloud",
 					RefreshDuration:         "30m",
 					ExpireMargin:            "30h",
+					Expiration:              "720h",
 					IntermediateCert:        true,
 					PrincipalAuthHeaderName: "Athenz-Principal",
 					Spiffe:                  false,

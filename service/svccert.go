@@ -37,7 +37,7 @@ import (
 
 	"github.com/kpango/fastime"
 	"github.com/kpango/glg"
-	ntokend "github.com/kpango/ntokend"
+	"github.com/kpango/ntokend"
 	"github.com/yahoo/athenz/clients/go/zts"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"golang.org/x/sync/singleflight"
@@ -49,6 +49,9 @@ var (
 
 	// defaultSvcCertExpireMargin represents the default vaule of ExpireMargin.
 	defaultSvcCertExpireMargin = time.Hour * 24 * -10
+
+	// defaultSvcCertExpiration represents the default vaule of Expiration
+	defaultSvcCertExpiration int32 = 0
 
 	// domainReg is used to parse the athenz domain which is contained in config
 	domainReg = regexp.MustCompile(`^([a-zA-Z0-9_][a-zA-Z0-9_-]*\.)*[a-zA-Z0-9_][a-zA-Z0-9_-]*$`)
@@ -111,21 +114,29 @@ type SvcCertProvider func() ([]byte, error)
 func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertService, error) {
 	dur, err := time.ParseDuration(cfg.ServiceCert.RefreshDuration)
 	if err != nil {
+		glg.Warn("Failed to parse configuration value of refresh_duration. Using default value ", err)
 		dur = defaultSvcCertRefreshDuration
 	}
 
 	beforeDur, err := time.ParseDuration("-" + cfg.ServiceCert.ExpireMargin)
 	if err != nil {
+		glg.Warn("Failed to parse configuration value of expire_margin. Using default value ", err)
 		beforeDur = defaultSvcCertExpireMargin
 	}
 
-	reqTemp, client, err := setup(cfg)
+	expireDur, err := time.ParseDuration(cfg.ServiceCert.Expiration)
+	var expireInt int32
+	if err != nil {
+		glg.Warn("Failed to parse configuration value of expiration. Using default value ", err)
+		expireInt = defaultSvcCertExpiration
+	} else {
+		expireInt = int32(expireDur.Minutes())
+	}
+
+	reqTemp, client, err := setup(cfg, expireInt)
 	if err != nil {
 		return nil, err
 	}
-
-	expiration := &atomic.Value{}
-	expiration.Store(fastime.Now())
 
 	cache := &atomic.Value{}
 	cache.Store(
@@ -154,7 +165,7 @@ func isValidDomain(domain string) bool {
 	return true
 }
 
-func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
+func setup(cfg config.Config, expiration int32) (*requestTemplate, *zts.ZTSClient, error) {
 	// load private key
 	keyBytes, err := ioutil.ReadFile(cfg.Token.PrivateKeyPath)
 	if err != nil {
@@ -210,11 +221,10 @@ func setup(cfg config.Config) (*requestTemplate, *zts.ZTSClient, error) {
 
 	// if we're given provider then we're going to use our
 	// copper argos model to request the certificate
-	expiryTime32 := int32(0)
 	req := &zts.InstanceRefreshRequest{
 		Csr:        csrData,
 		KeyId:      cfg.Token.KeyVersion,
-		ExpiryTime: &expiryTime32,
+		ExpiryTime: &expiration,
 	}
 
 	return &requestTemplate{

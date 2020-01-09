@@ -160,6 +160,9 @@ type ServiceCert struct {
 	// Certificate is updated before ExpireMargin in "Not After" field.
 	ExpireMargin string `yaml:"expire_margin"`
 
+	// Expiration represents the duration of expire time for the certificate.
+	Expiration string `yaml:"expiration"`
+
 	// IntermediateCert decides wheather concatinate intermediate cert to end-entity cert
 	IntermediateCert bool `yaml:"intermediate_cert"`
 

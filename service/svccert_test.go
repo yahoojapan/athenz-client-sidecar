@@ -14,6 +14,7 @@ import (
 	"github.com/kpango/fastime"
 	"github.com/kpango/glg"
 	"github.com/kpango/ntokend"
+	"github.com/yahoo/athenz/clients/go/zts"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
 )
 
@@ -60,6 +61,8 @@ func TestIsValidDomain(t *testing.T) {
 }
 
 func TestNewSvcCertService(t *testing.T) {
+	var defaultExpiration int32 = 0
+
 	type args struct {
 		cfg   config.Config
 		token ntokend.TokenProvider
@@ -97,6 +100,11 @@ func TestNewSvcCertService(t *testing.T) {
 						AthenzRootCA:    "./assets/dummyCa.pem",
 						RefreshDuration: "30m",
 					},
+					refreshRequest: &requestTemplate{
+						req: &zts.InstanceRefreshRequest{
+							ExpiryTime: &defaultExpiration,
+						},
+					},
 					token:           token,
 					refreshDuration: dur,
 				},
@@ -133,12 +141,58 @@ func TestNewSvcCertService(t *testing.T) {
 						RefreshDuration: "30m",
 						ExpireMargin:    "1h",
 					},
+					refreshRequest: &requestTemplate{
+						req: &zts.InstanceRefreshRequest{
+							ExpiryTime: &defaultExpiration,
+						},
+					},
 					token:           token,
 					refreshDuration: dur,
 					expireMargin:    beforeDur,
 				},
 				checkfunc: func(actual, expected *svcCertService) bool {
 					return actual.expireMargin == expected.expireMargin
+				},
+				wantErr: nil,
+			}
+		}(),
+		func() test {
+			dur, _ := time.ParseDuration("30m")
+			token := func() (string, error) { return "", nil }
+			var expiration int32 = 117
+
+			return test{
+				name: "Success to initialize SvcCertService with expiration",
+				args: args{
+					cfg: config.Config{
+						Token: config.Token{
+							AthenzDomain:   "test.domain",
+							PrivateKeyPath: "./assets/dummyServer.key",
+						},
+						ServiceCert: config.ServiceCert{
+							AthenzRootCA:    "./assets/dummyCa.pem",
+							RefreshDuration: "30m",
+							Expiration:      fmt.Sprintf("%dm", expiration),
+						},
+					},
+					token: token,
+				},
+				want: &svcCertService{
+					cfg: config.ServiceCert{
+						AthenzRootCA:    "./assets/dummyCa.pem",
+						RefreshDuration: "30m",
+						Expiration:      fmt.Sprintf("%dm", expiration),
+					},
+					refreshRequest: &requestTemplate{
+						req: &zts.InstanceRefreshRequest{
+							ExpiryTime: &expiration,
+						},
+					},
+					token:           token,
+					refreshDuration: dur,
+				},
+				checkfunc: func(actual, expected *svcCertService) bool {
+					return true
 				},
 				wantErr: nil,
 			}
@@ -166,6 +220,11 @@ func TestNewSvcCertService(t *testing.T) {
 					cfg: config.ServiceCert{
 						AthenzRootCA:    "./assets/dummyCa.pem",
 						RefreshDuration: "30m",
+					},
+					refreshRequest: &requestTemplate{
+						req: &zts.InstanceRefreshRequest{
+							ExpiryTime: &defaultExpiration,
+						},
 					},
 					token:           token,
 					refreshDuration: dur,
@@ -202,6 +261,11 @@ func TestNewSvcCertService(t *testing.T) {
 						RefreshDuration: "30m",
 						Spiffe:          true,
 					},
+					refreshRequest: &requestTemplate{
+						req: &zts.InstanceRefreshRequest{
+							ExpiryTime: &defaultExpiration,
+						},
+					},
 					token:           token,
 					refreshDuration: dur,
 				},
@@ -234,6 +298,11 @@ func TestNewSvcCertService(t *testing.T) {
 						AthenzRootCA:    "./assets/dummyCa.pem",
 						RefreshDuration: "",
 					},
+					refreshRequest: &requestTemplate{
+						req: &zts.InstanceRefreshRequest{
+							ExpiryTime: &defaultExpiration,
+						},
+					},
 					token:           token,
 					refreshDuration: defaultSvcCertRefreshDuration,
 				},
@@ -263,11 +332,17 @@ func TestNewSvcCertService(t *testing.T) {
 					},
 					token: token,
 				},
+
 				want: &svcCertService{
 					cfg: config.ServiceCert{
 						AthenzRootCA:    "./assets/dummyCa.pem",
 						RefreshDuration: "30m",
 						ExpireMargin:    "error",
+					},
+					refreshRequest: &requestTemplate{
+						req: &zts.InstanceRefreshRequest{
+							ExpiryTime: &defaultExpiration,
+						},
 					},
 					token:           token,
 					refreshDuration: dur,
@@ -412,7 +487,7 @@ func TestNewSvcCertService(t *testing.T) {
 			actual, err := NewSvcCertService(tt.args.cfg, tt.args.token)
 
 			if err != tt.wantErr {
-				t.Errorf("TestNewSvcCertService failed. expected error: %v, actual error: %v", tt.wantErr, err)
+				t.Errorf("expected error: %v, actual error: %v", tt.wantErr, err)
 			}
 			if err != nil {
 				return
@@ -421,10 +496,28 @@ func TestNewSvcCertService(t *testing.T) {
 			actualSvcCertService := actual.(*svcCertService)
 			expectedSvcCertService := tt.want.(*svcCertService)
 
-			if (actualSvcCertService.cfg != expectedSvcCertService.cfg) ||
-				(actualSvcCertService.refreshDuration != expectedSvcCertService.refreshDuration) ||
-				!tt.checkfunc(actualSvcCertService, expectedSvcCertService) {
-				t.Errorf("TestNewSvcCertService failed expected: %+v, actual: %+v", expectedSvcCertService, actualSvcCertService)
+			if actualSvcCertService.cfg != expectedSvcCertService.cfg {
+				t.Errorf("Config value is not matched: expected: %+v, actual: %+v", expectedSvcCertService, actualSvcCertService)
+			}
+
+			{
+				actualValue := actualSvcCertService.refreshDuration
+				expectedValue := expectedSvcCertService.refreshDuration
+				if actualValue != expectedValue {
+					t.Errorf("RefreshDuration is not matched: expected: %+v, actual: %+v", expectedValue, actualValue)
+				}
+			}
+
+			{
+				actualValue := *actualSvcCertService.refreshRequest.req.ExpiryTime
+				expectedValue := *expectedSvcCertService.refreshRequest.req.ExpiryTime
+				if actualValue != expectedValue {
+					t.Errorf("expected error: %v, actual error: %v", expectedValue, actualValue)
+				}
+			}
+
+			if !tt.checkfunc(actualSvcCertService, expectedSvcCertService) {
+				t.Errorf("Individual test failed expected: %+v, actual: %+v", expectedSvcCertService, actualSvcCertService)
 			}
 		})
 	}

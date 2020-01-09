@@ -214,7 +214,7 @@ func setup(cfg config.Config, expiration int32) (*requestTemplate, *zts.ZTSClien
 	// we're using copper argos which only uses tls and the attestation
 	// data contains the authentication details
 
-	client, err := ztsClient(cfg.ServiceCert, keyBytes)
+	client, err := ztsClient(cfg.ServiceCert)
 	if err != nil {
 		return nil, nil, ErrFailedToInitialize
 	}
@@ -289,7 +289,7 @@ func generateCSR(keySigner *signer, subj pkix.Name, host, uri string) (string, e
 	return buf.String(), nil
 }
 
-func ztsClient(cfg config.ServiceCert, keyBytes []byte) (*zts.ZTSClient, error) {
+func ztsClient(cfg config.ServiceCert) (*zts.ZTSClient, error) {
 	_, err := url.Parse(cfg.AthenzURL)
 	if err != nil {
 		return nil, ErrInvalidParameter
@@ -415,7 +415,7 @@ func (s *svcCertService) RefreshSvcCert() ([]byte, error) {
 			cert: cert,
 			exp:  certificate.NotAfter.Add(s.expireMargin),
 		}
-		s.setCert(cache)
+		s.certCache.Store(cache)
 
 		return cert, nil
 	})
@@ -425,8 +425,4 @@ func (s *svcCertService) RefreshSvcCert() ([]byte, error) {
 	}
 
 	return svccert.([]byte), nil
-}
-
-func (s *svcCertService) setCert(cache certCache) {
-	s.certCache.Store(cache)
 }

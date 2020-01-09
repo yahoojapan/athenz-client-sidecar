@@ -54,26 +54,28 @@ func New(cfg config.Config) (Tenant, error) {
 	// create role service
 	role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
 
+	// create svccert service
+	var svccert service.SvcCertService
+
+	// Assign the svccert service. If a user does not set enable, sidecar does not handle the request to get the certificate.
+	// And it is disabled by default.
+	var svcCertProvider service.SvcCertProvider = nil
+	if cfg.ServiceCert.Enable {
+		svccert, err := service.NewSvcCertService(cfg, token.GetTokenProvider())
+		if err != nil {
+			return nil, err
+		}
+		svcCertProvider = svccert.GetSvcCertProvider()
+	}
+
 	// create handler
 	h := handler.New(
 		cfg.Proxy,
 		infra.NewBuffer(cfg.Proxy.BufferSize),
 		token.GetTokenProvider(),
 		role.GetRoleProvider(),
+		svcCertProvider,
 	)
-
-	// create svccert service
-	var svccert service.SvcCertService
-
-	// Assign the svccert service. If a user does not set enable, sidecar does not handle the request to get the certificate.
-	// And it is disabled by default.
-	if cfg.ServiceCert.Enable {
-		svccert, err := service.NewSvcCertService(cfg, token.GetTokenProvider())
-		if err != nil {
-			return nil, err
-		}
-		h.EnableSvcCert(svccert.GetSvcCertProvider())
-	}
 
 	serveMux := router.New(cfg, h)
 	srv := service.NewServer(

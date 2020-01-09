@@ -40,8 +40,6 @@ type Handler interface {
 	RoleTokenProxy(http.ResponseWriter, *http.Request) error
 	// ServiceCert handles get svccert requests.
 	ServiceCert(http.ResponseWriter, *http.Request) error
-	// EnableSvcCert assigns the SvcCertProvider to handler.svcCert.
-	EnableSvcCert(service.SvcCertProvider)
 }
 
 // Func is http.HandlerFunc with error return.
@@ -57,20 +55,16 @@ type handler struct {
 }
 
 // New creates a handler for handling different HTTP requests based on the given services. It also contains a reverse proxy for handling proxy request.
-func New(cfg config.Proxy, bp httputil.BufferPool, token ntokend.TokenProvider, role service.RoleProvider) Handler {
+func New(cfg config.Proxy, bp httputil.BufferPool, token ntokend.TokenProvider, role service.RoleProvider, svcCert service.SvcCertProvider) Handler {
 	return &handler{
 		proxy: &httputil.ReverseProxy{
 			BufferPool: bp,
 		},
-		token: token,
-		role:  role,
-		cfg:   cfg,
+		token:   token,
+		role:    role,
+		cfg:     cfg,
+		svcCert: svcCert,
 	}
-}
-
-// EnableSvcCert assign a SvcCertProvider function to handler.svcCert. If the svcCert service is disabled, this function is not called by the calling instance has the handler instance.
-func (h *handler) EnableSvcCert(svcCert service.SvcCertProvider) {
-	h.svcCert = svcCert
 }
 
 // NToken handles n-token requests and responses the corresponding n-token. Depends on token service.
@@ -150,6 +144,7 @@ func flushAndClose(rc io.ReadCloser) error {
 	return nil
 }
 
+// ServiceCert handles certificate requests and responses the corresponding certificate. Depends on svcCert service.
 func (h *handler) ServiceCert(w http.ResponseWriter, r *http.Request) error {
 	defer flushAndClose(r.Body)
 

@@ -123,16 +123,15 @@ func TestNew(t *testing.T) {
 					}
 					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
 
+					var svccert service.SvcCertService
+					svccert, _ = service.NewSvcCertService(cfg, token.GetTokenProvider())
 					h := handler.New(
 						cfg.Proxy,
 						infra.NewBuffer(cfg.Proxy.BufferSize),
 						token.GetTokenProvider(),
 						role.GetRoleProvider(),
+						svccert.GetSvcCertProvider(),
 					)
-
-					var svccert service.SvcCertService
-					svccert, _ = service.NewSvcCertService(cfg, token.GetTokenProvider())
-					h.EnableSvcCert(svccert.GetSvcCertProvider())
 
 					serveMux := router.New(cfg, h)
 					server := service.NewServer(
@@ -190,6 +189,7 @@ func TestNew(t *testing.T) {
 						infra.NewBuffer(cfg.Proxy.BufferSize),
 						token.GetTokenProvider(),
 						role.GetRoleProvider(),
+						nil,
 					)
 
 					serveMux := router.New(cfg, h)
@@ -245,6 +245,7 @@ func TestNew(t *testing.T) {
 						infra.NewBuffer(cfg.Proxy.BufferSize),
 						token.GetTokenProvider(),
 						role.GetRoleProvider(),
+						nil,
 					)
 
 					serveMux := router.New(cfg, h)
@@ -359,18 +360,14 @@ func Test_clientd_Start(t *testing.T) {
 						panic(err)
 					}
 					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+
 					h := handler.New(
 						cfg.Proxy,
 						infra.NewBuffer(cfg.Proxy.BufferSize),
 						token.GetTokenProvider(),
 						role.GetRoleProvider(),
+						nil,
 					)
-
-					var svccert service.SvcCertService
-					if cfg.ServiceCert.Enable {
-						svccert, _ := service.NewSvcCertService(cfg, token.GetTokenProvider())
-						h.EnableSvcCert(svccert.GetSvcCertProvider())
-					}
 
 					serveMux := router.New(cfg, h)
 					server := service.NewServer(
@@ -383,7 +380,7 @@ func Test_clientd_Start(t *testing.T) {
 						token:   token,
 						server:  server,
 						role:    role,
-						svccert: svccert,
+						svccert: nil,
 					}
 				}(),
 				args: args{

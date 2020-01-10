@@ -48,7 +48,7 @@ var (
 	defaultSvcCertRefreshDuration = time.Hour * 24
 
 	// defaultSvcCertExpireMargin represents the default vaule of ExpireMargin.
-	defaultSvcCertExpireMargin = time.Hour * 24 * -10
+	defaultSvcCertExpireMargin = time.Hour * 24 * 10
 
 	// defaultSvcCertExpiration represents the default vaule of Expiration
 	defaultSvcCertExpiration int32 = 0
@@ -118,7 +118,7 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertS
 		dur = defaultSvcCertRefreshDuration
 	}
 
-	beforeDur, err := time.ParseDuration("-" + cfg.ServiceCert.ExpireMargin)
+	beforeDur, err := time.ParseDuration(cfg.ServiceCert.ExpireMargin)
 	if err != nil {
 		glg.Warn("Failed to parse configuration value of expire_margin. Using default value ", err)
 		beforeDur = defaultSvcCertExpireMargin
@@ -158,11 +158,7 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertS
 }
 
 func isValidDomain(domain string) bool {
-	if !domainReg.MatchString(domain) {
-		return false
-	}
-
-	return true
+	return domainReg.MatchString(domain)
 }
 
 func setup(cfg config.Config, expiration int32) (*requestTemplate, *zts.ZTSClient, error) {
@@ -362,7 +358,7 @@ func (s *svcCertService) getSvcCert() ([]byte, error) {
 		cert, err := s.RefreshSvcCert()
 		if err != nil {
 			//  NOTE: When RefreshSvcCert is failed, return the cached certificate if it is not expired
-			if cache.cert != nil && cache.exp.Add(-s.expireMargin).After(fastime.Now()) {
+			if cache.cert != nil && cache.exp.Add(s.expireMargin).After(fastime.Now()) {
 				glg.Warn("Cached certificate is not expired. Return from cache. Error: " + err.Error())
 				return cache.cert, nil
 			}
@@ -413,7 +409,7 @@ func (s *svcCertService) RefreshSvcCert() ([]byte, error) {
 		// update cert cache and expiration
 		cache := certCache{
 			cert: cert,
-			exp:  certificate.NotAfter.Add(s.expireMargin),
+			exp:  certificate.NotAfter.Add(-s.expireMargin),
 		}
 		s.certCache.Store(cache)
 

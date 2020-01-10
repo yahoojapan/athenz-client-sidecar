@@ -116,7 +116,7 @@ func TestNewSvcCertService(t *testing.T) {
 		}(),
 		func() test {
 			dur, _ := time.ParseDuration("30m")
-			beforeDur, _ := time.ParseDuration("-1h")
+			beforeDur, _ := time.ParseDuration("1h")
 			token := func() (string, error) { return "", nil }
 
 			return test{

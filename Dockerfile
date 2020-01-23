@@ -13,7 +13,7 @@ RUN GO111MODULE=on go mod download
 
 FROM base AS builder
 
-ENV APP_NAME client
+ENV APP_NAME athenz-client-sidecar
 
 COPY . .
 
@@ -35,7 +35,7 @@ FROM scratch
 # FROM alpine:latest
 LABEL maintainer "kpango <i.can.feel.gravity@gmail.com>"
 
-ENV APP_NAME client
+ENV APP_NAME athenz-client-sidecar
 
 # Copy certificates for SSL/TLS
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
@@ -44,4 +44,4 @@ COPY --from=builder /etc/passwd /etc/passwd
 # Copy our static executable
 COPY --from=builder /usr/bin/${APP_NAME} /go/bin/${APP_NAME}
 
-ENTRYPOINT ["/go/bin/client"]
+ENTRYPOINT ["/go/bin/athenz-client-sidecar"]

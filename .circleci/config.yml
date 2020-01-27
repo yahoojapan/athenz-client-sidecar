@@ -152,6 +152,10 @@ jobs:
                 echo "0.0.1" > ./.tag
               fi
             fi
+      - run:
+          name: echo version
+          command: |
+            cat ./.tag
       - persist_to_workspace:
           root: .
           paths:

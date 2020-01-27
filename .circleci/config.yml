@@ -44,6 +44,8 @@ jobs:
     <<: *default
     steps:
       - setup_remote_docker: *setup_remote_docker
+      - attach_workspace:
+          at: .
       - checkout
       - run:
           name: check docker version

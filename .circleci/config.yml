@@ -92,7 +92,7 @@ jobs:
           command: |
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
       - run:
-          name: push image to registory
+          name: push image to registry
           command: |
             docker push ${REPO_NAME}/${IMAGE_NAME}
   publish:
@@ -114,7 +114,7 @@ jobs:
           command: |
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
       - run:
-          name: push image to registory
+          name: push image to registry
           command: |
             docker push ${REPO_NAME}/${IMAGE_NAME}
   versioning:

@@ -48,7 +48,7 @@ func parseParams() (*params, error) {
 	f.BoolVar(&p.showVersion,
 		"version",
 		false,
-		"show athenz clientd version")
+		"show athenz-client-sidecar version")
 
 	err := f.Parse(os.Args[1:])
 	if err != nil {
@@ -104,11 +104,11 @@ func main() {
 	}
 
 	if p.showVersion {
-		err := glg.Infof("athenz clientd version -> %s", getVersion())
+		err := glg.Infof("athenz-client-sidecar version -> %s", getVersion())
 		if err != nil {
 			glg.Fatal(err)
 		}
-		err = glg.Infof("athenz clientd config version -> %s", config.GetVersion())
+		err = glg.Infof("athenz-client-sidecar config version -> %s", config.GetVersion())
 		if err != nil {
 			glg.Fatal(err)
 		}

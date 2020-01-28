@@ -64,7 +64,7 @@ jobs:
       - run:
           name: check build version
           command: |
-            docker run --name ${IMAGE_NAME} ${REPO_NAME}/${IMAGE_NAME}:latest --version
+            docker run --rm --name ${IMAGE_NAME} ${REPO_NAME}/${IMAGE_NAME}:latest --version
       - run:
           name: save image
           command: |
@@ -155,7 +155,8 @@ jobs:
       - run:
           name: echo version
           command: |
-            cat ./.tag
+            TAG_FILE='./.tag' \
+            && if [[ -s ${TAG_FILE} ]]; then echo "TAG: `cat "${TAG_FILE}"`"; else echo "TAG: (${TAG_FILE} is empty)"; fi
       - persist_to_workspace:
           root: .
           paths:

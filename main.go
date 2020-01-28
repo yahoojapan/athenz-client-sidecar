@@ -30,7 +30,7 @@ import (
 	"github.com/yahoojapan/athenz-client-sidecar/usecase"
 )
 
-// Version gets set by the build script via LDFLAGS
+// Version is set by the build command via LDFLAGS
 var Version string
 
 type params struct {

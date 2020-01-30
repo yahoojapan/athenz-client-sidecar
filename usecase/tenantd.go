@@ -97,7 +97,7 @@ func createNtokend(cfg config.Token) (ntokend.TokenService, error) {
 	keyData, err := ioutil.ReadFile(config.GetActualValue(cfg.PrivateKeyPath))
 	if err != nil && keyData == nil {
 		if cfg.NTokenPath == "" {
-			return nil, fmt.Errorf("invalid token certificate %v", err)
+			return nil, fmt.Errorf("invalid token private key %v", err)
 		}
 	}
 

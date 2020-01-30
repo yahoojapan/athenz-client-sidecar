@@ -317,7 +317,7 @@ func Test_createNtokend(t *testing.T) {
 				afterFunc: func() {
 					os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"))
 				},
-				wantErr: fmt.Errorf("invalid token certificate open %v", "notexists: no such file or directory"),
+				wantErr: fmt.Errorf("invalid token private key open %v", "notexists: no such file or directory"),
 			}
 		}(),
 		func() test {

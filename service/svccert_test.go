@@ -159,6 +159,49 @@ func TestNewSvcCertService(t *testing.T) {
 		}(),
 		func() test {
 			dur, _ := time.ParseDuration("30m")
+			token := func() (string, error) { return "", nil }
+
+			var largeExpiration int64 = 2566680 // possible max hours value (293y * 365d * 24h = 2557920h)
+			var expectedExpiration int32 = 0    // when expiration parse error, defaultSvcCertExpiration is 0
+
+			return test{
+				name: "Failed to initialize SvcCertService when the maximum expiration value is exceeded",
+				args: args{
+					cfg: config.Config{
+						Token: config.Token{
+							AthenzDomain:   "test.domain",
+							PrivateKeyPath: "./assets/dummyServer.key",
+						},
+						ServiceCert: config.ServiceCert{
+							AthenzRootCA:    "./assets/dummyCa.pem",
+							RefreshDuration: "30m",
+							Expiration:      fmt.Sprintf("%dh", largeExpiration),
+						},
+					},
+					token: token,
+				},
+				want: &svcCertService{
+					cfg: config.ServiceCert{
+						AthenzRootCA:    "./assets/dummyCa.pem",
+						RefreshDuration: "30m",
+						Expiration:      fmt.Sprintf("%dh", largeExpiration),
+					},
+					refreshRequest: &requestTemplate{
+						req: &zts.InstanceRefreshRequest{
+							ExpiryTime: &expectedExpiration,
+						},
+					},
+					token:           token,
+					refreshDuration: dur,
+				},
+				checkfunc: func(actual, expected *svcCertService) bool {
+					return true
+				},
+				wantErr: nil,
+			}
+		}(),
+		func() test {
+			dur, _ := time.ParseDuration("30m")
 			beforeDur, _ := time.ParseDuration("1h")
 			token := func() (string, error) { return "", nil }
 

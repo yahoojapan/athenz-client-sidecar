@@ -124,6 +124,7 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertS
 		beforeDur = defaultSvcCertExpireMargin
 	}
 
+	// the maximum 'cfg.ServiceCert.Expiration' is about 290 years
 	expireDur, err := time.ParseDuration(cfg.ServiceCert.Expiration)
 	var expireInt int32
 	if err != nil {

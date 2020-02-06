@@ -165,7 +165,7 @@ func TestNewSvcCertService(t *testing.T) {
 			var expectedExpiration int32 = 0     // when expiration parse error, defaultSvcCertExpiration is 0
 
 			return test{
-				name: "Failed to initialize SvcCertService when the maximum expiration value is exceeded",
+				name: "Success to initialize SvcCertService using default when the maximum expiration value is exceeded",
 				args: args{
 					cfg: config.Config{
 						Token: config.Token{

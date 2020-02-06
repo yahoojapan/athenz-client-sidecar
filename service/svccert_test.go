@@ -122,7 +122,7 @@ func TestNewSvcCertService(t *testing.T) {
 			var expectedExpiration int32 = 153475200 // possible max expiration minutes value (largeExpirationh * 60m = 153475200m)
 
 			return test{
-				name: "Success to initialize SvcCertService when max expiration for certificate",
+				name: "Success to initialize SvcCertService when it is max expiration of certificate",
 				args: args{
 					cfg: config.Config{
 						Token: config.Token{

@@ -118,8 +118,8 @@ func TestNewSvcCertService(t *testing.T) {
 			dur, _ := time.ParseDuration("30m")
 			token := func() (string, error) { return "", nil }
 
-			var largeExpiration int64 = 2557920      // possible max hours value (292y * 365d * 24h = 2557920h)
-			var expectedExpiration int32 = 153475200 // possible max minutes value (largeExpirationh * 60m = 153475200m)
+			var largeExpiration int64 = 2557920      // possible max expiration hour value (292y * 365d * 24h = 2557920h)
+			var expectedExpiration int32 = 153475200 // possible max expiration minutes value (largeExpirationh * 60m = 153475200m)
 
 			return test{
 				name: "Success to initialize SvcCertService when max expiration for certificate",
@@ -161,7 +161,7 @@ func TestNewSvcCertService(t *testing.T) {
 			dur, _ := time.ParseDuration("30m")
 			token := func() (string, error) { return "", nil }
 
-			var exceedExpiration int64 = 2566680 // possible max hours value (293y * 365d * 24h = 2557920h)
+			var exceedExpiration int64 = 2566680 // exceed max expiration hour value (293y * 365d * 24h = 2557920h)
 			var expectedExpiration int32 = 0     // when expiration parse error, defaultSvcCertExpiration is 0
 
 			return test{

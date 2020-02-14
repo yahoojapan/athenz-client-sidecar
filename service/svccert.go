@@ -114,13 +114,13 @@ type SvcCertProvider func() ([]byte, error)
 func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertService, error) {
 	dur, err := time.ParseDuration(cfg.ServiceCert.RefreshDuration)
 	if err != nil {
-		glg.Warn("Failed to parse configuration value of refresh_duration. Using default value ", err)
+		glg.Warnf("Failed to parse configuration value of refresh_duration, err: %s. Using default value: %d", err.Error(), defaultSvcCertRefreshDuration)
 		dur = defaultSvcCertRefreshDuration
 	}
 
 	beforeDur, err := time.ParseDuration(cfg.ServiceCert.ExpireMargin)
 	if err != nil {
-		glg.Warn("Failed to parse configuration value of expire_margin. Using default value ", err)
+		glg.Warnf("Failed to parse configuration value of expire_margin, err: %s. Using default value: %d", err.Error(), defaultSvcCertExpireMargin)
 		beforeDur = defaultSvcCertExpireMargin
 	}
 
@@ -130,7 +130,7 @@ func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertS
 	expireDur, err := time.ParseDuration(cfg.ServiceCert.Expiration)
 	var expireInt int32
 	if err != nil {
-		glg.Warn("Failed to parse configuration value of expiration. Using default value ", err)
+		glg.Warn("Failed to parse configuration value of expiration, err: %s. Using default value: %d", err.Error(), defaultSvcCertExpiration)
 		expireInt = defaultSvcCertExpiration
 	} else {
 		expireInt = int32(expireDur.Minutes())

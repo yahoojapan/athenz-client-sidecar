@@ -63,7 +63,7 @@ func New(cfg config.Config) (Tenant, error) {
 
 	// Assign the svccert service. If a user does not set enable, sidecar does not handle the request to get the certificate.
 	// And it is disabled by default.
-	var svcCertProvider service.SvcCertProvider = nil
+	var svcCertProvider service.SvcCertProvider
 	if cfg.ServiceCert.Enable {
 		svccert, err := service.NewSvcCertService(cfg, token.GetTokenProvider())
 		if err != nil {

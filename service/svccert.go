@@ -51,7 +51,7 @@ var (
 	defaultSvcCertExpireMargin = time.Hour * 24 * 10
 
 	// defaultSvcCertExpiration represents the default vaule of Expiration
-	defaultSvcCertExpiration int32 = 0
+	defaultSvcCertExpiration int32
 
 	// domainReg is used to parse the athenz domain which is contained in config
 	domainReg = regexp.MustCompile(`^([a-zA-Z0-9_][a-zA-Z0-9_-]*\.)*[a-zA-Z0-9_][a-zA-Z0-9_-]*$`)

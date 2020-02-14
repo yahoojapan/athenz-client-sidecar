@@ -61,7 +61,7 @@ func TestIsValidDomain(t *testing.T) {
 }
 
 func TestNewSvcCertService(t *testing.T) {
-	var defaultExpiration int32 = 0
+	var defaultExpiration int32
 
 	type args struct {
 		cfg   config.Config
@@ -162,7 +162,7 @@ func TestNewSvcCertService(t *testing.T) {
 			token := func() (string, error) { return "", nil }
 
 			var exceedExpiration int64 = 2566680 // exceed max expiration hour value (293y * 365d * 24h = 2557920h)
-			var expectedExpiration int32 = 0     // when expiration parse error, defaultSvcCertExpiration is 0
+			var expectedExpiration int32         // when expiration parse error, defaultSvcCertExpiration is 0
 
 			return test{
 				name: "Success to initialize SvcCertService using default when the maximum expiration value is exceeded",
@@ -854,7 +854,7 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 			return test{
 				name:           "getSvcCert returns value from cache when failed to refresh and Not After of cache is after now.",
 				svcCertService: svcCertService,
-				want:           append(dummyCertBytes),
+				want:           dummyCertBytes,
 				wantErr:        nil,
 			}
 		}(),

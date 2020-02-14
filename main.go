@@ -30,6 +30,9 @@ import (
 	"github.com/yahoojapan/athenz-client-sidecar/usecase"
 )
 
+// Version is set by the build command via LDFLAGS
+var Version string
+
 type params struct {
 	configFilePath string
 	showVersion    bool
@@ -45,7 +48,7 @@ func parseParams() (*params, error) {
 	f.BoolVar(&p.showVersion,
 		"version",
 		false,
-		"show athenz clientd version")
+		"show athenz-client-sidecar version")
 
 	err := f.Parse(os.Args[1:])
 	if err != nil {
@@ -101,7 +104,14 @@ func main() {
 	}
 
 	if p.showVersion {
-		glg.Infof("athenz clientd version -> %s", config.GetVersion())
+		err := glg.Infof("athenz-client-sidecar version -> %s", getVersion())
+		if err != nil {
+			glg.Fatal(err)
+		}
+		err = glg.Infof("athenz-client-sidecar config version -> %s", config.GetVersion())
+		if err != nil {
+			glg.Fatal(err)
+		}
 		return
 	}
 
@@ -121,4 +131,11 @@ func main() {
 		glg.Fatal(errs)
 		return
 	}
+}
+
+func getVersion() string {
+	if Version == "" {
+		return "development version"
+	}
+	return Version
 }

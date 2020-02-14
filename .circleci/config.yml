@@ -4,7 +4,7 @@ alias:
   default: &default
     working_directory: /go/src/github.com/yahoojapan/athenz-client-sidecar
     docker:
-      - image: circleci/golang:1.12
+      - image: circleci/golang:1.13
         environment:
           GOPATH: "/go"
           GO111MODULE: "on"
@@ -14,7 +14,6 @@ alias:
           DOCKER_USER: "kpango"
   setup_remote_docker: &setup_remote_docker
     version: 18.06.0-ce
-    docker_layer_caching: true
 
 version: 2
 jobs:
@@ -45,6 +44,8 @@ jobs:
     <<: *default
     steps:
       - setup_remote_docker: *setup_remote_docker
+      - attach_workspace:
+          at: .
       - checkout
       - run:
           name: check docker version
@@ -53,8 +54,22 @@ jobs:
       - run:
           name: docker image build
           command: |
-            # env DOCKER_BUILDKIT=1 docker build -t ${REPO_NAME}/${IMAGE_NAME}:latest .
-            docker build -t ${REPO_NAME}/${IMAGE_NAME}:latest .
+            if [ ! -z "$CIRCLE_TAG" ]; then
+              echo '$CIRCLE_TAG exists, use: '"$CIRCLE_TAG"
+              TAG="$CIRCLE_TAG"
+            elif [ -f ./.tag ]; then
+              TAG=`cat ./.tag`
+            fi
+            if [ ! -z "$TAG" ]; then
+              docker build --build-arg APP_VERSION=${TAG} -t ${REPO_NAME}/${IMAGE_NAME}:latest .
+            else
+              # env DOCKER_BUILDKIT=1 docker build -t ${REPO_NAME}/${IMAGE_NAME}:latest .
+              docker build -t ${REPO_NAME}/${IMAGE_NAME}:latest .
+            fi
+      - run:
+          name: check build version
+          command: |
+            docker run --rm --name ${IMAGE_NAME} ${REPO_NAME}/${IMAGE_NAME}:latest --version
       - run:
           name: save image
           command: |
@@ -82,9 +97,9 @@ jobs:
           command: |
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
       - run:
-          name: push image to registory
+          name: push image to registry
           command: |
-            docker push ${REPO_NAME}/${IMAGE_NAME}
+            docker push ${REPO_NAME}/${IMAGE_NAME}:nightly
   publish:
     <<: *default
     steps:
@@ -104,7 +119,7 @@ jobs:
           command: |
             docker login -u ${DOCKER_USER} -p ${DOCKER_PASS}
       - run:
-          name: push image to registory
+          name: push image to registry
           command: |
             docker push ${REPO_NAME}/${IMAGE_NAME}
   versioning:
@@ -142,6 +157,11 @@ jobs:
                 echo "0.0.1" > ./.tag
               fi
             fi
+      - run:
+          name: echo version
+          command: |
+            TAG_FILE='./.tag' \
+            && if [[ -s ${TAG_FILE} ]]; then echo "TAG: `cat "${TAG_FILE}"`"; else echo "TAG: (${TAG_FILE} is empty)"; fi
       - persist_to_workspace:
           root: .
           paths:
@@ -189,7 +209,10 @@ workflows:
   build:
     jobs:
       - test
-      - build
+      - versioning
+      - build:
+          requires:
+            - versioning
       - publish_nightly:
           requires:
             - test
@@ -198,12 +221,11 @@ workflows:
             branches:
               only:
                 - master
-      - versioning:
+      - push:
           filters:
             branches:
               only:
                 - master
-      - push:
           requires:
             - versioning
       - gh_release:
@@ -225,4 +247,3 @@ workflows:
               ignore: /.*/
             tags:
               only: /[0-9]+\.[0-9]+\.[0-9]+/
-

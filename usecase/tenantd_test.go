@@ -182,7 +182,10 @@ func TestNew(t *testing.T) {
 					if err != nil {
 						panic(err)
 					}
-					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					if err != nil {
+						panic(err)
+					}
 
 					h := handler.New(
 						cfg.Proxy,
@@ -359,7 +362,10 @@ func Test_clientd_Start(t *testing.T) {
 					if err != nil {
 						panic(err)
 					}
-					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					if err != nil {
+						panic(err)
+					}
 
 					h := handler.New(
 						cfg.Proxy,
@@ -485,7 +491,7 @@ func Test_createNtokend(t *testing.T) {
 				afterFunc: func() {
 					os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"))
 				},
-				wantErr: fmt.Errorf("invalid token certificate open %v", "notexists: no such file or directory"),
+				wantErr: fmt.Errorf("invalid token private key open %v", "notexists: no such file or directory"),
 			}
 		}(),
 		func() test {

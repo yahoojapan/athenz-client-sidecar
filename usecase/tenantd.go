@@ -21,6 +21,7 @@ import (
 	"io/ioutil"
 	"time"
 
+	"github.com/kpango/glg"
 	ntokend "github.com/kpango/ntokend"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"github.com/yahoojapan/athenz-client-sidecar/handler"
@@ -52,7 +53,10 @@ func New(cfg config.Config) (Tenant, error) {
 	}
 
 	// create role service
-	role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+	role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+	if err != nil {
+		return nil, err
+	}
 
 	// create svccert service
 	var svccert service.SvcCertService
@@ -95,13 +99,17 @@ func New(cfg config.Config) (Tenant, error) {
 // Start returns a error slice channel. This error channel contains the error returned by client sidecar daemon.
 func (t *clientd) Start(ctx context.Context) chan []error {
 	t.token.StartTokenUpdater(ctx)
-	t.role.StartRoleUpdater(ctx)
 
 	// t.svccert only is null when the configuration of ServiceCert is disabled
 	if t.svccert != nil {
 		t.svccert.StartSvcCertUpdater(ctx)
 	}
 
+	go func() {
+		for err := range t.role.StartRoleUpdater(ctx) {
+			glg.Error(err)
+		}
+	}()
 	return t.server.ListenAndServe(ctx)
 }
 
@@ -120,7 +128,7 @@ func createNtokend(cfg config.Token) (ntokend.TokenService, error) {
 	keyData, err := ioutil.ReadFile(config.GetActualValue(cfg.PrivateKeyPath))
 	if err != nil && keyData == nil {
 		if cfg.NTokenPath == "" {
-			return nil, fmt.Errorf("invalid token certificate %v", err)
+			return nil, fmt.Errorf("invalid token private key %v", err)
 		}
 	}
 

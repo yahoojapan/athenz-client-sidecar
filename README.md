@@ -89,13 +89,13 @@ User can also use the reverse proxy endpoint to proxy the request to another ser
 - Only accept HTTP POST request.
 - Request body must contains below information in JSON format.
 
-| Name                | Description                                                 | Required? | Example           |
-| ------------------- | ----------------------------------------------------------- | --------- | ----------------- |
-| domain              | Role token domain name                                      | Yes       | domain.shopping   |
-| role                | Role token role name                                        | Yes       | users             |
-| proxy_for_principal | Role token proxyForPrincipal name                           | No        | proxyForPrincipal |
-| min_expiry          | Role token minimal expiry time (in second)                  | No        | 100               |
-| max_expiry          | Role token maximum expiry time (in second), Default is 7200 | No        | 1000              |
+| Name                | Description                                | Required? | Example           |
+| ------------------- | ------------------------------------------ | --------- | ----------------- |
+| domain              | Role token domain name                     | Yes       | domain.shopping   |
+| role                | Role token role name                       | No        | users             |
+| proxy_for_principal | Role token proxyForPrincipal name          | No        | proxyForPrincipal |
+| min_expiry          | Role token minimal expiry time (in second) | No        | 100               |
+| max_expiry          | Role token maximum expiry time (in second) | No        | 1000              |
 
 Example:
 
@@ -104,8 +104,8 @@ Example:
   "domain": "domain.shopping",
   "role": "users",
   "proxy_for_principal": "proxyForPrincipal",
-  "minExpiry": 100,
-  "maxExpiry": 1000
+  "min_expiry": 100,
+  "max_expiry": 1000
 }
 ```
 
@@ -213,7 +213,6 @@ import (
     "encoding/json"
     "fmt"
     "net/http"
-    "time"
 
     "github.com/yahoojapan/athenz-client-sidecar/model"
 )
@@ -224,7 +223,7 @@ const scPort = "8081"
 type RoleRequest = model.RoleRequest
 type RoleResponse = model.RoleResponse
 
-func GetRoleToken(domain, role, proxyForPrincipal string, minExpiry, maxExpiry time.Duration) (*RoleResponse, error) {
+func GetRoleToken(domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) (*RoleResponse, error) {
     url := fmt.Sprintf("http://%s:%s/roletoken", scURL, scPort)
 
     r := &RoleRequest{

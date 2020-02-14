@@ -45,3 +45,8 @@ type NTokenResponse struct {
 	// NToken represent the N-token generated.
 	NToken string `json:"token"`
 }
+
+// SvcCertResponse represent the response information of get svccert request.
+type SvcCertResponse struct {
+	Cert []byte `json:"cert"`
+}

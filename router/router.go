@@ -30,18 +30,18 @@ import (
 )
 
 //New returns Routed ServeMux
-func New(cfg config.Server, h handler.Handler) *http.ServeMux {
+func New(cfg config.Config, h handler.Handler) *http.ServeMux {
 
 	http.DefaultTransport.(*http.Transport).MaxIdleConnsPerHost = 32
 
 	mux := http.NewServeMux()
 
-	dur, err := time.ParseDuration(cfg.Timeout)
+	dur, err := time.ParseDuration(cfg.Server.Timeout)
 	if err != nil {
 		dur = time.Second * 3
 	}
 
-	for _, route := range NewRoutes(h) {
+	for _, route := range NewRoutes(cfg, h) {
 		mux.Handle(route.Pattern, routing(route.Methods, dur, route.HandlerFunc))
 	}
 

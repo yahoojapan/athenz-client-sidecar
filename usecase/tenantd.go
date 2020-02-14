@@ -36,10 +36,11 @@ type Tenant interface {
 }
 
 type clientd struct {
-	cfg    config.Config
-	token  ntokend.TokenService
-	server service.Server
-	role   service.RoleService
+	cfg     config.Config
+	token   ntokend.TokenService
+	server  service.Server
+	role    service.RoleService
+	svccert service.SvcCertService
 }
 
 // New returns a client sidecar daemon, or any error occurred.
@@ -57,23 +58,53 @@ func New(cfg config.Config) (Tenant, error) {
 		return nil, err
 	}
 
-	serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider()))
+	// create svccert service
+	var svccert service.SvcCertService
+
+	// Assign the svccert service. If a user does not set enable, sidecar does not handle the request to get the certificate.
+	// And it is disabled by default.
+	var svcCertProvider service.SvcCertProvider = nil
+	if cfg.ServiceCert.Enable {
+		svccert, err := service.NewSvcCertService(cfg, token.GetTokenProvider())
+		if err != nil {
+			return nil, err
+		}
+		svcCertProvider = svccert.GetSvcCertProvider()
+	}
+
+	// create handler
+	h := handler.New(
+		cfg.Proxy,
+		infra.NewBuffer(cfg.Proxy.BufferSize),
+		token.GetTokenProvider(),
+		role.GetRoleProvider(),
+		svcCertProvider,
+	)
+
+	serveMux := router.New(cfg, h)
 	srv := service.NewServer(
 		service.WithServerConfig(cfg.Server),
 		service.WithServerHandler(serveMux),
 	)
 
 	return &clientd{
-		cfg:    cfg,
-		token:  token,
-		role:   role,
-		server: srv,
+		cfg:     cfg,
+		token:   token,
+		role:    role,
+		svccert: svccert,
+		server:  srv,
 	}, nil
 }
 
 // Start returns a error slice channel. This error channel contains the error returned by client sidecar daemon.
 func (t *clientd) Start(ctx context.Context) chan []error {
 	t.token.StartTokenUpdater(ctx)
+
+	// t.svccert only is null when the configuration of ServiceCert is disabled
+	if t.svccert != nil {
+		t.svccert.StartSvcCertUpdater(ctx)
+	}
+
 	go func() {
 		for err := range t.role.StartRoleUpdater(ctx) {
 			glg.Error(err)

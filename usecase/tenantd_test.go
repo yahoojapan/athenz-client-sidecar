@@ -121,7 +121,10 @@ func TestNew(t *testing.T) {
 					if err != nil {
 						panic(err)
 					}
-					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					if err != nil {
+						panic(err)
+					}
 
 					var svccert service.SvcCertService
 					svccert, _ = service.NewSvcCertService(cfg, token.GetTokenProvider())
@@ -241,7 +244,10 @@ func TestNew(t *testing.T) {
 					if err != nil {
 						panic(err)
 					}
-					role := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					if err != nil {
+						panic(err)
+					}
 
 					h := handler.New(
 						cfg.Proxy,

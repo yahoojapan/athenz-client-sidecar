@@ -7,25 +7,28 @@
 Table of Contents
 =================
 
-- [Athenz Client Sidecar for Kubernetes](#athenz-client-sidecar-for-kubernetes)
-  - [What is Athenz client sidecar?](#what-is-athenz-client-sidecar)
-    - [Get Athenz N-Token from client sidecar](#get-athenz-n-token-from-client-sidecar)
-    - [Get Athenz Role Token from client sidecar](#get-athenz-role-token-from-client-sidecar)
-    - [Proxy HTTP request (add corresponding Athenz authorization token)](#proxy-http-request-add-corresponding-athenz-authorization-token)
-  - [Use Case](#use-case)
-  - [Specification](#specification)
-    - [Get N-token from Athenz through client sidecar](#get-n-token-from-athenz-through-client-sidecar)
-    - [Get role token from Athenz through client sidecar](#get-role-token-from-athenz-through-client-sidecar)
-    - [Proxy requests and append N-token authentication header](#proxy-requests-and-append-n-token-authentication-header)
-    - [Proxy requests and append role token authentication header](#proxy-requests-and-append-role-token-authentication-header)
-  - [Configuration](#configuration)
-  - [Developer Guide](#developer-guide)
-    - [Example code](#example-code)
-      - [Get N-token from client sidecar](#get-n-token-from-client-sidecar)
-      - [Get role token from client sidecar](#get-role-token-from-client-sidecar)
-      - [Proxy request through client sidecar (append N-token)](#proxy-request-through-client-sidecar-append-n-token)
-      - [Proxy request through client sidecar (append role token)](#proxy-request-through-client-sidecar-append-role-token)
-  - [Deployment Procedure](#deployment-procedure)
+- [Table of Contents](#table-of-contents)
+    - [What is Athenz client sidecar?](#what-is-athenz-client-sidecar)
+        - [Get Athenz N-Token from client sidecar](#get-athenz-n-token-from-client-sidecar)
+        - [Get Athenz Role Token from client sidecar](#get-athenz-role-token-from-client-sidecar)
+        - [Proxy HTTP request (add corresponding Athenz authorization token)](#proxy-http-request-add-corresponding-athenz-authorization-token)
+    - [Use Case](#use-case)
+    - [Specification](#specification)
+        - [Get N-token from Athenz through client sidecar](#get-n-token-from-athenz-through-client-sidecar)
+        - [Get role token from Athenz through client sidecar](#get-role-token-from-athenz-through-client-sidecar)
+        - [Proxy requests and append N-token authentication header](#proxy-requests-and-append-n-token-authentication-header)
+        - [Proxy requests and append role token authentication header](#proxy-requests-and-append-role-token-authentication-header)
+    - [Configuration](#configuration)
+    - [Developer Guide](#developer-guide)
+        - [Example code](#example-code)
+            - [Get N-token from client sidecar](#get-n-token-from-client-sidecar)
+            - [Get role token from client sidecar](#get-role-token-from-client-sidecar)
+            - [Proxy request through client sidecar (append N-token)](#proxy-request-through-client-sidecar-append-n-token)
+            - [Proxy request through client sidecar (append role token)](#proxy-request-through-client-sidecar-append-role-token)
+    - [Deployment Procedure](#deployment-procedure)
+    - [License](#license)
+    - [Contributor License Agreement](#contributor-license-agreement)
+    - [Authors](#authors)
 
 ## What is Athenz client sidecar?
 
@@ -58,6 +61,8 @@ User can also use the reverse proxy endpoint to proxy the request to another ser
    - Get service token from Athenz
 1. `POST /roletoken`
    - Get role token from Athenz
+1. `GET /svccert`
+   - Get service certificate from Athenz
 1. `/proxy/ntoken`
    - Append service token to the request header, and send the request to proxy destination
 1. `/proxy/roletoken`

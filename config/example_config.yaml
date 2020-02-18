@@ -1,5 +1,5 @@
 ---
-version: v1.0.0
+version: v1.1.0
 server:
   port: 8080
   health_check_port: 80

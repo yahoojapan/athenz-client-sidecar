@@ -201,7 +201,7 @@ type Subject struct {
 }
 
 const (
-	currentVersion = "v1.0.0"
+	currentVersion = "v1.1.0"
 )
 
 // New returns *Config or error when decode the configuration file to actually *Config struct.

@@ -257,7 +257,7 @@ func (r *roleService) RefreshRoleTokenCache(ctx context.Context) <-chan error {
 }
 
 func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) <-chan error {
-	glg.Debugf("updateRoleTokenWithRetry started, domain: %s, role: %s, proxyForPrincipal: %s, minExpiry: %s, maxExpiry: %s", domain, role, proxyForPrincipal, minExpiry, maxExpiry)
+	glg.Debugf("updateRoleTokenWithRetry started, domain: %s, role: %s, proxyForPrincipal: %s, minExpiry: %d, maxExpiry: %d", domain, role, proxyForPrincipal, minExpiry, maxExpiry)
 
 	echan := make(chan error, r.errRetryMaxCount+1)
 	go func() {

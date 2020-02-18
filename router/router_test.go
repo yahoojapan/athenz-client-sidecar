@@ -39,10 +39,10 @@ func TestNew(t *testing.T) {
 		RoleAuthHeaderName:      "X-test-role-header",
 		BufferSize:              1024,
 	}
-	h := handler.New(proxyConfig, nil, nil, nil)
+	h := handler.New(proxyConfig, nil, nil, nil, nil)
 
 	type args struct {
-		cfg config.Server
+		cfg config.Config
 		h   handler.Handler
 	}
 	tests := []struct {
@@ -54,8 +54,10 @@ func TestNew(t *testing.T) {
 		{
 			name: "Check whether New() returns ServeMux",
 			args: args{
-				cfg: config.Server{
-					Timeout: "10s",
+				cfg: config.Config{
+					Server: config.Server{
+						Timeout: "10s",
+					},
 				},
 				h: h,
 			},
@@ -64,8 +66,10 @@ func TestNew(t *testing.T) {
 		{
 			name: "Config is wrong but New() returns ServeMux",
 			args: args{
-				cfg: config.Server{
-					Timeout: "10_WRONG!!!!!!!",
+				cfg: config.Config{
+					Server: config.Server{
+						Timeout: "10_WRONG!!!!!!!",
+					},
 				},
 				h: h,
 			},

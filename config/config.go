@@ -41,6 +41,9 @@ type Config struct {
 
 	// Proxy represent the configuration of the reverse proxy server to connect to athenz to get N-token and role token.
 	Proxy Proxy `yaml:"proxy"`
+
+	// ServiceCert represent the configuration of the service identify in the form of short-lived X.509 certificates that can be used instead of N-token in athenz.
+	ServiceCert ServiceCert `yaml:"service_cert"`
 }
 
 // Server represent client sidecar server and health check server configuration.
@@ -143,6 +146,58 @@ type Role struct {
 
 	// ErrRetryInterval represent the error retry interval when refreshing the role token cache.
 	ErrRetryInterval string `yaml:"err_retry_interval"`
+}
+
+// ServiceCert represent the service cert configuration
+type ServiceCert struct {
+	// Enable decides wheather use service cert
+	Enable bool `yaml:"enable"`
+
+	// AthenzURL represent the athenz URL to get the role token
+	AthenzURL string `yaml:"athenz_url"`
+
+	// AthenzRootCA represent the Athenz server Root Certificate
+	AthenzRootCA string `yaml:"athenz_root_ca"`
+
+	// DNSSuffix is the suffix of SAN
+	DNSSuffix string `yaml:"dns_suffix"`
+
+	// RefreshDuration represent the svccert refresh duration
+	RefreshDuration string `yaml:"refresh_duration"`
+
+	// ExpireMargin represent the duration.
+	// Certificate is updated before ExpireMargin in "Not After" field.
+	ExpireMargin string `yaml:"expire_margin"`
+
+	// Expiration represents the duration of expire time for the certificate.
+	Expiration string `yaml:"expiration"`
+
+	// IntermediateCert decides wheather concatinate intermediate cert to end-entity cert
+	IntermediateCert bool `yaml:"intermediate_cert"`
+
+	// PrincipalAuthHeaderName is the HTTP header name for holding the n-token.
+	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
+
+	// Spiffe decides wheather include spiffe or not
+	Spiffe bool `yaml:"spiffe"`
+
+	// Subject is subject fields of the certificate
+	Subject Subject `yaml:"subject"`
+}
+
+// Subject represent subject fields of the certificate
+type Subject struct {
+	// Country is the Subject C/Country field of certificate
+	Country string `yaml:"country"`
+
+	// Province is the Subject ST/State or Province field of certificate
+	Province string `yaml:"province"`
+
+	// Organization is the Subject O/Organization field of the certificate
+	Organization string `yaml:"organization"`
+
+	// OrganizationalUnit is the Subject OU/OrganizationalUnit field of the certificate
+	OrganizationalUnit string `yaml:"organizational_unit"`
 }
 
 const (

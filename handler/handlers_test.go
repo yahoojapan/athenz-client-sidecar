@@ -77,10 +77,11 @@ func EqualResponse(writer http.ResponseWriter, code int, header map[string]strin
 
 func TestNew(t *testing.T) {
 	type args struct {
-		cfg   config.Proxy
-		bp    httputil.BufferPool
-		token ntokend.TokenProvider
-		role  service.RoleProvider
+		cfg     config.Proxy
+		bp      httputil.BufferPool
+		token   ntokend.TokenProvider
+		role    service.RoleProvider
+		svcCert service.SvcCertProvider
 	}
 	type testcase struct {
 		name      string
@@ -105,6 +106,9 @@ func TestNew(t *testing.T) {
 						Token:      "role-token-89",
 						ExpiryTime: 90,
 					}, fmt.Errorf("get-role-token-error-91")
+				},
+				svcCert: func() ([]byte, error) {
+					return []byte("svccert"), fmt.Errorf("svccert-error")
 				},
 			},
 			want: &handler{
@@ -143,6 +147,16 @@ func TestNew(t *testing.T) {
 					return &NotEqualError{"role() err", gotError, wantError}
 				}
 
+				// svccert
+				gotSvcCert, gotError := got.svcCert()
+				wantSvcCert, wantError := []byte("svccert"), fmt.Errorf("svccert-error")
+				if !reflect.DeepEqual(gotSvcCert, wantSvcCert) {
+					return &NotEqualError{"svccert()", gotSvcCert, wantSvcCert}
+				}
+				if !reflect.DeepEqual(gotError, wantError) {
+					return &NotEqualError{"svccert() err", gotError, wantError}
+				}
+
 				return nil
 			},
 		},
@@ -150,7 +164,7 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := New(tt.args.cfg, tt.args.bp, tt.args.token, tt.args.role)
+			got := New(tt.args.cfg, tt.args.bp, tt.args.token, tt.args.role, tt.args.svcCert)
 			if err := tt.checkFunc(got.(*handler), tt.want); err != nil {
 				t.Errorf("New() %v", err)
 				return
@@ -1042,6 +1056,89 @@ func Test_flushAndClose(t *testing.T) {
 			gotError := flushAndClose(tt.args.readCloser)
 			if !reflect.DeepEqual(gotError, tt.wantError) {
 				t.Errorf("flushAndClose() error = %v, want %v", gotError, tt.wantError)
+			}
+		})
+	}
+}
+
+func Test_handler_ServiceCert(t *testing.T) {
+	type fields struct {
+		cert service.SvcCertProvider
+	}
+	type args struct {
+		w http.ResponseWriter
+		r *http.Request
+	}
+	type want struct {
+		code   int
+		header map[string]string
+		body   []byte
+	}
+	type testcase struct {
+		name      string
+		fields    fields
+		args      args
+		want      want
+		wantError error
+	}
+	tests := []testcase{
+		{
+			name: "Check ServiceCert, get svccert success",
+			fields: fields{
+				cert: func() (cert []byte, err error) {
+					return []byte("Test cert"), nil
+				},
+			},
+			args: args{
+				w: httptest.NewRecorder(),
+				r: httptest.NewRequest(http.MethodGet, "http://url-336", nil),
+			},
+			want: want{
+				code:   http.StatusOK,
+				header: map[string]string{"Content-Type": "application/json; charset=utf-8"},
+				body:   []byte("{\"cert\":\"VGVzdCBjZXJ0\"}\n"),
+			},
+			wantError: nil,
+		},
+		{
+			name: "Check ServiceCert, get svccert fail",
+			fields: fields{
+				cert: func() (cert []byte, err error) {
+					return nil, fmt.Errorf("svccert error")
+				},
+			},
+			args: args{
+				w: httptest.NewRecorder(),
+				r: httptest.NewRequest(http.MethodGet, "http://url-336", nil),
+			},
+			// In this case, h.ServiceCert is expected to return error.
+			want:      want{},
+			wantError: fmt.Errorf("svccert error"),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			var err error
+			h := &handler{
+				svcCert: tt.fields.cert,
+			}
+
+			gotSvcError := h.ServiceCert(tt.args.w, tt.args.r)
+			if !reflect.DeepEqual(gotSvcError, tt.wantError) {
+				err = &NotEqualError{"error", gotSvcError, tt.wantError}
+			}
+			if err != nil {
+				t.Errorf("handler.ServiceCert() %v", err)
+				return
+			}
+			if tt.wantError != nil {
+				return
+			}
+			err = EqualResponse(tt.args.w, tt.want.code, tt.want.header, tt.want.body)
+			if err != nil {
+				t.Errorf("handler.ServiceCert() %v", err)
+				return
 			}
 		})
 	}

@@ -73,10 +73,44 @@ func TestNew(t *testing.T) {
 				Server: config.Server{
 					HealthzPath: "/dummyPath",
 				},
+				ServiceCert: config.ServiceCert{
+					Enable:       true,
+					AthenzRootCA: "ca.pem",
+				},
 			}
 
 			return test{
-				name: "Check success",
+				name: "Check failure when svccert is enabled but AthenzRootCA file path is wrong",
+				args: args{
+					cfg: cfg,
+				},
+				wantErr: fmt.Errorf("Failed to initialize a service"),
+			}
+		}(),
+		func() test {
+			keyKey := "_dummyKey_"
+			key := "./assets/dummyServer.key"
+			cfg := config.Config{
+				Token: config.Token{
+					AthenzDomain:    strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					ServiceName:     strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					PrivateKeyPath:  key,
+					ValidateToken:   false,
+					RefreshDuration: "1m",
+					KeyVersion:      "1",
+					Expiration:      "1m",
+					NTokenPath:      "",
+				},
+				Server: config.Server{
+					HealthzPath: "/dummyPath",
+				},
+				ServiceCert: config.ServiceCert{
+					Enable: true,
+				},
+			}
+
+			return test{
+				name: "Check success when svccert is enabled",
 				args: args{
 					cfg: cfg,
 				},
@@ -92,7 +126,138 @@ func TestNew(t *testing.T) {
 						panic(err)
 					}
 
-					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider()))
+					var svccert service.SvcCertService
+					svccert, _ = service.NewSvcCertService(cfg, token.GetTokenProvider())
+					h := handler.New(
+						cfg.Proxy,
+						infra.NewBuffer(cfg.Proxy.BufferSize),
+						token.GetTokenProvider(),
+						role.GetRoleProvider(),
+						svccert.GetSvcCertProvider(),
+					)
+
+					serveMux := router.New(cfg, h)
+					server := service.NewServer(
+						service.WithServerConfig(cfg.Server),
+						service.WithServerHandler(serveMux),
+					)
+
+					return &clientd{
+						cfg:    cfg,
+						token:  token,
+						server: server,
+						role:   role,
+					}
+				}(),
+			}
+		}(),
+		func() test {
+			keyKey := "_dummyKey_"
+			key := "./assets/dummyServer.key"
+			cfg := config.Config{
+				Token: config.Token{
+					AthenzDomain:    strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					ServiceName:     strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					PrivateKeyPath:  key,
+					ValidateToken:   false,
+					RefreshDuration: "1m",
+					KeyVersion:      "1",
+					Expiration:      "1m",
+					NTokenPath:      "",
+				},
+				Server: config.Server{
+					HealthzPath: "/dummyPath",
+				},
+				ServiceCert: config.ServiceCert{
+					Enable: false,
+				},
+			}
+
+			return test{
+				name: "Check success when ServiceCert is disabled",
+				args: args{
+					cfg: cfg,
+				},
+				want: func() Tenant {
+					os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key)
+					defer os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"))
+					token, err := createNtokend(cfg.Token)
+					if err != nil {
+						panic(err)
+					}
+					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					if err != nil {
+						panic(err)
+					}
+
+					h := handler.New(
+						cfg.Proxy,
+						infra.NewBuffer(cfg.Proxy.BufferSize),
+						token.GetTokenProvider(),
+						role.GetRoleProvider(),
+						nil,
+					)
+
+					serveMux := router.New(cfg, h)
+					server := service.NewServer(
+						service.WithServerConfig(cfg.Server),
+						service.WithServerHandler(serveMux),
+					)
+
+					return &clientd{
+						cfg:    cfg,
+						token:  token,
+						server: server,
+						role:   role,
+					}
+				}(),
+			}
+		}(),
+		func() test {
+			keyKey := "_dummyKey_"
+			key := "./assets/dummyServer.key"
+			cfg := config.Config{
+				Token: config.Token{
+					AthenzDomain:    strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					ServiceName:     strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					PrivateKeyPath:  key,
+					ValidateToken:   false,
+					RefreshDuration: "1m",
+					KeyVersion:      "1",
+					Expiration:      "1m",
+					NTokenPath:      "",
+				},
+				Server: config.Server{
+					HealthzPath: "/dummyPath",
+				},
+			}
+
+			return test{
+				name: "Check success without svccert settings",
+				args: args{
+					cfg: cfg,
+				},
+				want: func() Tenant {
+					os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key)
+					defer os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"))
+					token, err := createNtokend(cfg.Token)
+					if err != nil {
+						panic(err)
+					}
+					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					if err != nil {
+						panic(err)
+					}
+
+					h := handler.New(
+						cfg.Proxy,
+						infra.NewBuffer(cfg.Proxy.BufferSize),
+						token.GetTokenProvider(),
+						role.GetRoleProvider(),
+						nil,
+					)
+
+					serveMux := router.New(cfg, h)
 					server := service.NewServer(
 						service.WithServerConfig(cfg.Server),
 						service.WithServerHandler(serveMux),
@@ -140,10 +305,11 @@ func TestNew(t *testing.T) {
 
 func Test_clientd_Start(t *testing.T) {
 	type fields struct {
-		cfg    config.Config
-		token  ntokend.TokenService
-		server service.Server
-		role   service.RoleService
+		cfg     config.Config
+		token   ntokend.TokenService
+		server  service.Server
+		role    service.RoleService
+		svccert service.SvcCertService
 	}
 	type args struct {
 		ctx context.Context
@@ -169,7 +335,7 @@ func Test_clientd_Start(t *testing.T) {
 				Token: config.Token{
 					AthenzDomain:    strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
 					ServiceName:     strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					PrivateKeyPath:  keyKey,
+					PrivateKeyPath:  key,
 					ValidateToken:   false,
 					RefreshDuration: "1m",
 					KeyVersion:      "1",
@@ -183,6 +349,10 @@ func Test_clientd_Start(t *testing.T) {
 						Cert:    certKey,
 						Key:     keyKey,
 					},
+				},
+				ServiceCert: config.ServiceCert{
+					AthenzRootCA:    "./assets/dummyCa.pem",
+					RefreshDuration: "",
 				},
 			}
 
@@ -203,17 +373,26 @@ func Test_clientd_Start(t *testing.T) {
 						panic(err)
 					}
 
-					serveMux := router.New(cfg.Server, handler.New(cfg.Proxy, infra.NewBuffer(cfg.Proxy.BufferSize), token.GetTokenProvider(), role.GetRoleProvider()))
+					h := handler.New(
+						cfg.Proxy,
+						infra.NewBuffer(cfg.Proxy.BufferSize),
+						token.GetTokenProvider(),
+						role.GetRoleProvider(),
+						nil,
+					)
+
+					serveMux := router.New(cfg, h)
 					server := service.NewServer(
 						service.WithServerConfig(cfg.Server),
 						service.WithServerHandler(serveMux),
 					)
 
 					return fields{
-						cfg:    cfg,
-						token:  token,
-						server: server,
-						role:   role,
+						cfg:     cfg,
+						token:   token,
+						server:  server,
+						role:    role,
+						svccert: nil,
 					}
 				}(),
 				args: args{
@@ -250,10 +429,11 @@ func Test_clientd_Start(t *testing.T) {
 			}
 
 			te := &clientd{
-				cfg:    tt.fields.cfg,
-				token:  tt.fields.token,
-				server: tt.fields.server,
-				role:   tt.fields.role,
+				cfg:     tt.fields.cfg,
+				token:   tt.fields.token,
+				server:  tt.fields.server,
+				role:    tt.fields.role,
+				svccert: tt.fields.svccert,
 			}
 			got := te.Start(tt.args.ctx)
 			if err := tt.checkFunc(got, tt.want); err != nil {
@@ -343,10 +523,7 @@ func Test_createNtokend(t *testing.T) {
 				afterFunc: func() {
 					os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"))
 				},
-				wantErr: fmt.Errorf(`failed to create ZMS SVC Token Builder
-AthenzDomain:	
-ServiceName:	
-KeyVersion:	: Unable to create signer: Unable to load private key`),
+				wantErr: fmt.Errorf("failed to create ZMS SVC Token Builder\nAthenzDomain:\t\nServiceName:\t\nKeyVersion:\t: Unable to create signer: Unable to load private key"),
 			}
 		}(),
 		func() test {

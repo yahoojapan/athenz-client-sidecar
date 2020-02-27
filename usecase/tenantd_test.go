@@ -121,6 +121,10 @@ func TestNew(t *testing.T) {
 					if err != nil {
 						panic(err)
 					}
+					access, err := service.NewAccessService(cfg.Access, token.GetTokenProvider())
+					if err != nil {
+						panic(err)
+					}
 					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
 					if err != nil {
 						panic(err)
@@ -132,6 +136,7 @@ func TestNew(t *testing.T) {
 						cfg.Proxy,
 						infra.NewBuffer(cfg.Proxy.BufferSize),
 						token.GetTokenProvider(),
+						access.GetAccessProvider(),
 						role.GetRoleProvider(),
 						svccert.GetSvcCertProvider(),
 					)
@@ -185,6 +190,10 @@ func TestNew(t *testing.T) {
 					if err != nil {
 						panic(err)
 					}
+					access, err := service.NewAccessService(cfg.Access, token.GetTokenProvider())
+					if err != nil {
+						panic(err)
+					}
 					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
 					if err != nil {
 						panic(err)
@@ -194,6 +203,7 @@ func TestNew(t *testing.T) {
 						cfg.Proxy,
 						infra.NewBuffer(cfg.Proxy.BufferSize),
 						token.GetTokenProvider(),
+						access.GetAccessProvider(),
 						role.GetRoleProvider(),
 						nil,
 					)
@@ -244,6 +254,10 @@ func TestNew(t *testing.T) {
 					if err != nil {
 						panic(err)
 					}
+					access, err := service.NewAccessService(cfg.Access, token.GetTokenProvider())
+					if err != nil {
+						panic(err)
+					}
 					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
 					if err != nil {
 						panic(err)
@@ -253,6 +267,7 @@ func TestNew(t *testing.T) {
 						cfg.Proxy,
 						infra.NewBuffer(cfg.Proxy.BufferSize),
 						token.GetTokenProvider(),
+						access.GetAccessProvider(),
 						role.GetRoleProvider(),
 						nil,
 					)
@@ -368,6 +383,10 @@ func Test_clientd_Start(t *testing.T) {
 					if err != nil {
 						panic(err)
 					}
+					access, err := service.NewAccessService(cfg.Access, token.GetTokenProvider())
+					if err != nil {
+						panic(err)
+					}
 					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
 					if err != nil {
 						panic(err)
@@ -377,6 +396,7 @@ func Test_clientd_Start(t *testing.T) {
 						cfg.Proxy,
 						infra.NewBuffer(cfg.Proxy.BufferSize),
 						token.GetTokenProvider(),
+						access.GetAccessProvider(),
 						role.GetRoleProvider(),
 						nil,
 					)

@@ -37,6 +37,24 @@ type RoleRequest struct {
 	MaxExpiry int64 `json:"max_expiry"`
 }
 
+// AccessRequest represent the request information to get the role token.
+type AccessRequest struct {
+	// Domain represent the domain field of the request.
+	Domain string `json:"domain"`
+
+	// Role represent the role field of the request.
+	Role string `json:"role"`
+
+	// ProxyForPrincipal represent the ProxyForPrincipal field of the request.
+	ProxyForPrincipal string `json:"proxy_for_principal"`
+
+	// Expiry represent the Expiry field of the request.
+	Expiry int64 `json:"expiry"`
+}
+
+// AccessTokenResponse represents the AccessTokenResponse from postAccessTokenRequest.
+type AccessResponse = service.AccessTokenResponse
+
 // RoleResponse represent the basic information of the role token.
 type RoleResponse = service.RoleToken
 

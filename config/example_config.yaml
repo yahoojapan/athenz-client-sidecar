@@ -20,6 +20,12 @@ ntoken:
   refresh_duration: 30m
   key_version: v1.0
   expiration: 20m
+access_token:
+  enable: true
+  auth_header_key: Athenz-Principal
+  athenz_url: https://www.athenz.com:4443/zts/v1
+  expiration: "30m"
+  proxy_principal: ""
 roletoken:
   auth_header_key: Athenz-Principal
   athenz_url: https://www.athenz.com:4443/zts/v1

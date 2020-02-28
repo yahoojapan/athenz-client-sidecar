@@ -85,6 +85,12 @@ func TestNew(t *testing.T) {
 					KeyVersion:      "v1.0",
 					Expiration:      "20m",
 				},
+				Access: Access{
+					Enable:                  true,
+					PrincipalAuthHeaderName: "Athenz-Principal",
+					AthenzURL:               "https://www.athenz.com:4443/zts/v1",
+					TokenExpiry:             "30m",
+				},
 				Role: Role{
 					PrincipalAuthHeaderName: "Athenz-Principal",
 					AthenzURL:               "https://www.athenz.com:4443/zts/v1",

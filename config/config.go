@@ -36,7 +36,10 @@ type Config struct {
 	// Token represent the configuration to generate N-token to connect to athenz.
 	Token Token `yaml:"ntoken"`
 
-	// Role represent the configuration to generate role token from athenz server.
+	// Access represent the configuration to retrieve access token from athenz server.
+	Access Access `yaml:"access_token"`
+
+	// Role represent the configuration to retrieve role token from athenz server.
 	Role Role `yaml:"roletoken"`
 
 	// Proxy represent the configuration of the reverse proxy server to connect to athenz to get N-token and role token.
@@ -122,6 +125,33 @@ type Token struct {
 
 	// Expiration represent the duration of the expiration.
 	Expiration string `yaml:"expiration"`
+}
+
+// Access represent the Access token configuration
+type Access struct {
+	// Enable decides wheather use access token
+	Enable bool `yaml:"enable"`
+
+	// PrincipalAuthHeaderName is the HTTP header name for holding the n-token.
+	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
+
+	// AthenzURL represent the athenz URL to get the role token
+	AthenzURL string `yaml:"athenz_url"`
+
+	// AthenzRootCA represent the Athenz server Root Certificate
+	AthenzRootCA string `yaml:"athenz_root_ca"`
+
+	// TokenExpiry represent the duration of the expiration
+	TokenExpiry string `yaml:"expiration"`
+
+	// RefreshInterval represent the role token refresh duration.
+	RefreshInterval string `yaml:"refresh_interval"`
+
+	// ErrRetryMaxCount represent the maximum error retry count during refreshing the role token cache.
+	ErrRetryMaxCount int `yaml:"err_retry_max_count"`
+
+	// ErrRetryInterval represent the error retry interval when refreshing the role token cache.
+	ErrRetryInterval string `yaml:"err_retry_interval"`
 }
 
 // Role represent the Role token configuration

@@ -43,13 +43,16 @@ func TestNewRoutes(t *testing.T) {
 				RoleAuthHeaderName:      "X-test-role-header",
 				BufferSize:              1024,
 			}
-			h := handler.New(proxyConfig, nil, nil, nil, nil)
+			h := handler.New(proxyConfig, nil, nil, nil, nil, nil)
 
 			return test{
 				name: "Run NewRoutes successfully",
 				args: args{
 					cfg: config.Config{
 						ServiceCert: config.ServiceCert{
+							Enable: true,
+						},
+						Access: config.Access{
 							Enable: true,
 						},
 					},
@@ -89,6 +92,14 @@ func TestNewRoutes(t *testing.T) {
 						h.NTokenProxy,
 					},
 					{
+						"Access Token Handler",
+						[]string{
+							http.MethodPost,
+						},
+						"/access-token",
+						h.AccessToken,
+					},
+					{
 						"Service Cert Handler",
 						[]string{
 							http.MethodGet,
@@ -106,13 +117,16 @@ func TestNewRoutes(t *testing.T) {
 				RoleAuthHeaderName:      "X-test-role-header",
 				BufferSize:              1024,
 			}
-			h := handler.New(proxyConfig, nil, nil, nil, nil)
+			h := handler.New(proxyConfig, nil, nil, nil, nil, nil)
 
 			return test{
-				name: "Run NewRoutes successfully without ServiceCert",
+				name: "Run NewRoutes successfully without ServiceCert and AccessToken",
 				args: args{
 					cfg: config.Config{
 						ServiceCert: config.ServiceCert{
+							Enable: false,
+						},
+						Access: config.Access{
 							Enable: false,
 						},
 					},

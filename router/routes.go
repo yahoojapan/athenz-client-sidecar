@@ -67,6 +67,17 @@ func NewRoutes(cfg config.Config, h handler.Handler) []Route {
 		},
 	}
 
+	if cfg.Access.Enable {
+		r = append(r, Route{
+			"Access Token Handler",
+			[]string{
+				http.MethodPost,
+			},
+			"/access-token",
+			h.AccessToken,
+		})
+	}
+
 	if cfg.ServiceCert.Enable {
 		r = append(r, Route{
 			"Service Cert Handler",

@@ -1,11 +1,10 @@
-[![License: Apache](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](https://opensource.org/licenses/Apache-2.0) [![release](https://img.shields.io/github/release/yahoojapan/athenz-client-sidecar.svg?style=flat-square)](https://github.com/yahoojapan/athenz-client-sidecar/releases/latest) [![CircleCI](https://circleci.com/gh/yahoojapan/athenz-client-sidecar.svg)](https://circleci.com/gh/yahoojapan/athenz-client-sidecar) [![codecov](https://codecov.io/gh/yahoojapan/athenz-client-sidecar/branch/master/graph/badge.svg?token=2CzooNJtUu&style=flat-square)](https://codecov.io/gh/yahoojapan/athenz-client-sidecar) [![Go Report Card](https://goreportcard.com/badge/github.com/yahoojapan/athenz-client-sidecar)](https://goreportcard.com/report/github.com/yahoojapan/athenz-client-sidecar) [![GolangCI](https://golangci.com/badges/github.com/yahoojapan/athenz-client-sidecar.svg?style=flat-square)](https://golangci.com/r/github.com/yahoojapan/athenz-client-sidecar) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/f5e641145b274353919ee4a2ff6566e3)](https://www.codacy.com/app/i.can.feel.gravity/athenz-client-sidecar?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=yahoojapan/athenz-client-sidecar&amp;utm_campaign=Badge_Grade) [![GoDoc](http://godoc.org/github.com/yahoojapan/athenz-client-sidecar?status.svg)](http://godoc.org/github.com/yahoojapan/athenz-client-sidecar)
+[![License: Apache](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](https://opensource.org/licenses/Apache-2.0) [![release](https://img.shields.io/github/release/yahoojapan/athenz-client-sidecar.svg?style=flat-square)](https://github.com/yahoojapan/athenz-client-sidecar/releases/latest) [![CircleCI](https://circleci.com/gh/yahoojapan/athenz-client-sidecar.svg)](https://circleci.com/gh/yahoojapan/athenz-client-sidecar) [![codecov](https://codecov.io/gh/yahoojapan/athenz-client-sidecar/branch/master/graph/badge.svg?token=2CzooNJtUu&style=flat-square)](https://codecov.io/gh/yahoojapan/athenz-client-sidecar) [![Go Report Card](https://goreportcard.com/badge/github.com/yahoojapan/athenz-client-sidecar)](https://goreportcard.com/report/github.com/yahoojapan/athenz-client-sidecar) [![GolangCI](https://golangci.com/badges/github.com/yahoojapan/athenz-client-sidecar.svg?style=flat-square)](https://golangci.com/r/github.com/yahoojapan/athenz-client-sidecar) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/f5e641145b274353919ee4a2ff6566e3)](https://www.codacy.com/app/i.can.feel.gravity/athenz-client-sidecar?utm_source=github.com&utm_medium=referral&utm_content=yahoojapan/athenz-client-sidecar&utm_campaign=Badge_Grade) [![GoDoc](http://godoc.org/github.com/yahoojapan/athenz-client-sidecar?status.svg)](http://godoc.org/github.com/yahoojapan/athenz-client-sidecar)
 
 ![logo](./images/logo.png)
 
 ---
 
-Table of Contents
-=================
+# Table of Contents
 
 - [Athenz Client Sidecar for Kubernetes](#athenz-client-sidecar-for-kubernetes)
   - [What is Athenz client sidecar?](#what-is-athenz-client-sidecar)
@@ -56,6 +55,8 @@ User can also use the reverse proxy endpoint to proxy the request to another ser
 
 1. `GET /ntoken`
    - Get service token from Athenz
+1. `POST /access-token`
+   - Get accss token from Athenz
 1. `POST /roletoken`
    - Get role token from Athenz
 1. `/proxy/ntoken`
@@ -72,15 +73,57 @@ User can also use the reverse proxy endpoint to proxy the request to another ser
 - Only Accept HTTP GET request.
 - Response body contains below information in JSON format.
 
-| Name    | Description           | Example                                                                                            |
-| ------- | --------------------- | -------------------------------------------------------------------------------------------------- |
+| Name  | Description           | Example                                                                                            |
+| ----- | --------------------- | -------------------------------------------------------------------------------------------------- |
 | token | The n-token generated | v=S1;d=client;n=service;h=localhost;a=6996e6fc49915494;t=1486004464;e=1486008064;k=0;s=[signeture] |
 
-  Example:
+Example:
 
-``` json
+```json
 {
   "token": "v=S1;d=client;n=service;h=localhost;a=6996e6fc49915494;t=1486004464;e=1486008064;k=0;s=[signeture]"
+}
+```
+
+### Get access token from Athenz through client sidecar
+
+- Only accept HTTP POST request.
+- Request body must contains below information in JSON format.
+
+| Name                | Description                                   | Required? | Example           |
+| ------------------- | --------------------------------------------- | --------- | ----------------- |
+| domain              | Access token domain name                      | Yes       | domain.shopping   |
+| role                | Access token role name (comma separated list) | No        | user              |
+| proxy_for_principal | Access token proxyForPrincipal name           | No        | proxyForPrincipal |
+| expiry              | Access token expiry time (in second)          | No        | 100               |
+
+Example:
+
+```json
+{
+  "domain": "domain.shopping",
+  "role": "user",
+  "proxy_for_principal": "proxyForPrincipal",
+  "expiry": 100
+}
+```
+
+- Response body contains below information in JSON format.
+  | Name | Description | Example |
+  |--------------|---------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+  | access_token | The access token generated | eyJraWQiOiIwIiwidHlwIjoiYXQrand0IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiAiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImlhdCI6IDE1ODMxMTIwMTYsImV4cCI6IDE1ODMxMTIwMTYsImlzcyI6ICJodHRwczovL3d3dy5hdGhlbnouY29tOjQ0NDMvenRzL3YxIiwiYXVkIjogImRvbWFpbi5zaG9wcGluZyIsImF1dGhfdGltZSI6IDE1ODMxMTIxMTYsInZlciI6IDEsInNjcCI6IFsidXNlciJdLCJ1aWQiOiAiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImNsaWVudF9pZCI6ICJkb21haW4udHJhdmVsLnRyYXZlbC1zaXRlIn0.[signature] |
+  | token_type | The token type of the access token | Bearer |
+  | expires_in | The expiry time of the access token | 1528860825 |
+  | scope | The scope of the access token (Only added if role is not specified) | user, |
+
+Example:
+
+```json
+{
+  "access_token": "eyJraWQiOiIwIiwidHlwIjoiYXQrand0IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiAiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImlhdCI6IDE1ODMxMTIwMTYsImV4cCI6IDE1ODMxMTIwMTYsImlzcyI6ICJodHRwczovL3d3dy5hdGhlbnouY29tOjQ0NDMvenRzL3YxIiwiYXVkIjogImRvbWFpbi5zaG9wcGluZyIsImF1dGhfdGltZSI6IDE1ODMxMTIxMTYsInZlciI6IDEsInNjcCI6IFsidXNlciJdLCJ1aWQiOiAiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImNsaWVudF9pZCI6ICJkb21haW4udHJhdmVsLnRyYXZlbC1zaXRlIn0.0-kQJj5XzYRIZqEqvnDISPBRTHn96draLZtm06UDPWw",
+  "token_type": "Bearer",
+  "expires_in": 1000,
+  "scope": "domain.shopping:role.user"
 }
 ```
 
@@ -89,17 +132,17 @@ User can also use the reverse proxy endpoint to proxy the request to another ser
 - Only accept HTTP POST request.
 - Request body must contains below information in JSON format.
 
-| Name                | Description                                | Required? | Example           |
-| ------------------- | ------------------------------------------ | --------- | ----------------- |
-| domain              | Role token domain name                     | Yes       | domain.shopping   |
-| role                | Role token role name                       | No        | users             |
-| proxy_for_principal | Role token proxyForPrincipal name          | No        | proxyForPrincipal |
-| min_expiry          | Role token minimal expiry time (in second) | No        | 100               |
-| max_expiry          | Role token maximum expiry time (in second) | No        | 1000              |
+| Name                | Description                                 | Required? | Example           |
+| ------------------- | ------------------------------------------- | --------- | ----------------- |
+| domain              | Role token domain name                      | Yes       | domain.shopping   |
+| role                | Role token role name (comma separated list) | No        | users             |
+| proxy_for_principal | Role token proxyForPrincipal name           | No        | proxyForPrincipal |
+| min_expiry          | Role token minimal expiry time (in second)  | No        | 100               |
+| max_expiry          | Role token maximum expiry time (in second)  | No        | 1000              |
 
 Example:
 
-``` json
+```json
 {
   "domain": "domain.shopping",
   "role": "users",
@@ -118,7 +161,7 @@ Example:
 
 Example:
 
-``` json
+```json
 {
   "token": "v=Z1;d=domain.shopping;r=users;p=domain.travel.travel-site;h=athenz.co.jp;a=9109ee08b79e6b63;t=1528853625;e=1528860825;k=0;i=192.168.1.1;s=s9WwmhDeO_En3dvAKvh7OKoUserfqJ0LT5Pct5Gfw5lKNKGH4vgsHLI1t0JFSQJWA1ij9ay_vWw1eKaiESfNJQOKPjAANdFZlcXqCCRUCuyAKlbX6KmWtQ9JaKSkCS8a6ReOuAmCToSqHf3STdKYF2tv1ZN17ic4se4VmT5aTig-",
   "expiryTime": 1528860825
@@ -136,15 +179,15 @@ Example:
 - Accept any HTTP request.
 - Request header must contains below information.
 
-| Name                        | Description                                                  | Required? | Example  |
-| --------------------------- | ------------------------------------------------------------ | --------- | -------- |
+| Name                   | Description                                                  | Required? | Example  |
+| ---------------------- | ------------------------------------------------------------ | --------- | -------- |
 | Athenz-Role            | The user role name used to generate the role token           | Yes       | users    |
 | Athenz-Domain          | The domain name used to generate the role token              | Yes       | provider |
 | Athenz-Proxy-Principal | The proxy for principal name used to generate the role token | Yes       | username |
 
 HTTP header Example:
 
-``` none
+```none
 Athenz-Role: users
 Athenz-Domain: provider
 Athenz-Proxy-Principal: username
@@ -196,6 +239,66 @@ func GetNToken(appID, nCookie, tCookie, keyID, keyData string, keys []string) (*
 
     // decode request
     var data NTokenResponse
+    err = json.NewDecoder(res.Body).Decode(&data)
+    if err != nil {
+        return nil, err
+    }
+
+    return &data, nil
+}
+```
+
+#### Get access token from client sidecar
+
+```go
+import (
+    "bytes"
+    "encoding/json"
+    "fmt"
+    "net/http"
+
+    "github.com/yahoojapan/athenz-client-sidecar/model"
+)
+
+const scURL = "127.0.0.1" // sidecar URL
+const scPort = "8081"
+
+type AccessRequest = model.AccessRequest
+type AccessResponse = model.AccessResponse
+
+func GetAccessToken(domain, role, proxyForPrincipal string, expiry int64) (*AccessResponse, error) {
+    url := fmt.Sprintf("http://%s:%s/access-token", scURL, scPort)
+
+    r := &AccessRequest{
+        Domain:            domain,
+        Role:              role,
+        ProxyForPrincipal: proxyForPrincipal,
+        Expiry:            expiry,
+    }
+    reqJSON, _ := json.Marshal(r)
+
+    // create POST request
+    req, err := http.NewRequest(http.MethodPost, url, bytes.NewBuffer(reqJSON))
+    if err != nil {
+        return nil, err
+    }
+    req.Header.Set("Content-Type", "application/json")
+
+    // make request
+    res, err := http.DefaultClient.Do(req)
+    if err != nil {
+        return nil, err
+    }
+    defer res.Body.Close()
+
+    // validate response
+    if res.StatusCode != http.StatusOK {
+        err = fmt.Errorf("%s returned status code %d", url, res.StatusCode)
+        return nil, err
+    }
+
+    // decode request
+    var data AccessResponse
     err = json.NewDecoder(res.Body).Decode(&data)
     if err != nil {
         return nil, err
@@ -414,10 +517,10 @@ We only provided golang example, but user can implement a client using any other
    kubectl get pods -n <namespace>
    # if you are not sure which namespace your application deployed, use `--all-namespaces` option
    kubectl get pods --all-namespaces
-  
+
    # describe the pod to show detail information
    kubectl describe pods <pod_name>
-  
+
    # check application logs
    kubectl logs <pod_name> -c <container_name>
    # e.g. to show client sidecar logs
@@ -427,7 +530,7 @@ We only provided golang example, but user can implement a client using any other
 ## License
 
 ```markdown
-Copyright (C)  2018 Yahoo Japan Corporation Athenz team.
+Copyright (C) 2018 Yahoo Japan Corporation Athenz team.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

@@ -68,7 +68,7 @@ func New(cfg config.Config) (Tenant, error) {
 	// And it is disabled by default.
 	var svcCertProvider service.SvcCertProvider
 	if cfg.ServiceCert.Enable {
-		svccert, err := service.NewSvcCertService(cfg, token.GetTokenProvider())
+		svccert, err = service.NewSvcCertService(cfg, token.GetTokenProvider())
 		if err != nil {
 			return nil, err
 		}
@@ -77,7 +77,7 @@ func New(cfg config.Config) (Tenant, error) {
 
 	var accessProvider service.AccessProvider
 	if cfg.Access.Enable {
-		access, err := service.NewAccessService(cfg.Access, token.GetTokenProvider())
+		access, err = service.NewAccessService(cfg.Access, token.GetTokenProvider())
 		if err != nil {
 			return nil, err
 		}

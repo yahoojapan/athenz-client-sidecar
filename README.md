@@ -9,11 +9,13 @@
 - [Athenz Client Sidecar for Kubernetes](#athenz-client-sidecar-for-kubernetes)
   - [What is Athenz client sidecar?](#what-is-athenz-client-sidecar)
     - [Get Athenz N-Token from client sidecar](#get-athenz-n-token-from-client-sidecar)
+    - [Get Athenz Access Token from client sidecar](#get-athenz-access-token-from-client-sidecar)
     - [Get Athenz Role Token from client sidecar](#get-athenz-role-token-from-client-sidecar)
     - [Proxy HTTP request (add corresponding Athenz authorization token)](#proxy-http-request-add-corresponding-athenz-authorization-token)
   - [Use Case](#use-case)
   - [Specification](#specification)
     - [Get N-token from Athenz through client sidecar](#get-n-token-from-athenz-through-client-sidecar)
+    - [Get access token from Athenz through client sidecar](#get-access-token-from-athenz-through-client-sidecar)
     - [Get role token from Athenz through client sidecar](#get-role-token-from-athenz-through-client-sidecar)
     - [Proxy requests and append N-token authentication header](#proxy-requests-and-append-n-token-authentication-header)
     - [Proxy requests and append role token authentication header](#proxy-requests-and-append-role-token-authentication-header)
@@ -21,6 +23,7 @@
   - [Developer Guide](#developer-guide)
     - [Example code](#example-code)
       - [Get N-token from client sidecar](#get-n-token-from-client-sidecar)
+      - [Get access token from client sidecar](#get-access-token-from-client-sidecar)
       - [Get role token from client sidecar](#get-role-token-from-client-sidecar)
       - [Proxy request through client sidecar (append N-token)](#proxy-request-through-client-sidecar-append-n-token)
       - [Proxy request through client sidecar (append role token)](#proxy-request-through-client-sidecar-append-role-token)
@@ -36,6 +39,12 @@ Athenz client sidecar is an implementation of [Kubernetes sidecar container](htt
 
 Whenever user wants to get the N-token, user does not need to focus on extra logic to generate token, user can access client sidecar container instead of implementing the logic themselves, to avoid the extra logic implemented by user.
 For instance, the client sidecar container caches the token and periodically generates the token automatically. For user this logic is transparent, but it improves the overall performance as it does not generate the token every time whenever the user asks for it.
+
+### Get Athenz Access Token from client sidecar
+
+![Sidecar architecture (get Access token)](./doc/assets/client_sidecar_arch_access_token.png)
+
+User can get the access token from the client sidecar container. Whenever user requests for the access token, the sidecar process will get the access token from Athenz if it is not in the cache, and cache it in memory. The background thread will update corresponding access token periodically.
 
 ### Get Athenz Role Token from client sidecar
 

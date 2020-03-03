@@ -509,12 +509,7 @@ func (r *readCloserMock) Close() error {
 
 func Test_handler_AccessToken(t *testing.T) {
 	type fields struct {
-		proxy   *httputil.ReverseProxy
-		token   ntokend.TokenProvider
-		access  service.AccessProvider
-		role    service.RoleProvider
-		svcCert service.SvcCertProvider
-		cfg     config.Proxy
+		access service.AccessProvider
 	}
 	type args struct {
 		w http.ResponseWriter

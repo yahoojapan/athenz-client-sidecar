@@ -34,9 +34,9 @@ type Handler interface {
 	NToken(http.ResponseWriter, *http.Request) error
 	// NTokenProxy handles proxy requests that require a n-token.
 	NTokenProxy(http.ResponseWriter, *http.Request) error
-	// AccessToken handles get access token requests.
+	// AccessToken handles post access token requests.
 	AccessToken(http.ResponseWriter, *http.Request) error
-	// RoleToken handles get role token requests.
+	// RoleToken handles post token requests.
 	RoleToken(http.ResponseWriter, *http.Request) error
 	// RoleTokenProxy handles proxy requests that require a role token.
 	RoleTokenProxy(http.ResponseWriter, *http.Request) error

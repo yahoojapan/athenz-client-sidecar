@@ -135,7 +135,7 @@ type Access struct {
 	// PrincipalAuthHeaderName is the HTTP header name for holding the n-token.
 	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
 
-	// AthenzURL represent the athenz URL to get the role token
+	// AthenzURL represent the athenz URL to retrieve the access token
 	AthenzURL string `yaml:"athenz_url"`
 
 	// AthenzRootCA represent the Athenz server Root Certificate
@@ -144,13 +144,13 @@ type Access struct {
 	// TokenExpiry represent the duration of the expiration
 	TokenExpiry string `yaml:"expiration"`
 
-	// RefreshInterval represent the role token refresh duration.
+	// RefreshInterval represent the access token refresh duration.
 	RefreshInterval string `yaml:"refresh_interval"`
 
-	// ErrRetryMaxCount represent the maximum error retry count during refreshing the role token cache.
+	// ErrRetryMaxCount represent the maximum error retry count during refreshing the access token cache.
 	ErrRetryMaxCount int `yaml:"err_retry_max_count"`
 
-	// ErrRetryInterval represent the error retry interval when refreshing the role token cache.
+	// ErrRetryInterval represent the error retry interval when refreshing the access token cache.
 	ErrRetryInterval string `yaml:"err_retry_interval"`
 }
 

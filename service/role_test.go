@@ -255,7 +255,7 @@ func TestNewRoleService(t *testing.T) {
 				},
 			}
 			return test{
-				name: "NewRoleService contains valid athenz rootCA",
+				name: "NewRoleService contains valid Athenz rootCA",
 				args: args,
 				checkFunc: func(got, want RoleService) error {
 					gotS := got.(*roleService)
@@ -305,7 +305,7 @@ func TestNewRoleService(t *testing.T) {
 				},
 			}
 			return test{
-				name: "NewRoleService contains invalid athenz rootCA",
+				name: "NewRoleService contains invalid Athenz rootCA",
 				args: args,
 				checkFunc: func(got, want RoleService) error {
 					gotS := got.(*roleService)
@@ -1842,7 +1842,7 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
-				name: "athenz server return error",
+				name: "Athenz server return error",
 				fields: fields{
 					token: func() (string, error) {
 						return "dummyNToken", nil
@@ -1872,7 +1872,7 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
-				name: "athenz server return invalid role token",
+				name: "Athenz server return invalid role token",
 				fields: fields{
 					token: func() (string, error) {
 						return "dummyNToken", nil

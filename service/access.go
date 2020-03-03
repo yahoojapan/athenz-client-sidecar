@@ -38,14 +38,14 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-// AccessService represent a interface to automatically refresh the access token, and a access token provider function pointer.
+// AccessService represent an interface to automatically refresh the access token, and a access token provider function pointer.
 type AccessService interface {
 	StartAccessUpdater(context.Context) <-chan error
 	RefreshAccessTokenCache(ctx context.Context) <-chan error
 	GetAccessProvider() AccessProvider
 }
 
-// accessService represent the implementation of athenz AccessService
+// accessService represents the implementation of Athenz AccessService
 type accessService struct {
 	cfg                   config.Access
 	token                 ntokend.TokenProvider
@@ -78,7 +78,7 @@ var (
 	scopeSeparater              = " "
 )
 
-// NewAccessService returns a AccessService to update and get the access token from athenz.
+// NewAccessService returns a AccessService to update and get the access token from Athenz.
 func NewAccessService(cfg config.Access, token ntokend.TokenProvider) (AccessService, error) {
 	var (
 		err              error
@@ -212,7 +212,7 @@ func (a *accessService) GetAccessProvider() AccessProvider {
 }
 
 // getAccessToken returns AccessTokenResponse struct or error.
-// This function will return the access token stored inside the cache, or fetch the access token from athenz when corresponding access token cannot be found in the cache.
+// This function will return the access token stored inside the cache, or fetch the access token from Athenz when corresponding access token cannot be found in the cache.
 func (a *accessService) getAccessToken(ctx context.Context, domain, role, proxyForPrincipal string, expiresIn int64) (*AccessTokenResponse, error) {
 	tok, ok := a.getCache(domain, role, proxyForPrincipal)
 	if !ok {
@@ -265,7 +265,7 @@ func (a *accessService) updateAccessTokenWithRetry(ctx context.Context, domain, 
 }
 
 // updateAccessToken returns AccessTokenResponse struct or error.
-// This function ask athenz to generate access token and return, or return any error when generating the access token.
+// This function ask Athenz to generate access token and return, or return any error when generating the access token.
 func (a *accessService) updateAccessToken(ctx context.Context, domain, role, proxyForPrincipal string, expiresIn int64) (*AccessTokenResponse, error) {
 	key := encode(domain, role, proxyForPrincipal)
 	expTimeDelta := fastime.Now().Add(time.Minute)

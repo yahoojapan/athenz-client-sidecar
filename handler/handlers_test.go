@@ -548,7 +548,7 @@ func Test_handler_AccessToken(t *testing.T) {
 			wantError: fmt.Errorf("invalid character 'b' looking for beginning of value"),
 		},
 		{
-			name: "Check handler AccessToken, on role error",
+			name: "Check handler AccessToken, on access provider error",
 			fields: fields{
 				access: func(ctx context.Context, domain string, role string, proxyForPrincipal string, expiresIn int64) (*service.AccessTokenResponse, error) {
 					return &service.AccessTokenResponse{
@@ -676,8 +676,6 @@ func Test_handler_AccessToken(t *testing.T) {
 				access: tt.fields.access,
 			}
 
-			fmt.Println(tt.args.w)
-			fmt.Println(tt.args.r)
 			gotError := h.AccessToken(tt.args.w, tt.args.r)
 			if !reflect.DeepEqual(gotError, tt.wantError) {
 				if gotError == nil || tt.wantError == nil || gotError.Error() != tt.wantError.Error() {

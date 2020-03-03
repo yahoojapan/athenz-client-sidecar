@@ -69,6 +69,27 @@ type accessCacheData struct {
 	expiresIn         int64
 }
 
+// AccessTokenResponse represents the AccessTokenResponse from postAccessTokenRequest.
+type AccessTokenResponse struct {
+	// AccessToken
+	AccessToken string `json:"access_token"`
+
+	// TokenType e.g. Bearer
+	TokenType string `json:"token_type"`
+
+	// Expiry in seconds
+	ExpiresIn int64 `json:"expires_in,omitempty" rdl:"optional"`
+
+	// Scope of the access token e.g. openid (delimited by space)
+	Scope string `json:"scope,omitempty" rdl:"optional"`
+
+	// RefreshToken
+	RefreshToken string `json:"refresh_token,omitempty" rdl:"optional"`
+
+	// IdToken
+	IdToken string `json:"id_token,omitempty" rdl:"optional"`
+}
+
 // AccessProvider represents a function pointer to retrieve the access token.
 type AccessProvider func(ctx context.Context, domain string, role string, proxyForPrincipal string, expiresIn int64) (*AccessTokenResponse, error)
 
@@ -78,7 +99,7 @@ var (
 	scopeSeparator              = " "
 )
 
-// NewAccessService returns a AccessService to update and get the access token from Athenz.
+// NewAccessService returns a AccessService to update and fetch the access token from Athenz.
 func NewAccessService(cfg config.Access, token ntokend.TokenProvider) (AccessService, error) {
 	var (
 		err              error
@@ -153,27 +174,6 @@ func NewAccessService(cfg config.Access, token ntokend.TokenProvider) (AccessSer
 	}, nil
 }
 
-// AccessTokenResponse represents the AccessTokenResponse from postAccessTokenRequest.
-type AccessTokenResponse struct {
-	// AccessToken
-	AccessToken string `json:"access_token"`
-
-	// TokenType e.g. Bearer
-	TokenType string `json:"token_type"`
-
-	// Expiry in seconds
-	ExpiresIn int64 `json:"expires_in,omitempty" rdl:"optional"`
-
-	// Scope of the access token e.g. openid (delimited by space)
-	Scope string `json:"scope,omitempty" rdl:"optional"`
-
-	// RefreshToken
-	RefreshToken string `json:"refresh_token,omitempty" rdl:"optional"`
-
-	// IdToken
-	IdToken string `json:"id_token,omitempty" rdl:"optional"`
-}
-
 // StartAccessUpdater returns AccessService.
 // This function will periodically refresh the access token.
 func (a *accessService) StartAccessUpdater(ctx context.Context) <-chan error {
@@ -221,9 +221,9 @@ func (a *accessService) getAccessToken(ctx context.Context, domain, role, proxyF
 	return tok, nil
 }
 
-// refreshAccessTokenCache returns the error channel when it is updated.
+// RefreshAccessTokenCache returns the error channel when it is updated.
 func (a *accessService) RefreshAccessTokenCache(ctx context.Context) <-chan error {
-	glg.Info("refreshAccessTokenCache started")
+	glg.Info("RefreshAccessTokenCache started")
 
 	echan := make(chan error, a.tokenCache.Len()*(a.errRetryMaxCount+1))
 	go func() {
@@ -243,6 +243,7 @@ func (a *accessService) RefreshAccessTokenCache(ctx context.Context) <-chan erro
 	return echan
 }
 
+// updateAccessTokenWithRetry wraps updateAccessToken with retry logic.
 func (a *accessService) updateAccessTokenWithRetry(ctx context.Context, domain, role, proxyForPrincipal string, expiresIn int64) <-chan error {
 	glg.Debugf("updateAccessTokenWithRetry started, domain: %s, role: %s, proxyForPrincipal: %s, expiresIn: %d", domain, role, proxyForPrincipal, expiresIn)
 
@@ -304,8 +305,6 @@ func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, prox
 		return nil, err
 	}
 
-	// create scope
-	glg.Debugf("roleSeparater: %s, scopeSeparator: %s", roleSeparater, scopeSeparator)
 	scope := createScope(domain, role)
 
 	// prepare request object

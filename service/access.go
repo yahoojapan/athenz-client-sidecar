@@ -78,7 +78,7 @@ var (
 	scopeSeparator              = " "
 )
 
-// NewAccessService returns a AccessService to update and fetch the access token from Athenz.
+// NewAccessService returns a AccessService to update and get the access token from Athenz.
 func NewAccessService(cfg config.Access, token ntokend.TokenProvider) (AccessService, error) {
 	var (
 		err              error

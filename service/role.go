@@ -47,7 +47,7 @@ type RoleService interface {
 	GetRoleProvider() RoleProvider
 }
 
-// roleService represent the implementation of athenz RoleService
+// roleService represent the implementation of Athenz RoleService
 type roleService struct {
 	cfg                   config.Role
 	token                 ntokend.TokenProvider
@@ -112,7 +112,7 @@ const (
 	expiryCheckInterval = time.Minute
 )
 
-// NewRoleService returns a RoleService to update and get the role token from athenz.
+// NewRoleService returns a RoleService to update and get the role token from Athenz.
 func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, error) {
 	var (
 		err              error
@@ -225,7 +225,7 @@ func (r *roleService) GetRoleProvider() RoleProvider {
 }
 
 // getRoleToken returns RoleToken struct or error.
-// This function will return the role token stored inside the cache, or fetch the role token from athenz when corresponding role token cannot be found in the cache.
+// This function will return the role token stored inside the cache, or fetch the role token from Athenz when corresponding role token cannot be found in the cache.
 func (r *roleService) getRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) (*RoleToken, error) {
 	tok, ok := r.getCache(domain, role, proxyForPrincipal)
 	if !ok {
@@ -278,7 +278,7 @@ func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role
 }
 
 // updateRoleToken returns RoleToken struct or error.
-// This function ask athenz to generate role token and return, or return any error when generating the role token.
+// This function ask Athenz to generate role token and return, or return any error when generating the role token.
 func (r *roleService) updateRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) (*RoleToken, error) {
 	key := encode(domain, role, proxyForPrincipal)
 	expTimeDelta := fastime.Now().Add(time.Minute)

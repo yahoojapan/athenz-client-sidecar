@@ -388,7 +388,7 @@ func Test_accessService_StartAccessUpdater(t *testing.T) {
 		fields    fields
 		args      args
 		checkFunc func(AccessService, <-chan error) error
-		afterFunc func()
+		afterFunc func() error
 	}
 	tests := []test{
 		func() test {
@@ -449,9 +449,10 @@ func Test_accessService_StartAccessUpdater(t *testing.T) {
 
 					return nil
 				},
-				afterFunc: func() {
+				afterFunc: func() error {
 					dummyServer.Close()
 					tokenCache.Stop()
+					return nil
 				},
 			}
 		}(),
@@ -616,7 +617,12 @@ func Test_accessService_StartAccessUpdater(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.afterFunc != nil {
-				defer tt.afterFunc()
+				defer func() {
+					err := tt.afterFunc()
+					if err != nil {
+						t.Errorf("Failed afterFunc %v", err)
+					}
+				}()
 			}
 			r := &accessService{
 				cfg:                   tt.fields.cfg,
@@ -788,7 +794,12 @@ func Test_accessService_getAccessToken(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.afterFunc != nil {
-				defer tt.afterFunc()
+				defer func() {
+					err := tt.afterFunc()
+					if err != nil {
+						t.Errorf("Failed afterFunc %v", err)
+					}
+				}()
 			}
 
 			a := &accessService{
@@ -1127,7 +1138,12 @@ func Test_accessService_RefreshAccessTokenCache(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.afterFunc != nil {
-				defer tt.afterFunc()
+				defer func() {
+					err := tt.afterFunc()
+					if err != nil {
+						t.Errorf("Failed afterFunc %v", err)
+					}
+				}()
 			}
 			a := &accessService{
 				cfg:                   tt.fields.cfg,
@@ -1359,7 +1375,12 @@ func Test_accessService_updateAccessTokenWithRetry(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer tt.afterFunc()
+			defer func() {
+				err := tt.afterFunc()
+				if err != nil {
+					t.Errorf("Failed afterFunc %v", err)
+				}
+			}()
 			a := &accessService{
 				cfg:                   tt.fields.cfg,
 				token:                 tt.fields.token,
@@ -1688,7 +1709,12 @@ func Test_accessService_updateAccessToken(t *testing.T) {
 	}
 	for _, tt := range tests {
 		if tt.afterFunc != nil {
-			defer tt.afterFunc()
+			defer func() {
+				err := tt.afterFunc()
+				if err != nil {
+					t.Errorf("Failed afterFunc %v", err)
+				}
+			}()
 		}
 		t.Run(tt.name, func(t *testing.T) {
 			a := &accessService{

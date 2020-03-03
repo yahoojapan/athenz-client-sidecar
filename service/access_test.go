@@ -257,7 +257,7 @@ func TestNewAccessService(t *testing.T) {
 				},
 			}
 			return test{
-				name: "NewAccessService contains valid athenz rootCA",
+				name: "NewAccessService contains valid Athenz rootCA",
 				args: args,
 				checkFunc: func(got, want AccessService) error {
 					gotS := got.(*accessService)
@@ -307,7 +307,7 @@ func TestNewAccessService(t *testing.T) {
 				},
 			}
 			return test{
-				name: "NewAccessService contains invalid athenz rootCA",
+				name: "NewAccessService contains invalid Athenz rootCA",
 				args: args,
 				checkFunc: func(got, want AccessService) error {
 					gotS := got.(*accessService)
@@ -1396,8 +1396,6 @@ func Test_accessService_updateAccessToken(t *testing.T) {
 		expiry                time.Duration
 		httpClient            *http.Client
 		refreshInterval       time.Duration
-		errRetryMaxCount      int
-		errRetryInterval      time.Duration
 	}
 	type args struct {
 		ctx               context.Context
@@ -1837,7 +1835,7 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
-				name: "athenz server return error",
+				name: "Athenz server return error",
 				fields: fields{
 					token: func() (string, error) {
 						return "dummyNToken", nil
@@ -1866,7 +1864,7 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
-				name: "athenz server return invalid access token",
+				name: "Athenz server return invalid access token",
 				fields: fields{
 					token: func() (string, error) {
 						return "dummyNToken", nil
@@ -1982,9 +1980,7 @@ func Test_accessService_getCache(t *testing.T) {
 		tokenCache            gache.Gache
 		group                 singleflight.Group
 		expiry                time.Duration
-		httpClient            *http.Client
 		refreshInterval       time.Duration
-		errRetryMaxCount      int
 		errRetryInterval      time.Duration
 	}
 	type args struct {
@@ -2078,7 +2074,6 @@ func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 		tokenCache            gache.Gache
 		group                 singleflight.Group
 		expiry                time.Duration
-		httpClient            *http.Client
 		refreshInterval       time.Duration
 		errRetryMaxCount      int
 		errRetryInterval      time.Duration

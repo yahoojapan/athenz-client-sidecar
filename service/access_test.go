@@ -389,7 +389,6 @@ func Test_accessService_StartAccessUpdater(t *testing.T) {
 		args      args
 		checkFunc func(AccessService, <-chan error) error
 		afterFunc func()
-		want      AccessService
 	}
 	tests := []test{
 		func() test {
@@ -668,8 +667,6 @@ func Test_accessService_getAccessToken(t *testing.T) {
 		group                 singleflight.Group
 		expiry                time.Duration
 		httpClient            *http.Client
-		refreshInterval       time.Duration
-		errRetryMaxCount      int
 		errRetryInterval      time.Duration
 	}
 	type args struct {
@@ -1178,7 +1175,6 @@ func Test_accessService_updateAccessTokenWithRetry(t *testing.T) {
 		name      string
 		fields    fields
 		args      args
-		want      <-chan error
 		checkFunc func(<-chan error) error
 		afterFunc func() error
 	}
@@ -1395,7 +1391,6 @@ func Test_accessService_updateAccessToken(t *testing.T) {
 		group                 singleflight.Group
 		expiry                time.Duration
 		httpClient            *http.Client
-		refreshInterval       time.Duration
 	}
 	type args struct {
 		ctx               context.Context
@@ -1405,14 +1400,13 @@ func Test_accessService_updateAccessToken(t *testing.T) {
 		expiresIn         int64
 	}
 	type test struct {
-		name       string
-		fields     fields
-		args       args
-		beforeFunc func() error
-		checkFunc  func(got, want *AccessTokenResponse) error
-		afterFunc  func() error
-		want       *AccessTokenResponse
-		wantErr    error
+		name      string
+		fields    fields
+		args      args
+		checkFunc func(got, want *AccessTokenResponse) error
+		afterFunc func() error
+		want      *AccessTokenResponse
+		wantErr   error
 	}
 	tests := []test{
 		func() test {
@@ -1981,7 +1975,6 @@ func Test_accessService_getCache(t *testing.T) {
 		group                 singleflight.Group
 		expiry                time.Duration
 		refreshInterval       time.Duration
-		errRetryInterval      time.Duration
 	}
 	type args struct {
 		domain    string
@@ -2074,9 +2067,7 @@ func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 		tokenCache            gache.Gache
 		group                 singleflight.Group
 		expiry                time.Duration
-		refreshInterval       time.Duration
 		errRetryMaxCount      int
-		errRetryInterval      time.Duration
 	}
 	type args struct {
 		scope             string

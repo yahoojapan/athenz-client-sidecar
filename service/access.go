@@ -38,7 +38,7 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-// AccessService represent an interface to automatically refresh the access token, and a access token provider function pointer.
+// AccessService represents an interface to automatically refresh the access token, and a access token provider function pointer.
 type AccessService interface {
 	StartAccessUpdater(context.Context) <-chan error
 	RefreshAccessTokenCache(ctx context.Context) <-chan error
@@ -69,13 +69,13 @@ type accessCacheData struct {
 	expiresIn         int64
 }
 
-// AccessProvider represent a function pointer to retrieve the access token.
+// AccessProvider represents a function pointer to retrieve the access token.
 type AccessProvider func(ctx context.Context, domain string, role string, proxyForPrincipal string, expiresIn int64) (*AccessTokenResponse, error)
 
 var (
 	// ErrAccessTokenRequestFailed represents the error when failed to fetch the access token from Athenz server.
 	ErrAccessTokenRequestFailed = errors.New("Failed to fetch AccessToken")
-	scopeSeparater              = " "
+	scopeSeparator              = " "
 )
 
 // NewAccessService returns a AccessService to update and get the access token from Athenz.
@@ -305,7 +305,7 @@ func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, prox
 	}
 
 	// create scope
-	glg.Debugf("roleSeparater: %s, scopeSeparater: %s", roleSeparater, scopeSeparater)
+	glg.Debugf("roleSeparater: %s, scopeSeparator: %s", roleSeparater, scopeSeparator)
 	scope := createScope(domain, role)
 
 	// prepare request object
@@ -348,7 +348,7 @@ func createScope(domain, role string) string {
 		for _, r := range roles {
 			scopes = append(scopes, domain+":role."+r)
 		}
-		scope = strings.Join(scopes, scopeSeparater)
+		scope = strings.Join(scopes, scopeSeparator)
 	} else {
 		scope = domain + ":domain"
 	}

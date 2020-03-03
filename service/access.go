@@ -339,19 +339,19 @@ func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, prox
 	return atRes, nil
 }
 
+// createScope create OAuth scope.
+// The format of scope is like `[domain]:role.[role1] [domain]:role.[role2]`.
+// If role is empty, the format is `[domain]:domain`.
 func createScope(domain, role string) string {
-	var scope string
+	roles := strings.Split(role, roleSeparater)
+	scopes := make([]string, len(roles))
 	if role != "" {
-		roles := strings.Split(role, roleSeparater)
-		var scopes []string
-		for _, r := range roles {
-			scopes = append(scopes, domain+":role."+r)
+		for i, r := range roles {
+			scopes[i] = domain + ":role." + r
 		}
-		scope = strings.Join(scopes, scopeSeparator)
-	} else {
-		scope = domain + ":domain"
+		return strings.Join(scopes, scopeSeparator)
 	}
-	return scope
+	return domain + ":domain"
 }
 
 func (a *accessService) getCache(domain, role, principal string) (*AccessTokenResponse, bool) {

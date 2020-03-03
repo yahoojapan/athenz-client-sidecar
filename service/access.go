@@ -306,6 +306,7 @@ func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, prox
 	}
 
 	scope := createScope(domain, role)
+	glg.Debugf("request access token scope: %v", scope)
 
 	// prepare request object
 	req, err := a.createPostAccessTokenRequest(scope, proxyForPrincipal, expiry, cred)

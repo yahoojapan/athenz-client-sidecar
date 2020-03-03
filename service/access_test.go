@@ -673,7 +673,6 @@ func Test_accessService_getAccessToken(t *testing.T) {
 		group                 singleflight.Group
 		expiry                time.Duration
 		httpClient            *http.Client
-		errRetryInterval      time.Duration
 	}
 	type args struct {
 		ctx               context.Context
@@ -2000,7 +1999,6 @@ func Test_accessService_getCache(t *testing.T) {
 		tokenCache            gache.Gache
 		group                 singleflight.Group
 		expiry                time.Duration
-		refreshInterval       time.Duration
 	}
 	type args struct {
 		domain    string
@@ -2093,7 +2091,6 @@ func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 		tokenCache            gache.Gache
 		group                 singleflight.Group
 		expiry                time.Duration
-		errRetryMaxCount      int
 	}
 	type args struct {
 		scope             string

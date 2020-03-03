@@ -19,52 +19,52 @@ import (
 	"github.com/yahoojapan/athenz-client-sidecar/service"
 )
 
-// AccessRequest represent the request information to revrieve the access token.
+// AccessRequest represents the request information to revrieve the access token.
 type AccessRequest struct {
-	// Domain represent the domain field of the request.
+	// Domain represents the domain field of the request.
 	Domain string `json:"domain"`
 
-	// Role represent the role field of the request.
+	// Role represents the role field of the request.
 	Role string `json:"role"`
 
-	// ProxyForPrincipal represent the ProxyForPrincipal field of the request.
+	// ProxyForPrincipal represents the ProxyForPrincipal field of the request.
 	ProxyForPrincipal string `json:"proxy_for_principal"`
 
-	// Expiry represent the Expiry field of the request.
+	// Expiry represents the Expiry field of the request.
 	Expiry int64 `json:"expiry"`
 }
 
-// RoleRequest represent the request information to get the role token.
+// RoleRequest represents the request information to get the role token.
 type RoleRequest struct {
-	// Domain represent the domain field of the request.
+	// Domain represents the domain field of the request.
 	Domain string `json:"domain"`
 
-	// Role represent the role field of the request.
+	// Role represents the role field of the request.
 	Role string `json:"role"`
 
-	// ProxyForPrincipal represent the ProxyForPrincipal field of the request.
+	// ProxyForPrincipal represents the ProxyForPrincipal field of the request.
 	ProxyForPrincipal string `json:"proxy_for_principal"`
 
-	// MinExpiry represent the MinExpiry field of the request.
+	// MinExpiry represents the MinExpiry field of the request.
 	MinExpiry int64 `json:"min_expiry"`
 
-	// MaxExpiry represent the MaxExpiry field of the request.
+	// MaxExpiry represents the MaxExpiry field of the request.
 	MaxExpiry int64 `json:"max_expiry"`
 }
 
 // AccessResponse represents the AccessTokenResponse from postAccessTokenRequest.
 type AccessResponse = service.AccessTokenResponse
 
-// RoleResponse represent the basic information of the role token.
+// RoleResponse represents the basic information of the role token.
 type RoleResponse = service.RoleToken
 
-// NTokenResponse represent the response information of get N-token request.
+// NTokenResponse represents the response information of get N-token request.
 type NTokenResponse struct {
-	// NToken represent the N-token generated.
+	// NToken represents the N-token generated.
 	NToken string `json:"token"`
 }
 
-// SvcCertResponse represent the response information of get svccert request.
+// SvcCertResponse represents the response information of get svccert request.
 type SvcCertResponse struct {
 	Cert []byte `json:"cert"`
 }

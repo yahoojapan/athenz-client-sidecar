@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package router
 
 import (
@@ -65,6 +66,17 @@ func NewRoutes(cfg config.Config, h handler.Handler) []Route {
 			"/proxy/ntoken",
 			h.NTokenProxy,
 		},
+	}
+
+	if cfg.Access.Enable {
+		r = append(r, Route{
+			"Access Token Handler",
+			[]string{
+				http.MethodPost,
+			},
+			"/access-token",
+			h.AccessToken,
+		})
 	}
 
 	if cfg.ServiceCert.Enable {

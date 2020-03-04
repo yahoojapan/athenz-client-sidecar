@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package service
 
 import (
@@ -40,14 +41,14 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-// RoleService represent a interface to automatically refresh the role token, and a role token provider function pointer.
+// RoleService represent an interface to automatically refresh the role token, and a role token provider function pointer.
 type RoleService interface {
 	StartRoleUpdater(context.Context) <-chan error
 	RefreshRoleTokenCache(ctx context.Context) <-chan error
 	GetRoleProvider() RoleProvider
 }
 
-// roleService represent the implementation of athenz RoleService
+// roleService represent the implementation of Athenz RoleService
 type roleService struct {
 	cfg                   config.Role
 	token                 ntokend.TokenProvider
@@ -102,17 +103,17 @@ const (
 	// defaultErrRetryInterval represents the default error retry interval.
 	defaultErrRetryInterval = time.Second * 5
 
-	// cacheKeySeparater is the separater of the internal cache key name.
-	cacheKeySeparater = ";"
+	// cacheKeySeparator is the separator of the internal cache key name.
+	cacheKeySeparator = ";"
 
-	// roleSeparater is the separater of the role names
-	roleSeparater = ","
+	// roleSeparator is the separator of the role names
+	roleSeparator = ","
 
 	// expiryCheckInterval represents default cache expiration check interval
 	expiryCheckInterval = time.Minute
 )
 
-// NewRoleService returns a RoleService to update and get the role token from athenz.
+// NewRoleService returns a RoleService to update and get the role token from Athenz.
 func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, error) {
 	var (
 		err              error
@@ -225,7 +226,7 @@ func (r *roleService) GetRoleProvider() RoleProvider {
 }
 
 // getRoleToken returns RoleToken struct or error.
-// This function will return the role token stored inside the cache, or fetch the role token from athenz when corresponding role token cannot be found in the cache.
+// This function will return the role token stored inside the cache, or fetch the role token from Athenz when corresponding role token cannot be found in the cache.
 func (r *roleService) getRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) (*RoleToken, error) {
 	tok, ok := r.getCache(domain, role, proxyForPrincipal)
 	if !ok {
@@ -234,9 +235,9 @@ func (r *roleService) getRoleToken(ctx context.Context, domain, role, proxyForPr
 	return tok, nil
 }
 
-// refreshRoleTokenCache returns the error channel when it is updated.
+// RefreshRoleTokenCache returns the error channel when it is updated.
 func (r *roleService) RefreshRoleTokenCache(ctx context.Context) <-chan error {
-	glg.Info("refreshRoleTokenCache started")
+	glg.Info("RefreshRoleTokenCache started")
 
 	echan := make(chan error, r.domainRoleCache.Len()*(r.errRetryMaxCount+1))
 	go func() {
@@ -256,6 +257,7 @@ func (r *roleService) RefreshRoleTokenCache(ctx context.Context) <-chan error {
 	return echan
 }
 
+// updateRoleTokenWithRetry wraps updateRoleToken with retry logic.
 func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) <-chan error {
 	glg.Debugf("updateRoleTokenWithRetry started, domain: %s, role: %s, proxyForPrincipal: %s, minExpiry: %d, maxExpiry: %d", domain, role, proxyForPrincipal, minExpiry, maxExpiry)
 
@@ -278,7 +280,7 @@ func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role
 }
 
 // updateRoleToken returns RoleToken struct or error.
-// This function ask athenz to generate role token and return, or return any error when generating the role token.
+// This function ask Athenz to generate role token and return, or return any error when generating the role token.
 func (r *roleService) updateRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) (*RoleToken, error) {
 	key := encode(domain, role, proxyForPrincipal)
 	expTimeDelta := fastime.Now().Add(time.Minute)
@@ -403,18 +405,18 @@ func (r *roleService) createGetRoleTokenRequest(domain, role string, minExpiry, 
 }
 
 func encode(domain, role, principal string) string {
-	roles := strings.Split(role, roleSeparater)
+	roles := strings.Split(role, roleSeparator)
 	sort.Strings(roles)
 
-	s := []string{domain, strings.Join(roles, roleSeparater), principal}
+	s := []string{domain, strings.Join(roles, roleSeparator), principal}
 	if principal == "" {
-		return strings.Join(s[:2], cacheKeySeparater)
+		return strings.Join(s[:2], cacheKeySeparator)
 	}
-	return strings.Join(s, cacheKeySeparater)
+	return strings.Join(s, cacheKeySeparator)
 }
 
 func decode(key string) (string, string, string) {
-	keys := strings.SplitN(key, cacheKeySeparater, 3)
+	keys := strings.SplitN(key, cacheKeySeparator, 3)
 	res := make([]string, 3)
 	copy(res, keys)
 	return res[0], res[1], res[2]

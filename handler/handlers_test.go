@@ -16,8 +16,6 @@ limitations under the License.
 package handler
 
 import (
-	"testing"
-
 	"bytes"
 	"context"
 	"fmt"
@@ -28,6 +26,7 @@ import (
 	"net/http/httputil"
 	"reflect"
 	"strings"
+	"testing"
 	"time"
 
 	ntokend "github.com/kpango/ntokend"
@@ -62,14 +61,14 @@ func EqualResponse(writer http.ResponseWriter, code int, header map[string]strin
 
 	// check header
 	for k, v := range header {
-		if recorder.HeaderMap.Get(k) != v {
-			return &NotEqualError{"header", recorder.HeaderMap.Get(k), v}
+		if recorder.Header().Get(k) != v {
+			return &NotEqualError{"header", recorder.Header().Get(k), v}
 		}
 	}
 
 	// check body
 	if !bytes.Equal(recorder.Body.Bytes(), body) {
-		return &NotEqualError{"body", string(recorder.Body.Bytes()), string(body)}
+		return &NotEqualError{"body", recorder.Body.String(), string(body)}
 	}
 
 	return nil
@@ -80,6 +79,7 @@ func TestNew(t *testing.T) {
 		cfg     config.Proxy
 		bp      httputil.BufferPool
 		token   ntokend.TokenProvider
+		access  service.AccessProvider
 		role    service.RoleProvider
 		svcCert service.SvcCertProvider
 	}
@@ -164,7 +164,7 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := New(tt.args.cfg, tt.args.bp, tt.args.token, tt.args.role, tt.args.svcCert)
+			got := New(tt.args.cfg, tt.args.bp, tt.args.token, tt.args.access, tt.args.role, tt.args.svcCert)
 			if err := tt.checkFunc(got.(*handler), tt.want); err != nil {
 				t.Errorf("New() %v", err)
 				return
@@ -505,6 +505,199 @@ func (r *readCloserMock) Read(p []byte) (n int, err error) {
 // Close is just an adapter.
 func (r *readCloserMock) Close() error {
 	return r.closeMock()
+}
+
+func Test_handler_AccessToken(t *testing.T) {
+	type fields struct {
+		access service.AccessProvider
+	}
+	type args struct {
+		w http.ResponseWriter
+		r *http.Request
+	}
+	type want struct {
+		code   int
+		header map[string]string
+		body   []byte
+	}
+	type testcase struct {
+		name      string
+		fields    fields
+		args      args
+		want      want
+		wantError error
+	}
+	tests := []testcase{
+		{
+			name:   "Check handler AccessToken, on decode request body error",
+			fields: fields{},
+			args: args{
+				w: httptest.NewRecorder(),
+				r: httptest.NewRequest(http.MethodGet, "http://url-555", strings.NewReader("body-555")),
+			},
+			want: want{
+				code:   http.StatusOK,
+				header: map[string]string{},
+				body:   []byte{},
+			},
+			wantError: fmt.Errorf("invalid character 'b' looking for beginning of value"),
+		},
+		{
+			name: "Check handler AccessToken, on access provider error",
+			fields: fields{
+				access: func(ctx context.Context, domain string, role string, proxyForPrincipal string, expiresIn int64) (*service.AccessTokenResponse, error) {
+					return &service.AccessTokenResponse{
+						TokenType:   "Bearer",
+						AccessToken: "access-token-555",
+						Scope:       "dummyDomain:dummyRole",
+						ExpiresIn:   558,
+					}, fmt.Errorf("get-access-token-error-557")
+				},
+			},
+			args: args{
+				w: httptest.NewRecorder(),
+				r: httptest.NewRequest(http.MethodGet, "http://url-562", strings.NewReader(`{}`)),
+			},
+			want: want{
+				code:   http.StatusOK,
+				header: map[string]string{},
+				body:   []byte{},
+			},
+			wantError: fmt.Errorf("get-access-token-error-557"),
+		},
+		{
+			name: "Check handler AccessToken, on context cancel",
+			fields: fields{
+				access: func(ctx context.Context, domain string, role string, proxyForPrincipal string, expiresIn int64) (accessTokenResponse *service.AccessTokenResponse, err error) {
+
+					accessTokenResponse = &service.AccessTokenResponse{
+						AccessToken: "access-token-577",
+						ExpiresIn:   578,
+					}
+					ticker := time.NewTicker(time.Millisecond)
+					defer ticker.Stop()
+
+					select {
+					case <-ctx.Done():
+						err = ctx.Err()
+					case <-ticker.C:
+						err = fmt.Errorf("get-access-token-timeout-error-587")
+					}
+					return
+				},
+			},
+			args: args{
+				w: httptest.NewRecorder(),
+				r: func() *http.Request {
+					ctx, cancel := context.WithCancel(context.Background())
+					defer cancel()
+
+					request := httptest.NewRequest(http.MethodGet, "http://url-598", strings.NewReader(`{}`))
+					return request.WithContext(ctx)
+				}(),
+			},
+			want: want{
+				code:   http.StatusOK,
+				header: map[string]string{},
+				body:   []byte{},
+			},
+			wantError: context.Canceled,
+		},
+		{
+			name: "Check handler AccessToken, request got access token",
+			fields: fields{
+				access: func(ctx context.Context, domain string, role string, proxyForPrincipal string, expiresIn int64) (accessTokenResponse *service.AccessTokenResponse, err error) {
+					return &service.AccessTokenResponse{
+						AccessToken: "access-token-614",
+						TokenType:   "Bearer",
+						ExpiresIn:   615,
+					}, nil
+				},
+			},
+			args: args{
+				w: httptest.NewRecorder(),
+				r: httptest.NewRequest(http.MethodGet, "http://url-621", strings.NewReader(`{
+					"domain":"domain-622",
+					"role":"role-238",
+					"proxy_for_principal":"proxy_for_principal-624",
+					"expiry": 625
+				}`)),
+			},
+			want: want{
+				code: http.StatusOK,
+				header: map[string]string{
+					"Content-type": "application/json; charset=utf-8",
+				},
+				body: []byte(`{"access_token":"access-token-614","token_type":"Bearer","expires_in":615}` + "\n"),
+			},
+		},
+		func() testcase {
+			requestClosed := false
+			return testcase{
+				name:   "Check handler AccessToken, request body closed",
+				fields: fields{},
+				args: args{
+					w: httptest.NewRecorder(),
+					r: httptest.NewRequest(http.MethodGet, "http://url-643", &readCloserMock{
+						readMock: func(p []byte) (n int, err error) {
+							if !requestClosed {
+								n = copy(p, []byte("body-646"))
+							} else {
+								n = 0
+							}
+							return n, io.EOF
+						},
+						closeMock: func() error {
+							requestClosed = true
+							return nil
+						},
+					}),
+				},
+				want: want{
+					code:   http.StatusOK,
+					header: map[string]string{},
+					body:   []byte{},
+				},
+				wantError: fmt.Errorf("invalid character 'b' looking for beginning of value"),
+			}
+		}(),
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			var err error
+			h := &handler{
+				access: tt.fields.access,
+			}
+
+			gotError := h.AccessToken(tt.args.w, tt.args.r)
+			if !reflect.DeepEqual(gotError, tt.wantError) {
+				if gotError == nil || tt.wantError == nil || gotError.Error() != tt.wantError.Error() {
+					err = &NotEqualError{"error", gotError, tt.wantError}
+				}
+			}
+			if err != nil {
+				t.Errorf("handler.AccessToken() %v", err)
+				return
+			}
+
+			err = EqualResponse(tt.args.w, tt.want.code, tt.want.header, tt.want.body)
+			if err != nil {
+				t.Errorf("handler.AccessToken() %v", err)
+				return
+			}
+
+			// check if the response's body is closed
+			if tt.args.r.Body != nil {
+				byteRead, err := tt.args.r.Body.Read(make([]byte, 64))
+				if byteRead != 0 || err != io.EOF {
+					t.Errorf("handler.AccessToken() request not closed, %v bytes read, err %v", byteRead, err)
+					return
+				}
+			}
+		})
+	}
 }
 
 func Test_handler_RoleToken(t *testing.T) {

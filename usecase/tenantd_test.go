@@ -41,9 +41,8 @@ func TestNew(t *testing.T) {
 		name       string
 		args       args
 		beforeFunc func()
-		checkFunc  func(Tenant, Tenant) error
+		checkFunc  func(Tenant) error
 		afterFunc  func()
-		want       Tenant
 		wantErr    error
 	}
 	tests := []test{
@@ -114,41 +113,16 @@ func TestNew(t *testing.T) {
 				args: args{
 					cfg: cfg,
 				},
-				want: func() Tenant {
-					os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key)
-					defer os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"))
-					token, err := createNtokend(cfg.Token)
-					if err != nil {
-						panic(err)
-					}
-					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
-					if err != nil {
-						panic(err)
-					}
+				checkFunc: func(got Tenant) error {
+					if got.(*clientd).role == nil ||
+						got.(*clientd).server == nil ||
+						got.(*clientd).svccert == nil ||
+						got.(*clientd).token == nil {
 
-					var svccert service.SvcCertService
-					svccert, _ = service.NewSvcCertService(cfg, token.GetTokenProvider())
-					h := handler.New(
-						cfg.Proxy,
-						infra.NewBuffer(cfg.Proxy.BufferSize),
-						token.GetTokenProvider(),
-						role.GetRoleProvider(),
-						svccert.GetSvcCertProvider(),
-					)
-
-					serveMux := router.New(cfg, h)
-					server := service.NewServer(
-						service.WithServerConfig(cfg.Server),
-						service.WithServerHandler(serveMux),
-					)
-
-					return &clientd{
-						cfg:    cfg,
-						token:  token,
-						server: server,
-						role:   role,
+						return fmt.Errorf("Got: %v", got)
 					}
-				}(),
+					return nil
+				},
 			}
 		}(),
 		func() test {
@@ -178,39 +152,15 @@ func TestNew(t *testing.T) {
 				args: args{
 					cfg: cfg,
 				},
-				want: func() Tenant {
-					os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key)
-					defer os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"))
-					token, err := createNtokend(cfg.Token)
-					if err != nil {
-						panic(err)
-					}
-					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
-					if err != nil {
-						panic(err)
-					}
+				checkFunc: func(got Tenant) error {
+					if got.(*clientd).role == nil ||
+						got.(*clientd).server == nil ||
+						got.(*clientd).token == nil {
 
-					h := handler.New(
-						cfg.Proxy,
-						infra.NewBuffer(cfg.Proxy.BufferSize),
-						token.GetTokenProvider(),
-						role.GetRoleProvider(),
-						nil,
-					)
-
-					serveMux := router.New(cfg, h)
-					server := service.NewServer(
-						service.WithServerConfig(cfg.Server),
-						service.WithServerHandler(serveMux),
-					)
-
-					return &clientd{
-						cfg:    cfg,
-						token:  token,
-						server: server,
-						role:   role,
+						return fmt.Errorf("Got: %v", got)
 					}
-				}(),
+					return nil
+				},
 			}
 		}(),
 		func() test {
@@ -237,39 +187,15 @@ func TestNew(t *testing.T) {
 				args: args{
 					cfg: cfg,
 				},
-				want: func() Tenant {
-					os.Setenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"), key)
-					defer os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"))
-					token, err := createNtokend(cfg.Token)
-					if err != nil {
-						panic(err)
-					}
-					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
-					if err != nil {
-						panic(err)
-					}
+				checkFunc: func(got Tenant) error {
+					if got.(*clientd).role == nil ||
+						got.(*clientd).server == nil ||
+						got.(*clientd).token == nil {
 
-					h := handler.New(
-						cfg.Proxy,
-						infra.NewBuffer(cfg.Proxy.BufferSize),
-						token.GetTokenProvider(),
-						role.GetRoleProvider(),
-						nil,
-					)
-
-					serveMux := router.New(cfg, h)
-					server := service.NewServer(
-						service.WithServerConfig(cfg.Server),
-						service.WithServerHandler(serveMux),
-					)
-
-					return &clientd{
-						cfg:    cfg,
-						token:  token,
-						server: server,
-						role:   role,
+						return fmt.Errorf("Got: %v", got)
 					}
-				}(),
+					return nil
+				},
 			}
 		}(),
 	}
@@ -293,7 +219,7 @@ func TestNew(t *testing.T) {
 			}
 
 			if tt.checkFunc != nil {
-				err = tt.checkFunc(got, tt.want)
+				err = tt.checkFunc(got)
 				if tt.wantErr == nil && err != nil {
 					t.Errorf("compare check failed, err: %v", err)
 					return
@@ -368,6 +294,10 @@ func Test_clientd_Start(t *testing.T) {
 					if err != nil {
 						panic(err)
 					}
+					access, err := service.NewAccessService(cfg.Access, token.GetTokenProvider())
+					if err != nil {
+						panic(err)
+					}
 					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
 					if err != nil {
 						panic(err)
@@ -377,6 +307,7 @@ func Test_clientd_Start(t *testing.T) {
 						cfg.Proxy,
 						infra.NewBuffer(cfg.Proxy.BufferSize),
 						token.GetTokenProvider(),
+						access.GetAccessProvider(),
 						role.GetRoleProvider(),
 						nil,
 					)

@@ -80,7 +80,7 @@ func run(cfg config.Config) []error {
 		select {
 		case <-sigCh:
 			cancel()
-			glg.Warn("athenz client server shutdown...")
+			glg.Warn("Athenz client server shutdown...")
 		case errs := <-ech:
 			return errs
 		}
@@ -122,12 +122,12 @@ func main() {
 	}
 
 	if cfg.Version != config.GetVersion() {
-		glg.Fatal(errors.New("invalid athenz client proxy configuration version"))
+		glg.Fatal(errors.New("invalid Athenz client proxy configuration version"))
 		return
 	}
 
 	errs := run(*cfg)
-	if errs != nil && len(errs) > 0 {
+	if len(errs) > 0 {
 		glg.Fatal(errs)
 		return
 	}

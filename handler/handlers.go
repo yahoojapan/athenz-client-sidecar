@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package handler
 
 import (
@@ -34,7 +35,9 @@ type Handler interface {
 	NToken(http.ResponseWriter, *http.Request) error
 	// NTokenProxy handles proxy requests that require a n-token.
 	NTokenProxy(http.ResponseWriter, *http.Request) error
-	// RoleToken handles get role token requests.
+	// AccessToken handles post access token requests.
+	AccessToken(http.ResponseWriter, *http.Request) error
+	// RoleToken handles post role token requests.
 	RoleToken(http.ResponseWriter, *http.Request) error
 	// RoleTokenProxy handles proxy requests that require a role token.
 	RoleTokenProxy(http.ResponseWriter, *http.Request) error
@@ -49,18 +52,20 @@ type Func func(http.ResponseWriter, *http.Request) error
 type handler struct {
 	proxy   *httputil.ReverseProxy
 	token   ntokend.TokenProvider
+	access  service.AccessProvider
 	role    service.RoleProvider
 	svcCert service.SvcCertProvider
 	cfg     config.Proxy
 }
 
 // New creates a handler for handling different HTTP requests based on the given services. It also contains a reverse proxy for handling proxy request.
-func New(cfg config.Proxy, bp httputil.BufferPool, token ntokend.TokenProvider, role service.RoleProvider, svcCert service.SvcCertProvider) Handler {
+func New(cfg config.Proxy, bp httputil.BufferPool, token ntokend.TokenProvider, access service.AccessProvider, role service.RoleProvider, svcCert service.SvcCertProvider) Handler {
 	return &handler{
 		proxy: &httputil.ReverseProxy{
 			BufferPool: bp,
 		},
 		token:   token,
+		access:  access,
 		role:    role,
 		cfg:     cfg,
 		svcCert: svcCert,
@@ -93,6 +98,24 @@ func (h *handler) NTokenProxy(w http.ResponseWriter, r *http.Request) error {
 	r.Header.Set(h.cfg.PrincipalAuthHeaderName, tok)
 	h.proxy.ServeHTTP(w, r)
 	return nil
+}
+
+// AccessToken handles access token requests and responses the corresponding access token. Depends on access token service.
+func (h *handler) AccessToken(w http.ResponseWriter, r *http.Request) error {
+	defer flushAndClose(r.Body)
+
+	var data model.AccessRequest
+	err := json.NewDecoder(r.Body).Decode(&data)
+	if err != nil {
+		return err
+	}
+	tok, err := h.access(r.Context(), data.Domain, data.Role, data.ProxyForPrincipal, data.Expiry)
+	if err != nil {
+		return err
+	}
+
+	w.Header().Set("Content-type", "application/json; charset=utf-8")
+	return json.NewEncoder(w).Encode(tok)
 }
 
 // RoleToken handles role token requests and responses the corresponding role token. Depends on role token service.

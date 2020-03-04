@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package config
 
 import (
@@ -33,16 +34,19 @@ type Config struct {
 	// Server represent the client sidecar and health check server configuration.
 	Server Server `yaml:"server"`
 
-	// Token represent the configuration to generate N-token to connect to athenz.
+	// Token represent the configuration to generate N-token to connect to Athenz.
 	Token Token `yaml:"ntoken"`
 
-	// Role represent the configuration to generate role token from athenz server.
+	// Access represent the configuration to retrieve access token from Athenz server.
+	Access Access `yaml:"access_token"`
+
+	// Role represent the configuration to retrieve role token from Athenz server.
 	Role Role `yaml:"roletoken"`
 
-	// Proxy represent the configuration of the reverse proxy server to connect to athenz to get N-token and role token.
+	// Proxy represent the configuration of the reverse proxy server to connect to Athenz to get N-token and role token.
 	Proxy Proxy `yaml:"proxy"`
 
-	// ServiceCert represent the configuration of the service identify in the form of short-lived X.509 certificates that can be used instead of N-token in athenz.
+	// ServiceCert represent the configuration of the service identify in the form of short-lived X.509 certificates that can be used instead of N-token in Athenz.
 	ServiceCert ServiceCert `yaml:"service_cert"`
 }
 
@@ -97,12 +101,12 @@ type Proxy struct {
 	BufferSize uint64 `yaml:"buffer_size"`
 }
 
-// Token represent the N-token detail to get the host certificate and role token
+// Token represent the N-token detail to retrieve other Athenz credentials
 type Token struct {
-	// AthenzDomain represent the athenz domain value to generate the N-token.
+	// AthenzDomain represent the Athenz domain value to generate the N-token.
 	AthenzDomain string `yaml:"athenz_domain"`
 
-	// ServiceName represent the athenz service name value to generate the N-token.
+	// ServiceName represent the Athenz service name value to generate the N-token.
 	ServiceName string `yaml:"service_name"`
 
 	// NTokenPath represent the N-token path, this field is only for Copper Argos.
@@ -124,12 +128,39 @@ type Token struct {
 	Expiration string `yaml:"expiration"`
 }
 
+// Access represent the Access token configuration
+type Access struct {
+	// Enable decides wheather use access token
+	Enable bool `yaml:"enable"`
+
+	// PrincipalAuthHeaderName is the HTTP header name for holding the n-token.
+	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
+
+	// AthenzURL represent the Athenz URL to retrieve the access token
+	AthenzURL string `yaml:"athenz_url"`
+
+	// AthenzRootCA represent the Athenz server Root Certificate
+	AthenzRootCA string `yaml:"athenz_root_ca"`
+
+	// TokenExpiry represent the duration of the expiration
+	TokenExpiry string `yaml:"expiration"`
+
+	// RefreshInterval represent the access token refresh duration.
+	RefreshInterval string `yaml:"refresh_interval"`
+
+	// ErrRetryMaxCount represent the maximum error retry count during refreshing the access token cache.
+	ErrRetryMaxCount int `yaml:"err_retry_max_count"`
+
+	// ErrRetryInterval represent the error retry interval when refreshing the access token cache.
+	ErrRetryInterval string `yaml:"err_retry_interval"`
+}
+
 // Role represent the Role token configuration
 type Role struct {
 	// PrincipalAuthHeaderName is the HTTP header name for holding the n-token.
 	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
 
-	// AthenzURL represent the athenz URL to get the role token
+	// AthenzURL represent the Athenz URL to retrieve the role token
 	AthenzURL string `yaml:"athenz_url"`
 
 	// AthenzRootCA represent the Athenz server Root Certificate
@@ -153,7 +184,7 @@ type ServiceCert struct {
 	// Enable decides wheather use service cert
 	Enable bool `yaml:"enable"`
 
-	// AthenzURL represent the athenz URL to get the role token
+	// AthenzURL represent the Athenz URL to retrieve the service certificate
 	AthenzURL string `yaml:"athenz_url"`
 
 	// AthenzRootCA represent the Athenz server Root Certificate

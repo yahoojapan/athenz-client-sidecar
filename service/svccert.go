@@ -1,5 +1,3 @@
-package service
-
 /*
 Copyright (C)  2018 Yahoo Japan Corporation Athenz team.
 
@@ -15,6 +13,8 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
+package service
 
 import (
 	"bytes"
@@ -53,7 +53,7 @@ var (
 	// defaultSvcCertExpiration represents the default vaule of Expiration
 	defaultSvcCertExpiration int32
 
-	// domainReg is used to parse the athenz domain which is contained in config
+	// domainReg is used to parse the Athenz domain which is contained in config
 	domainReg = regexp.MustCompile(`^([a-zA-Z0-9_][a-zA-Z0-9_-]*\.)*[a-zA-Z0-9_][a-zA-Z0-9_-]*$`)
 
 	// ErrCertNotFound represents an error when failed to fetch the svccert from SvcCertProvider.
@@ -83,7 +83,7 @@ type requestTemplate struct {
 	simpleName   zts.SimpleName
 }
 
-// SvcCertService represents a interface to automatically refresh the certificate.
+// SvcCertService represents an interface to automatically refresh the certificate.
 type SvcCertService interface {
 	StartSvcCertUpdater(context.Context) SvcCertService
 	GetSvcCertProvider() SvcCertProvider
@@ -95,7 +95,7 @@ type certCache struct {
 	exp  time.Time
 }
 
-// svcCertService represents the implementation of athenz RoleService
+// svcCertService represents the implementation of Athenz RoleService
 type svcCertService struct {
 	cfg             config.ServiceCert
 	token           ntokend.TokenProvider
@@ -110,7 +110,7 @@ type svcCertService struct {
 // SvcCertProvider represents a function pointer to get the svccert.
 type SvcCertProvider func() ([]byte, error)
 
-// NewSvcCertService returns a SvcCertService to update and get the svccert from athenz.
+// NewSvcCertService returns a SvcCertService to update and get the svccert from Athenz.
 func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertService, error) {
 	dur, err := time.ParseDuration(cfg.ServiceCert.RefreshDuration)
 	if err != nil {

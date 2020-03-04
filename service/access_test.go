@@ -18,11 +18,12 @@ package service
 import (
 	"context"
 	"fmt"
-	"io"
 	"math"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -31,25 +32,25 @@ import (
 	ntokend "github.com/kpango/ntokend"
 	"github.com/pkg/errors"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
-	"golang.org/x/sync/singleflight"
 )
 
-func TestNewRoleService(t *testing.T) {
+func TestNewAccessService(t *testing.T) {
 	type args struct {
-		cfg   config.Role
+		cfg   config.Access
 		token ntokend.TokenProvider
 	}
 	type test struct {
 		name      string
 		args      args
-		checkFunc func(got, want RoleService) error
-		want      RoleService
+		checkFunc func(got, want AccessService) error
+		want      AccessService
 		wantErr   error
 	}
 	tests := []test{
 		func() test {
 			args := args{
-				cfg: config.Role{
+				cfg: config.Access{
+					Enable:                  true,
 					TokenExpiry:             "5s",
 					AthenzURL:               "dummy",
 					PrincipalAuthHeaderName: "dummyAuthHeader",
@@ -60,28 +61,28 @@ func TestNewRoleService(t *testing.T) {
 				},
 			}
 			return test{
-				name: "NewRoleService return correct",
+				name: "NewAccessService return correct",
 				args: args,
-				checkFunc: func(got, want RoleService) error {
-					gotS := got.(*roleService)
-					wantS := want.(*roleService)
+				checkFunc: func(got, want AccessService) error {
+					gotS := got.(*accessService)
+					wantS := want.(*accessService)
 					if !reflect.DeepEqual(gotS.cfg, wantS.cfg) ||
 						reflect.ValueOf(gotS.token).Pointer() != reflect.ValueOf(wantS.token).Pointer() ||
 						!reflect.DeepEqual(gotS.athenzURL, wantS.athenzURL) ||
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
-						//!reflect.DeepEqual(gotS.domainRoleCache, wantS.domainRoleCache) ||
+						//!reflect.DeepEqual(gotS.tokenCache, wantS.tokenCache) ||
 						!reflect.DeepEqual(gotS.expiry, wantS.expiry) {
 
 						return fmt.Errorf("got: %+v, want: %+v", got, want)
 					}
 					return nil
 				},
-				want: &roleService{
+				want: &accessService{
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
 					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
-					domainRoleCache:       gache.New(),
+					tokenCache:            gache.New(),
 					expiry: func() time.Duration {
 						dur, _ := time.ParseDuration(args.cfg.TokenExpiry)
 						return dur
@@ -91,7 +92,7 @@ func TestNewRoleService(t *testing.T) {
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Role{
+				cfg: config.Access{
 					AthenzURL:               "dummy",
 					PrincipalAuthHeaderName: "dummyAuthHeader",
 				},
@@ -100,16 +101,16 @@ func TestNewRoleService(t *testing.T) {
 				},
 			}
 			return test{
-				name: "NewRoleService default values",
+				name: "NewAccessService default values",
 				args: args,
-				checkFunc: func(got, want RoleService) error {
-					gotS := got.(*roleService)
-					wantS := want.(*roleService)
+				checkFunc: func(got, want AccessService) error {
+					gotS := got.(*accessService)
+					wantS := want.(*accessService)
 					if !reflect.DeepEqual(gotS.cfg, wantS.cfg) ||
 						reflect.ValueOf(gotS.token).Pointer() != reflect.ValueOf(wantS.token).Pointer() ||
 						!reflect.DeepEqual(gotS.athenzURL, wantS.athenzURL) ||
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
-						//!reflect.DeepEqual(gotS.domainRoleCache, wantS.domainRoleCache) ||
+						//!reflect.DeepEqual(gotS.tokenCache, wantS.tokenCache) ||
 						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
 						!reflect.DeepEqual(gotS.refreshInterval, wantS.refreshInterval) ||
 						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
@@ -119,12 +120,12 @@ func TestNewRoleService(t *testing.T) {
 					}
 					return nil
 				},
-				want: &roleService{
+				want: &accessService{
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
 					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
-					domainRoleCache:       gache.New(),
+					tokenCache:            gache.New(),
 					expiry:                0,
 					errRetryInterval:      defaultErrRetryInterval,
 					errRetryMaxCount:      defaultErrRetryMaxCount,
@@ -134,55 +135,55 @@ func TestNewRoleService(t *testing.T) {
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Role{
+				cfg: config.Access{
 					TokenExpiry: "1x",
 				},
 			}
 			return test{
-				name:    "NewRoleService return error with TokenExpiry of invalid format",
+				name:    "NewAccessService return error with TokenExpiry of invalid format",
 				args:    args,
 				wantErr: errors.Wrap(ErrInvalidSetting, "TokenExpiry: time: unknown unit x in duration 1x"),
 			}
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Role{
+				cfg: config.Access{
 					RefreshInterval: "1x",
 				},
 			}
 			return test{
-				name:    "NewRoleService return error with RefreshInterval of invalid format",
+				name:    "NewAccessService return error with RefreshInterval of invalid format",
 				args:    args,
 				wantErr: errors.Wrap(ErrInvalidSetting, "RefreshInterval: time: unknown unit x in duration 1x"),
 			}
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Role{
+				cfg: config.Access{
 					ErrRetryInterval: "1x",
 				},
 			}
 			return test{
-				name:    "NewRoleService return error with ErrRetryInterval of invalid format",
+				name:    "NewAccessService return error with ErrRetryInterval of invalid format",
 				args:    args,
 				wantErr: errors.Wrap(ErrInvalidSetting, "ErrRetryInterval: time: unknown unit x in duration 1x"),
 			}
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Role{
+				cfg: config.Access{
 					ErrRetryMaxCount: -1,
 				},
 			}
 			return test{
-				name:    "NewRoleService return error with ErrRetryMaxCount < 0",
+				name:    "NewAccessService return error with ErrRetryMaxCount < 0",
 				args:    args,
 				wantErr: errors.Wrap(ErrInvalidSetting, "ErrRetryMaxCount < 0"),
 			}
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Role{
+				cfg: config.Access{
 					AthenzURL:               "dummy",
 					PrincipalAuthHeaderName: "dummyAuthHeader",
 					RefreshInterval:         "60s",
@@ -193,7 +194,7 @@ func TestNewRoleService(t *testing.T) {
 				},
 			}
 			return test{
-				name:    "NewRoleService return error when refresh interval > token expiry",
+				name:    "NewAccessService return error when refresh interval > token expiry",
 				args:    args,
 				wantErr: errors.Wrap(ErrInvalidSetting, "refresh interval > token expiry time"),
 			}
@@ -201,7 +202,7 @@ func TestNewRoleService(t *testing.T) {
 		func() test {
 			cnt := 10
 			args := args{
-				cfg: config.Role{
+				cfg: config.Access{
 					AthenzURL:               "dummy",
 					PrincipalAuthHeaderName: "dummyAuthHeader",
 					ErrRetryMaxCount:        cnt,
@@ -211,16 +212,16 @@ func TestNewRoleService(t *testing.T) {
 				},
 			}
 			return test{
-				name: "NewRoleService specific ErrRetryMaxCount",
+				name: "NewAccessService specific ErrRetryMaxCount",
 				args: args,
-				checkFunc: func(got, want RoleService) error {
-					gotS := got.(*roleService)
-					wantS := want.(*roleService)
+				checkFunc: func(got, want AccessService) error {
+					gotS := got.(*accessService)
+					wantS := want.(*accessService)
 					if !reflect.DeepEqual(gotS.cfg, wantS.cfg) ||
 						reflect.ValueOf(gotS.token).Pointer() != reflect.ValueOf(wantS.token).Pointer() ||
 						!reflect.DeepEqual(gotS.athenzURL, wantS.athenzURL) ||
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
-						//!reflect.DeepEqual(gotS.domainRoleCache, wantS.domainRoleCache) ||
+						//!reflect.DeepEqual(gotS.tokenCache, wantS.tokenCache) ||
 						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
 						!reflect.DeepEqual(gotS.refreshInterval, wantS.refreshInterval) ||
 						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
@@ -230,12 +231,12 @@ func TestNewRoleService(t *testing.T) {
 					}
 					return nil
 				},
-				want: &roleService{
+				want: &accessService{
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
 					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
-					domainRoleCache:       gache.New(),
+					tokenCache:            gache.New(),
 					expiry:                0,
 					errRetryInterval:      defaultErrRetryInterval,
 					errRetryMaxCount:      cnt,
@@ -245,7 +246,7 @@ func TestNewRoleService(t *testing.T) {
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Role{
+				cfg: config.Access{
 					AthenzURL:               "dummy",
 					PrincipalAuthHeaderName: "dummyAuthHeader",
 					AthenzRootCA:            "assets/dummyCa.pem",
@@ -255,16 +256,16 @@ func TestNewRoleService(t *testing.T) {
 				},
 			}
 			return test{
-				name: "NewRoleService contains valid Athenz rootCA",
+				name: "NewAccessService contains valid Athenz rootCA",
 				args: args,
-				checkFunc: func(got, want RoleService) error {
-					gotS := got.(*roleService)
-					wantS := want.(*roleService)
+				checkFunc: func(got, want AccessService) error {
+					gotS := got.(*accessService)
+					wantS := want.(*accessService)
 					if !reflect.DeepEqual(gotS.cfg, wantS.cfg) ||
 						reflect.ValueOf(gotS.token).Pointer() != reflect.ValueOf(wantS.token).Pointer() ||
 						!reflect.DeepEqual(gotS.athenzURL, wantS.athenzURL) ||
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
-						//!reflect.DeepEqual(gotS.domainRoleCache, wantS.domainRoleCache) ||
+						//!reflect.DeepEqual(gotS.tokenCache, wantS.tokenCache) ||
 						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
 						!reflect.DeepEqual(gotS.refreshInterval, wantS.refreshInterval) ||
 						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
@@ -280,12 +281,12 @@ func TestNewRoleService(t *testing.T) {
 
 					return nil
 				},
-				want: &roleService{
+				want: &accessService{
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
 					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
-					domainRoleCache:       gache.New(),
+					tokenCache:            gache.New(),
 					expiry:                0,
 					errRetryInterval:      defaultErrRetryInterval,
 					errRetryMaxCount:      defaultErrRetryMaxCount,
@@ -295,7 +296,7 @@ func TestNewRoleService(t *testing.T) {
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Role{
+				cfg: config.Access{
 					AthenzURL:               "dummy",
 					PrincipalAuthHeaderName: "dummyAuthHeader",
 					AthenzRootCA:            "assets/invalid_dummyCa.pem",
@@ -305,16 +306,16 @@ func TestNewRoleService(t *testing.T) {
 				},
 			}
 			return test{
-				name: "NewRoleService contains invalid Athenz rootCA",
+				name: "NewAccessService contains invalid Athenz rootCA",
 				args: args,
-				checkFunc: func(got, want RoleService) error {
-					gotS := got.(*roleService)
-					wantS := want.(*roleService)
+				checkFunc: func(got, want AccessService) error {
+					gotS := got.(*accessService)
+					wantS := want.(*accessService)
 					if !reflect.DeepEqual(gotS.cfg, wantS.cfg) ||
 						reflect.ValueOf(gotS.token).Pointer() != reflect.ValueOf(wantS.token).Pointer() ||
 						!reflect.DeepEqual(gotS.athenzURL, wantS.athenzURL) ||
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
-						//!reflect.DeepEqual(gotS.domainRoleCache, wantS.domainRoleCache) ||
+						//!reflect.DeepEqual(gotS.tokenCache, wantS.tokenCache) ||
 						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
 						!reflect.DeepEqual(gotS.refreshInterval, wantS.refreshInterval) ||
 						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
@@ -328,12 +329,12 @@ func TestNewRoleService(t *testing.T) {
 
 					return nil
 				},
-				want: &roleService{
+				want: &accessService{
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
 					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
-					domainRoleCache:       gache.New(),
+					tokenCache:            gache.New(),
 					expiry:                0,
 					errRetryInterval:      defaultErrRetryInterval,
 					errRetryMaxCount:      defaultErrRetryMaxCount,
@@ -344,7 +345,7 @@ func TestNewRoleService(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewRoleService(tt.args.cfg, tt.args.token)
+			got, err := NewAccessService(tt.args.cfg, tt.args.token)
 
 			if tt.wantErr == nil && err != nil {
 				t.Errorf("failed to instantiate, err: %v", err)
@@ -357,27 +358,25 @@ func TestNewRoleService(t *testing.T) {
 
 			if tt.checkFunc != nil {
 				if err := tt.checkFunc(got, tt.want); err != nil {
-					t.Errorf("NewRoleService() err: %v", err)
+					t.Errorf("NewAccessService() err: %v", err)
 				}
 			}
 		})
 	}
 }
 
-func Test_roleService_StartRoleUpdater(t *testing.T) {
+func Test_accessService_StartAccessUpdater(t *testing.T) {
 	type fields struct {
-		cfg                   config.Role
+		cfg                   config.Access
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
-		domainRoleCache       gache.Gache
-		group                 singleflight.Group
+		tokenCache            gache.Gache
 		expiry                time.Duration
 		httpClient            *http.Client
-
-		refreshInterval  time.Duration
-		errRetryMaxCount int
-		errRetryInterval time.Duration
+		refreshInterval       time.Duration
+		errRetryMaxCount      int
+		errRetryInterval      time.Duration
 	}
 	type args struct {
 		ctx context.Context
@@ -386,27 +385,25 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 		name      string
 		fields    fields
 		args      args
-		checkFunc func(RoleService, <-chan error) error
-		afterFunc func()
+		checkFunc func(AccessService, <-chan error) error
+		afterFunc func() error
 	}
 	tests := []test{
 		func() test {
-			dummyTok := "dummyToken"
 			dummyExpTime := int64(1)
-			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
-			dummyRoleToken := &RoleToken{
-				Token:      dummyToken,
-				ExpiryTime: dummyExpTime,
+			dummyToken := "dummyToken"
+			dummyAccessToken := &AccessTokenResponse{
+				AccessToken: dummyToken,
+				ExpiresIn:   dummyExpTime,
 			}
 
-			domainRoleCache := gache.New()
-			domainRoleCache.SetWithExpire("dummyDomain;dummyRole", &cacheData{
-				token: dummyRoleToken,
+			tokenCache := gache.New()
+			tokenCache.SetWithExpire("dummyDomain;dummyRole", &accessCacheData{
+				token: dummyAccessToken,
 			}, time.Minute)
 
-			// create dummy server to mock the updateRoleToken
-			dummyTok2 := "dummyToken2"
-			dummyToken2 := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok2, dummyExpTime)
+			// create dummy server to mock the updateAccessToken
+			dummyToken2 := `{"access_token":"dummyToken2","token_type":"Bearer","expires_in":1000,"scope":"dummyDomain2:dummyRole2"}"`
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprint(w, dummyToken2)
@@ -414,10 +411,10 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
-				name: "StartRoleUpdater can update cache periodically",
+				name: "StartAccessUpdater can update cache periodically",
 				fields: fields{
 					httpClient:            dummyServer.Client(),
-					domainRoleCache:       domainRoleCache,
+					tokenCache:            tokenCache,
 					expiry:                time.Second,
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "Athenz-Principal",
@@ -431,28 +428,29 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 				args: args{
 					ctx: context.Background(),
 				},
-				checkFunc: func(rs RoleService, errs <-chan error) error {
-					roleTok1, ok := domainRoleCache.Get("dummyDomain;dummyRole")
+				checkFunc: func(as AccessService, errs <-chan error) error {
+					accessTok1, ok := tokenCache.Get("dummyDomain;dummyRole")
 					if !ok {
-						return fmt.Errorf("cannot get first role token")
+						return fmt.Errorf("cannot get first access token")
 					}
 
 					time.Sleep(time.Second * 2)
 
-					roleTok2, ok := domainRoleCache.Get("dummyDomain;dummyRole")
+					accessTok2, ok := tokenCache.Get("dummyDomain;dummyRole")
 					if !ok {
-						return fmt.Errorf("cannot get second role token")
+						return fmt.Errorf("cannot get second access token")
 					}
 
-					if reflect.DeepEqual(roleTok1, roleTok2) {
-						return fmt.Errorf("Token did not updated, role token 1: %v, role token 2: %v", roleTok1, roleTok2)
+					if reflect.DeepEqual(accessTok1, accessTok2) {
+						return fmt.Errorf("Token did not updated, access token 1: %v, access token 2: %v", accessTok1, accessTok2)
 					}
 
 					return nil
 				},
-				afterFunc: func() {
+				afterFunc: func() error {
 					dummyServer.Close()
-					domainRoleCache.Stop()
+					tokenCache.Stop()
+					return nil
 				},
 			}
 		}(),
@@ -463,31 +461,30 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 				if i < 3 {
 					w.WriteHeader(http.StatusInternalServerError)
 				} else {
-					newToken := `{ "token": "newToken", "expiryTime":99999 }`
+					newToken := `{"access_token":"newToken","token_type":"Bearer","expires_in":1000,"scope":"dummyDomain:dummyRole"}"`
 					fmt.Fprint(w, newToken)
 				}
 				i++
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
-			domainRoleCache := gache.New()
-			data := &cacheData{
+			tokenCache := gache.New()
+			data := &accessCacheData{
 				token:             nil,
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				proxyForPrincipal: "dummyProxy",
-				minExpiry:         60,
-				maxExpiry:         60,
+				expiresIn:         60,
 			}
-			domainRoleCache.SetWithExpire("dummyDomain;dummyRole;dummyProxy", data, time.Minute)
+			tokenCache.SetWithExpire("dummyDomain;dummyRole;dummyProxy", data, time.Minute)
 
 			ctx, cancel := context.WithCancel(context.Background())
 
 			return test{
-				name: "RefreshRoleTokenCache success with retry",
+				name: "RefreshAccessTokenCache success with retry",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
-					domainRoleCache: domainRoleCache,
+					httpClient: dummyServer.Client(),
+					tokenCache: tokenCache,
 					token: func() (string, error) {
 						return "dummyToken", nil
 					},
@@ -501,7 +498,7 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 				args: args{
 					ctx: ctx,
 				},
-				checkFunc: func(rs RoleService, echan <-chan error) error {
+				checkFunc: func(as AccessService, echan <-chan error) error {
 					time.Sleep(time.Second)
 					cancel()
 
@@ -519,17 +516,17 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 
 					// check errors
 					for _, err := range errs {
-						if err.Error() != errors.Wrap(ErrRoleTokenRequestFailed, "error update role token").Error() {
-							return errors.Errorf("Unexpected error: %v, want: %v", err, errors.Wrap(ErrRoleTokenRequestFailed, "error update role token"))
+						if err.Error() != errors.Wrap(ErrAccessTokenRequestFailed, "error update access token").Error() {
+							return errors.Errorf("Unexpected error: %v, want: %v", err, errors.Wrap(ErrAccessTokenRequestFailed, "error update access token"))
 						}
 					}
 
-					tok, ok := domainRoleCache.Get("dummyDomain;dummyRole;dummyProxy")
+					tok, ok := tokenCache.Get("dummyDomain;dummyRole;dummyProxy")
 					if !ok {
 						return errors.New("token does not set to the cache")
 					}
 
-					if tok.(*cacheData).token.Token != dummyTok {
+					if tok.(*accessCacheData).token.AccessToken != dummyTok {
 						return errors.New("invalid token set on the cache")
 					}
 
@@ -544,27 +541,26 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
-			domainRoleCache := gache.New()
-			data := &cacheData{
-				token: &RoleToken{
-					Token:      dummyTok,
-					ExpiryTime: int64(99999999),
+			tokenCache := gache.New()
+			data := &accessCacheData{
+				token: &AccessTokenResponse{
+					AccessToken: dummyTok,
+					ExpiresIn:   int64(99999999),
 				},
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				proxyForPrincipal: "dummyProxy",
-				minExpiry:         60,
-				maxExpiry:         60,
+				expiresIn:         60,
 			}
-			domainRoleCache.SetWithExpire("dummyDomain;dummyRole;dummyProxy", data, time.Minute)
+			tokenCache.SetWithExpire("dummyDomain;dummyRole;dummyProxy", data, time.Minute)
 
 			ctx, cancel := context.WithCancel(context.Background())
 
 			return test{
-				name: "RefreshRoleTokenCache failed",
+				name: "RefreshAccessTokenCache failed",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
-					domainRoleCache: domainRoleCache,
+					httpClient: dummyServer.Client(),
+					tokenCache: tokenCache,
 					token: func() (string, error) {
 						return "dummyToken", nil
 					},
@@ -578,7 +574,7 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 				args: args{
 					ctx: ctx,
 				},
-				checkFunc: func(rs RoleService, echan <-chan error) error {
+				checkFunc: func(as AccessService, echan <-chan error) error {
 					time.Sleep(time.Second)
 					cancel()
 
@@ -596,18 +592,18 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 
 					// check errors
 					for _, err := range errs {
-						if err.Error() != errors.Wrap(ErrRoleTokenRequestFailed, "error update role token").Error() {
-							return errors.Errorf("Unexpected error: %v, want: %v", err, errors.Wrap(ErrRoleTokenRequestFailed, "error update role token"))
+						if err.Error() != errors.Wrap(ErrAccessTokenRequestFailed, "error update access token").Error() {
+							return errors.Errorf("Unexpected error: %v, want: %v", err, errors.Wrap(ErrAccessTokenRequestFailed, "error update access token"))
 						}
 					}
 
 					// the cache will not be deleted even the fetch is failed
-					tok, ok := domainRoleCache.Get("dummyDomain;dummyRole;dummyProxy")
+					tok, ok := tokenCache.Get("dummyDomain;dummyRole;dummyProxy")
 					if !ok {
 						return errors.New("token does not set to the cache")
 					}
 
-					if tok.(*cacheData).token.Token != dummyTok {
+					if tok.(*accessCacheData).token.AccessToken != dummyTok {
 						return errors.New("invalid token set on the cache")
 					}
 
@@ -619,30 +615,34 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.afterFunc != nil {
-				defer tt.afterFunc()
+				defer func() {
+					err := tt.afterFunc()
+					if err != nil {
+						t.Errorf("Failed afterFunc %v", err)
+					}
+				}()
 			}
-			r := &roleService{
+			r := &accessService{
 				cfg:                   tt.fields.cfg,
 				token:                 tt.fields.token,
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
-				domainRoleCache:       tt.fields.domainRoleCache,
-				group:                 tt.fields.group,
+				tokenCache:            tt.fields.tokenCache,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
 				refreshInterval:       tt.fields.refreshInterval,
 				errRetryMaxCount:      tt.fields.errRetryMaxCount,
 				errRetryInterval:      tt.fields.errRetryInterval,
 			}
-			got := r.StartRoleUpdater(tt.args.ctx)
+			got := r.StartAccessUpdater(tt.args.ctx)
 			if err := tt.checkFunc(r, got); err != nil {
-				t.Errorf("roleService.StartRoleUpdater(), error: %v", err)
+				t.Errorf("accessService.StartAccessUpdater(), error: %v", err)
 			}
 		})
 	}
 }
 
-func Test_roleService_GetRoleProvider(t *testing.T) {
+func Test_accessService_GetAccessProvider(t *testing.T) {
 	tests := []struct {
 		name string
 	}{
@@ -652,22 +652,21 @@ func Test_roleService_GetRoleProvider(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r, _ := NewRoleService(config.Role{}, nil)
-			if got := r.GetRoleProvider(); got == nil {
+			r, _ := NewAccessService(config.Access{}, nil)
+			if got := r.GetAccessProvider(); got == nil {
 				t.Error("provier is nil")
 			}
 		})
 	}
 }
 
-func Test_roleService_getRoleToken(t *testing.T) {
+func Test_accessService_getAccessToken(t *testing.T) {
 	type fields struct {
-		cfg                   config.Role
+		cfg                   config.Access
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
-		domainRoleCache       gache.Gache
-		group                 singleflight.Group
+		tokenCache            gache.Gache
 		expiry                time.Duration
 		httpClient            *http.Client
 	}
@@ -676,22 +675,21 @@ func Test_roleService_getRoleToken(t *testing.T) {
 		domain            string
 		role              string
 		proxyForPrincipal string
-		minExpiry         int64
-		maxExpiry         int64
+		expiresIn         int64
 	}
 	type test struct {
 		name      string
 		fields    fields
 		args      args
 		afterFunc func() error
-		want      *RoleToken
+		want      *AccessTokenResponse
 		wantErr   error
 	}
 	tests := []test{
 		func() test {
 			dummyTok := "dummyToken"
 			dummyExpTime := int64(999999999)
-			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprint(w, dummyToken)
@@ -699,10 +697,10 @@ func Test_roleService_getRoleToken(t *testing.T) {
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
-				name: "getRoleToken returns correct",
+				name: "getAccessToken returns correct",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
-					domainRoleCache: gache.New(),
+					httpClient: dummyServer.Client(),
+					tokenCache: gache.New(),
 					token: func() (string, error) {
 						return dummyToken, nil
 					},
@@ -714,16 +712,17 @@ func Test_roleService_getRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         1,
-					maxExpiry:         1,
+					expiresIn:         1,
 				},
 				afterFunc: func() error {
 					dummyServer.Close()
 					return nil
 				},
-				want: &RoleToken{
-					Token:      dummyTok,
-					ExpiryTime: dummyExpTime,
+				want: &AccessTokenResponse{
+					AccessToken: dummyTok,
+					TokenType:   "Bearer",
+					Scope:       "dummyDomain:dummyRole",
+					ExpiresIn:   dummyExpTime,
 				},
 			}
 		}(),
@@ -734,10 +733,10 @@ func Test_roleService_getRoleToken(t *testing.T) {
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
-				name: "getRoleToken returns error",
+				name: "getAccessToken returns error",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
-					domainRoleCache: gache.New(),
+					httpClient: dummyServer.Client(),
+					tokenCache: gache.New(),
 					token: func() (string, error) {
 						return "", nil
 					},
@@ -749,32 +748,33 @@ func Test_roleService_getRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         1,
-					maxExpiry:         1,
+					expiresIn:         1,
 				},
 				afterFunc: func() error {
 					dummyServer.Close()
 					return nil
 				},
-				wantErr: ErrRoleTokenRequestFailed,
+				wantErr: ErrAccessTokenRequestFailed,
 			}
 		}(),
 		func() test {
 			dummyTok := "dummyToken"
 			dummyExpTime := int64(999999999)
-			dummyRoleToken := &RoleToken{
-				Token:      dummyTok,
-				ExpiryTime: dummyExpTime,
+			dummyAccessToken := &AccessTokenResponse{
+				AccessToken: dummyTok,
+				TokenType:   "Bearer",
+				Scope:       "dummyDomain:dummyRole",
+				ExpiresIn:   dummyExpTime,
 			}
 			gac := gache.New()
-			gac.Set("dummyDomain;dummyRole;dummyProxy", &cacheData{
-				token: dummyRoleToken,
+			gac.Set("dummyDomain;dummyRole;dummyProxy", &accessCacheData{
+				token: dummyAccessToken,
 			})
 
 			return test{
-				name: "getRoleToken return from cache",
+				name: "getAccessToken return from cache",
 				fields: fields{
-					domainRoleCache: gac,
+					tokenCache: gac,
 				},
 				args: args{
 					ctx:               context.Background(),
@@ -782,27 +782,31 @@ func Test_roleService_getRoleToken(t *testing.T) {
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
 				},
-				want: dummyRoleToken,
+				want: dummyAccessToken,
 			}
 		}(),
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.afterFunc != nil {
-				defer tt.afterFunc()
+				defer func() {
+					err := tt.afterFunc()
+					if err != nil {
+						t.Errorf("Failed afterFunc %v", err)
+					}
+				}()
 			}
 
-			r := &roleService{
+			a := &accessService{
 				cfg:                   tt.fields.cfg,
 				token:                 tt.fields.token,
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
-				domainRoleCache:       tt.fields.domainRoleCache,
-				group:                 tt.fields.group,
+				tokenCache:            tt.fields.tokenCache,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
 			}
-			got, err := r.getRoleToken(tt.args.ctx, tt.args.domain, tt.args.role, tt.args.proxyForPrincipal, tt.args.minExpiry, tt.args.maxExpiry)
+			got, err := a.getAccessToken(tt.args.ctx, tt.args.domain, tt.args.role, tt.args.proxyForPrincipal, tt.args.expiresIn)
 			if tt.wantErr == nil && err != nil {
 				t.Errorf("failed to instantiate, err: %v", err)
 				return
@@ -813,20 +817,19 @@ func Test_roleService_getRoleToken(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("roleService.getRoleToken() = %v, want %v", got, tt.want)
+				t.Errorf("accessService.getAccessToken() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
+func Test_accessService_RefreshAccessTokenCache(t *testing.T) {
 	type fields struct {
-		cfg                   config.Role
+		cfg                   config.Access
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
-		domainRoleCache       gache.Gache
-		group                 singleflight.Group
+		tokenCache            gache.Gache
 		expiry                time.Duration
 		httpClient            *http.Client
 		refreshInterval       time.Duration
@@ -846,31 +849,30 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 	tests := []test{
 		func() test {
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				newToken := `{ "token": "newToken", "expiryTime":99999 }`
+				newToken := `{"access_token":"newToken","token_type":"Bearer","expires_in":99999,"scope":"dummyDomain:dummyRole"}"`
 				fmt.Fprint(w, newToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
-			roleCache := gache.New()
-			data := &cacheData{
+			tokenCache := gache.New()
+			data := &accessCacheData{
 				token:             nil,
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				proxyForPrincipal: "",
-				minExpiry:         60,
-				maxExpiry:         60,
+				expiresIn:         60,
 			}
-			roleCache.SetWithExpire("dummyDomain;dummyRole", data, time.Minute)
+			tokenCache.SetWithExpire("dummyDomain;dummyRole", data, time.Minute)
 
 			return test{
-				name: "Refresh role token cache success",
+				name: "Refresh access token cache success",
 				fields: fields{
 					token: func() (string, error) {
 						return "dummyNToken", nil
 					},
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "dummy",
-					domainRoleCache:       roleCache,
+					tokenCache:            tokenCache,
 					expiry:                time.Minute,
 					httpClient:            dummyServer.Client(),
 					refreshInterval:       time.Second,
@@ -885,16 +887,16 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 						return e
 					}
 
-					newCache, ok := roleCache.Get("dummyDomain;dummyRole")
+					newCache, ok := tokenCache.Get("dummyDomain;dummyRole")
 					if !ok {
 						return errors.New("cannot get new token")
 					}
 
-					tok := newCache.(*cacheData).token
+					tok := newCache.(*accessCacheData).token
 					if tok == nil {
 						return errors.New("updated token is nil")
 					}
-					if tok.Token != "newToken" {
+					if tok.AccessToken != "newToken" {
 						return errors.New("new token not updated")
 					}
 
@@ -904,41 +906,39 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 		}(),
 		func() test {
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				newToken := `{ "token": "newToken", "expiryTime":99999 }`
+				newToken := `{"access_token":"newToken","token_type":"Bearer","expires_in":99999,"scope":"dummyDomain:dummyRole"}"`
 				fmt.Fprint(w, newToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
-			roleCache := gache.New()
-			data := &cacheData{
+			tokenCache := gache.New()
+			data := &accessCacheData{
 				token:             nil,
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				proxyForPrincipal: "",
-				minExpiry:         60,
-				maxExpiry:         60,
+				expiresIn:         60,
 			}
-			roleCache.SetWithExpire("dummyDomain;dummyRole", data, time.Minute)
+			tokenCache.SetWithExpire("dummyDomain;dummyRole", data, time.Minute)
 
-			data1 := &cacheData{
+			data1 := &accessCacheData{
 				token:             nil,
 				domain:            "dummyDomain1",
 				role:              "dummyRole1",
 				proxyForPrincipal: "",
-				minExpiry:         60,
-				maxExpiry:         60,
+				expiresIn:         60,
 			}
-			roleCache.SetWithExpire("dummyDomain1;dummyRole1", data1, time.Minute)
+			tokenCache.SetWithExpire("dummyDomain1;dummyRole1", data1, time.Minute)
 
 			return test{
-				name: "Refresh multiple role token cache success",
+				name: "Refresh multiple access token cache success",
 				fields: fields{
 					token: func() (string, error) {
 						return "dummyNToken", nil
 					},
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "dummy",
-					domainRoleCache:       roleCache,
+					tokenCache:            tokenCache,
 					expiry:                time.Minute,
 					httpClient:            dummyServer.Client(),
 					refreshInterval:       time.Second,
@@ -954,16 +954,16 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 					}
 
 					checkCache := func(k string) error {
-						newCache, ok := roleCache.Get(k)
+						newCache, ok := tokenCache.Get(k)
 						if !ok {
 							return errors.New("cannot get new token")
 						}
 
-						tok := newCache.(*cacheData).token
+						tok := newCache.(*accessCacheData).token
 						if tok == nil {
 							return errors.New("updated token is nil")
 						}
-						if tok.Token != "newToken" {
+						if tok.AccessToken != "newToken" {
 							return errors.New("new token not updated")
 						}
 						return nil
@@ -987,29 +987,28 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 				if i < 3 {
 					w.WriteHeader(http.StatusInternalServerError)
 				} else {
-					newToken := `{ "token": "newToken", "expiryTime":99999 }`
+					newToken := `{"access_token":"newToken","token_type":"Bearer","expires_in":99999,"scope":"dummyDomain:dummyRole"}"`
 					fmt.Fprint(w, newToken)
 				}
 				i++
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
-			domainRoleCache := gache.New()
-			data := &cacheData{
+			tokenCache := gache.New()
+			data := &accessCacheData{
 				token:             nil,
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				proxyForPrincipal: "dummyProxy",
-				minExpiry:         60,
-				maxExpiry:         60,
+				expiresIn:         60,
 			}
-			domainRoleCache.SetWithExpire("dummyDomain;dummyRole;dummyProxy", data, time.Minute)
+			tokenCache.SetWithExpire("dummyDomain;dummyRole;dummyProxy", data, time.Minute)
 
 			return test{
-				name: "RefreshRoleTokenCache success with retry",
+				name: "RefreshAccessTokenCache success with retry",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
-					domainRoleCache: domainRoleCache,
+					httpClient: dummyServer.Client(),
+					tokenCache: tokenCache,
 					token: func() (string, error) {
 						return "dummyToken", nil
 					},
@@ -1033,17 +1032,17 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 
 					// check errors
 					for _, err := range errs {
-						if err != ErrRoleTokenRequestFailed {
+						if err != ErrAccessTokenRequestFailed {
 							return errors.Errorf("Unexpected error: %v", err)
 						}
 					}
 
-					tok, ok := domainRoleCache.Get("dummyDomain;dummyRole;dummyProxy")
+					tok, ok := tokenCache.Get("dummyDomain;dummyRole;dummyProxy")
 					if !ok {
 						return errors.New("token does not set to the cache")
 					}
 
-					if tok.(*cacheData).token.Token != dummyTok {
+					if tok.(*accessCacheData).token.AccessToken != dummyTok {
 						return errors.New("invalid token set on the cache")
 					}
 
@@ -1062,25 +1061,26 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
-			domainRoleCache := gache.New()
-			data := &cacheData{
-				token: &RoleToken{
-					Token:      dummyTok,
-					ExpiryTime: int64(99999999),
+			tokenCache := gache.New()
+			data := &accessCacheData{
+				token: &AccessTokenResponse{
+					AccessToken: dummyTok,
+					TokenType:   "Bearer",
+					Scope:       "dummyDomain:dummyRole",
+					ExpiresIn:   int64(99999999),
 				},
 				domain:            "dummyDomain",
 				role:              "dummyRole",
 				proxyForPrincipal: "dummyProxy",
-				minExpiry:         60,
-				maxExpiry:         60,
+				expiresIn:         60,
 			}
-			domainRoleCache.SetWithExpire("dummyDomain;dummyRole;dummyProxy", data, time.Minute)
+			tokenCache.SetWithExpire("dummyDomain;dummyRole;dummyProxy", data, time.Minute)
 
 			return test{
-				name: "RefreshRoleTokenCache failed",
+				name: "RefreshAccessTokenCache failed",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
-					domainRoleCache: domainRoleCache,
+					httpClient: dummyServer.Client(),
+					tokenCache: tokenCache,
 					token: func() (string, error) {
 						return "dummyToken", nil
 					},
@@ -1104,18 +1104,18 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 
 					// check errors
 					for _, err := range errs {
-						if err != ErrRoleTokenRequestFailed {
+						if err != ErrAccessTokenRequestFailed {
 							return errors.Errorf("Unexpected error: %v", err)
 						}
 					}
 
 					// the cache will not be deleted even the fetch is failed
-					tok, ok := domainRoleCache.Get("dummyDomain;dummyRole;dummyProxy")
+					tok, ok := tokenCache.Get("dummyDomain;dummyRole;dummyProxy")
 					if !ok {
 						return errors.New("token does not set to the cache")
 					}
 
-					if tok.(*cacheData).token.Token != dummyTok {
+					if tok.(*accessCacheData).token.AccessToken != dummyTok {
 						return errors.New("invalid token set on the cache")
 					}
 
@@ -1131,37 +1131,40 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.afterFunc != nil {
-				defer tt.afterFunc()
+				defer func() {
+					err := tt.afterFunc()
+					if err != nil {
+						t.Errorf("Failed afterFunc %v", err)
+					}
+				}()
 			}
-			r := &roleService{
+			a := &accessService{
 				cfg:                   tt.fields.cfg,
 				token:                 tt.fields.token,
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
-				domainRoleCache:       tt.fields.domainRoleCache,
-				group:                 tt.fields.group,
+				tokenCache:            tt.fields.tokenCache,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
 				refreshInterval:       tt.fields.refreshInterval,
 				errRetryMaxCount:      tt.fields.errRetryMaxCount,
 				errRetryInterval:      tt.fields.errRetryInterval,
 			}
-			got := r.RefreshRoleTokenCache(tt.args.ctx)
+			got := a.RefreshAccessTokenCache(tt.args.ctx)
 			if err := tt.checkFunc(got); err != nil {
-				t.Errorf("roleService.RefreshRoleTokenCache() error: %s", err)
+				t.Errorf("accessService.RefreshAccessTokenCache() error: %s", err)
 			}
 		})
 	}
 }
 
-func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
+func Test_accessService_updateAccessTokenWithRetry(t *testing.T) {
 	type fields struct {
-		cfg                   config.Role
+		cfg                   config.Access
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
-		domainRoleCache       gache.Gache
-		group                 singleflight.Group
+		tokenCache            gache.Gache
 		expiry                time.Duration
 		httpClient            *http.Client
 		refreshInterval       time.Duration
@@ -1173,8 +1176,7 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 		domain            string
 		role              string
 		proxyForPrincipal string
-		minExpiry         int64
-		maxExpiry         int64
+		expiresIn         int64
 	}
 	type test struct {
 		name      string
@@ -1187,20 +1189,20 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 		func() test {
 			dummyTok := "dummyToken"
 			dummyExpTime := int64(999999999)
-			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprint(w, dummyToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
-			domainRoleCache := gache.New()
+			tokenCache := gache.New()
 
 			return test{
-				name: "updateRoleTokenWithRetry success",
+				name: "updateAccessTokenWithRetry success",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
-					domainRoleCache: domainRoleCache,
+					httpClient: dummyServer.Client(),
+					tokenCache: tokenCache,
 					token: func() (string, error) {
 						return dummyToken, nil
 					},
@@ -1219,12 +1221,12 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 						return errors.Wrap(err, "Unexpected error occurred")
 					}
 
-					tok, ok := domainRoleCache.Get("dummyDomain;dummyRole;dummyProxy")
+					tok, ok := tokenCache.Get("dummyDomain;dummyRole;dummyProxy")
 					if !ok {
 						return errors.New("token donot set to the cache")
 					}
 
-					if tok.(*cacheData).token.Token != dummyTok {
+					if tok.(*accessCacheData).token.AccessToken != dummyTok {
 						return errors.New("invalid token set on the cache")
 					}
 
@@ -1239,7 +1241,7 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 		func() test {
 			dummyTok := "dummyToken"
 			dummyExpTime := int64(999999999)
-			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime)
 
 			i := 0
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1252,13 +1254,13 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
-			domainRoleCache := gache.New()
+			tokenCache := gache.New()
 
 			return test{
-				name: "updateRoleTokenWithRetry success with retry",
+				name: "updateAccessTokenWithRetry success with retry",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
-					domainRoleCache: domainRoleCache,
+					httpClient: dummyServer.Client(),
+					tokenCache: tokenCache,
 					token: func() (string, error) {
 						return dummyToken, nil
 					},
@@ -1285,17 +1287,17 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 
 					// check errors
 					for _, err := range errs {
-						if err != ErrRoleTokenRequestFailed {
+						if err != ErrAccessTokenRequestFailed {
 							return errors.Errorf("Unexpected error: %v", err)
 						}
 					}
 
-					tok, ok := domainRoleCache.Get("dummyDomain;dummyRole;dummyProxy")
+					tok, ok := tokenCache.Get("dummyDomain;dummyRole;dummyProxy")
 					if !ok {
 						return errors.New("token donot set to the cache")
 					}
 
-					if tok.(*cacheData).token.Token != dummyTok {
+					if tok.(*accessCacheData).token.AccessToken != dummyTok {
 						return errors.New("invalid token set on the cache")
 					}
 
@@ -1315,13 +1317,13 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
-			domainRoleCache := gache.New()
+			tokenCache := gache.New()
 
 			return test{
-				name: "updateRoleTokenWithRetry returns error",
+				name: "updateAccessTokenWithRetry returns error",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
-					domainRoleCache: domainRoleCache,
+					httpClient: dummyServer.Client(),
+					tokenCache: tokenCache,
 					token: func() (string, error) {
 						return dummyToken, nil
 					},
@@ -1348,7 +1350,7 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 
 					// check errors
 					for _, err := range errs {
-						if err != ErrRoleTokenRequestFailed {
+						if err != ErrAccessTokenRequestFailed {
 							return errors.Errorf("Unexpected error: %v", err)
 						}
 					}
@@ -1364,36 +1366,39 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer tt.afterFunc()
-			r := &roleService{
+			defer func() {
+				err := tt.afterFunc()
+				if err != nil {
+					t.Errorf("Failed afterFunc %v", err)
+				}
+			}()
+			a := &accessService{
 				cfg:                   tt.fields.cfg,
 				token:                 tt.fields.token,
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
-				domainRoleCache:       tt.fields.domainRoleCache,
-				group:                 tt.fields.group,
+				tokenCache:            tt.fields.tokenCache,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
 				refreshInterval:       tt.fields.refreshInterval,
 				errRetryMaxCount:      tt.fields.errRetryMaxCount,
 				errRetryInterval:      tt.fields.errRetryInterval,
 			}
-			got := r.updateRoleTokenWithRetry(tt.args.ctx, tt.args.domain, tt.args.role, tt.args.proxyForPrincipal, tt.args.minExpiry, tt.args.maxExpiry)
+			got := a.updateAccessTokenWithRetry(tt.args.ctx, tt.args.domain, tt.args.role, tt.args.proxyForPrincipal, tt.args.expiresIn)
 			if err := tt.checkFunc(got); err != nil {
-				t.Errorf("roleService.updateRoleTokenWithRetry(). error: %v", err)
+				t.Errorf("accessService.updateAccessTokenWithRetry(). error: %v", err)
 			}
 		})
 	}
 }
 
-func Test_roleService_updateRoleToken(t *testing.T) {
+func Test_accessService_updateAccessToken(t *testing.T) {
 	type fields struct {
-		cfg                   config.Role
+		cfg                   config.Access
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
-		domainRoleCache       gache.Gache
-		group                 singleflight.Group
+		tokenCache            gache.Gache
 		expiry                time.Duration
 		httpClient            *http.Client
 	}
@@ -1402,23 +1407,22 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 		domain            string
 		role              string
 		proxyForPrincipal string
-		minExpiry         int64
-		maxExpiry         int64
+		expiresIn         int64
 	}
 	type test struct {
 		name      string
 		fields    fields
 		args      args
-		checkFunc func(got, want *RoleToken) error
+		checkFunc func(got, want *AccessTokenResponse) error
 		afterFunc func() error
-		want      *RoleToken
+		want      *AccessTokenResponse
 		wantErr   error
 	}
 	tests := []test{
 		func() test {
 			dummyTok := "dummyToken"
 			dummyExpTime := int64(999999999)
-			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprint(w, dummyToken)
@@ -1426,10 +1430,10 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
-				name: "updateRoleToken returns correct",
+				name: "updateAccessToken returns correct",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
-					domainRoleCache: gache.New(),
+					httpClient: dummyServer.Client(),
+					tokenCache: gache.New(),
 					token: func() (string, error) {
 						return dummyToken, nil
 					},
@@ -1441,26 +1445,27 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         1,
-					maxExpiry:         1,
+					expiresIn:         1,
 				},
 				afterFunc: func() error {
 					dummyServer.Close()
 					return nil
 				},
-				want: &RoleToken{
-					Token:      dummyTok,
-					ExpiryTime: dummyExpTime,
+				want: &AccessTokenResponse{
+					AccessToken: dummyTok,
+					TokenType:   "Bearer",
+					Scope:       "dummyDomain:dummyRole",
+					ExpiresIn:   dummyExpTime,
 				},
 			}
 		}(),
 		func() test {
 			dummyErr := fmt.Errorf("Dummy error")
 			return test{
-				name: "updateRoleToken token returns error",
+				name: "updateAccessToken token returns error",
 				fields: fields{
-					httpClient:      nil,
-					domainRoleCache: gache.New(),
+					httpClient: nil,
+					tokenCache: gache.New(),
 					token: func() (string, error) {
 						return "", dummyErr
 					},
@@ -1471,8 +1476,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         1,
-					maxExpiry:         1,
+					expiresIn:         1,
 				},
 				wantErr: dummyErr,
 			}
@@ -1480,7 +1484,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 		func() test {
 			dummyTok := "dummyToken"
 			dummyExpTime := int64(999999999)
-			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprint(w, dummyToken)
@@ -1488,10 +1492,10 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
-				name: "updateRoleToken new request returns error",
+				name: "updateAccessToken new request returns error",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
-					domainRoleCache: gache.New(),
+					httpClient: dummyServer.Client(),
+					tokenCache: gache.New(),
 					token: func() (string, error) {
 						return "", nil
 					},
@@ -1503,16 +1507,15 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         1,
-					maxExpiry:         1,
+					expiresIn:         1,
 				},
-				wantErr: fmt.Errorf("Get https://127.0.0.1:9876/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1&proxyForPrincipal=dummyProxy&role=dummyRole: dial tcp 127.0.0.1:9876: connect: connection refused"),
+				wantErr: fmt.Errorf("Post https://127.0.0.1:9876/oauth2/token: dial tcp 127.0.0.1:9876: connect: connection refused"),
 			}
 		}(),
 		func() test {
 			dummyTok := "dummyToken"
 			dummyExpTime := int64(999999999)
-			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusInternalServerError)
@@ -1520,10 +1523,10 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
-				name: "updateRoleToken get token error",
+				name: "updateAccessToken get token error",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
-					domainRoleCache: gache.New(),
+					httpClient: dummyServer.Client(),
+					tokenCache: gache.New(),
 					token: func() (string, error) {
 						return dummyToken, nil
 					},
@@ -1535,14 +1538,13 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         1,
-					maxExpiry:         1,
+					expiresIn:         1,
 				},
 				afterFunc: func() error {
 					dummyServer.Close()
 					return nil
 				},
-				wantErr: ErrRoleTokenRequestFailed,
+				wantErr: ErrAccessTokenRequestFailed,
 			}
 		}(),
 		func() test {
@@ -1554,10 +1556,10 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
-				name: "updateRoleToken decode token error",
+				name: "updateAccessToken decode token error",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
-					domainRoleCache: gache.New(),
+					httpClient: dummyServer.Client(),
+					tokenCache: gache.New(),
 					token: func() (string, error) {
 						return dummyToken, nil
 					},
@@ -1569,8 +1571,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         1,
-					maxExpiry:         1,
+					expiresIn:         1,
 				},
 				afterFunc: func() error {
 					dummyServer.Close()
@@ -1582,20 +1583,20 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 		func() test {
 			dummyTok := "dummyToken"
 			dummyExpTime := fastime.Now().Add(time.Hour).UTC()
-			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %d}`, dummyTok, dummyExpTime.UnixNano()/int64(time.Second))
+			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime.Unix())
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprint(w, dummyToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
-			roleRoleCache := gache.New()
+			tokenCache := gache.New()
 
 			return test{
-				name: "updateRoleToken set token in cache",
+				name: "updateAccessToken set token in cache",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
-					domainRoleCache: roleRoleCache,
+					httpClient: dummyServer.Client(),
+					tokenCache: tokenCache,
 					token: func() (string, error) {
 						return dummyToken, nil
 					},
@@ -1607,15 +1608,14 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         1,
-					maxExpiry:         1,
+					expiresIn:         1,
 				},
-				checkFunc: func(got, want *RoleToken) error {
-					c, exp, ok := roleRoleCache.GetWithExpire("dummyDomain;dummyRole;dummyProxy")
+				checkFunc: func(got, want *AccessTokenResponse) error {
+					c, exp, ok := tokenCache.GetWithExpire("dummyDomain;dummyRole;dummyProxy")
 					if !ok {
 						return fmt.Errorf("element cannot found in cache")
 					}
-					if c.(*cacheData).token.Token != dummyTok {
+					if c.(*accessCacheData).token.AccessToken != dummyTok {
 						return fmt.Errorf("token not matched, got: %v, want: %v", c, dummyTok)
 					}
 
@@ -1634,7 +1634,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 		func() test {
 			dummyTok := "dummyToken"
 			dummyExpTime := fastime.Now().Add(time.Hour).UTC()
-			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime.UnixNano()/int64(time.Second))
+			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime.Unix())
 
 			// create a dummy server that returns a dummy token
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -1642,24 +1642,26 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
-			domainRoleCache := gache.New()
+			tokenCache := gache.New()
 
 			// set another dummy token and see if it is updated
 			dummyTok2 := "dummyToken2"
-			dummyToken2 := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok2, dummyExpTime)
-			dummyRoleToke2 := &RoleToken{
-				Token:      dummyToken2,
-				ExpiryTime: dummyExpTime.UnixNano() / int64(time.Second),
+			dummyToken2 := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok2, dummyExpTime.Unix())
+			dummyAccessToke2 := &AccessTokenResponse{
+				AccessToken: dummyToken2,
+				TokenType:   "Bearer",
+				Scope:       "dummyDomain:dummyRole",
+				ExpiresIn:   dummyExpTime.UnixNano() / int64(time.Second),
 			}
-			domainRoleCache.SetWithExpire("dummyDomain;dummyRole", &cacheData{
-				token: dummyRoleToke2,
+			tokenCache.SetWithExpire("dummyDomain;dummyRole", &accessCacheData{
+				token: dummyAccessToke2,
 			}, time.Second)
 
 			return test{
-				name: "updateRoleToken update token in cache",
+				name: "updateAccessToken update token in cache",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
-					domainRoleCache: domainRoleCache,
+					httpClient: dummyServer.Client(),
+					tokenCache: tokenCache,
 					token: func() (string, error) {
 						return dummyToken, nil
 					},
@@ -1671,15 +1673,14 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         1,
-					maxExpiry:         1,
+					expiresIn:         1,
 				},
-				checkFunc: func(got, want *RoleToken) error {
-					tok, exp, ok := domainRoleCache.GetWithExpire("dummyDomain;dummyRole;dummyProxy")
+				checkFunc: func(got, want *AccessTokenResponse) error {
+					tok, exp, ok := tokenCache.GetWithExpire("dummyDomain;dummyRole;dummyProxy")
 					if !ok {
 						return fmt.Errorf("element cannot found in cache")
 					}
-					if tok.(*cacheData).token.Token != dummyTok {
+					if tok.(*accessCacheData).token.AccessToken != dummyTok {
 						return fmt.Errorf("Token not updated")
 					}
 
@@ -1697,21 +1698,25 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 	}
 	for _, tt := range tests {
 		if tt.afterFunc != nil {
-			defer tt.afterFunc()
+			defer func() {
+				err := tt.afterFunc()
+				if err != nil {
+					t.Errorf("Failed afterFunc %v", err)
+				}
+			}()
 		}
 		t.Run(tt.name, func(t *testing.T) {
-			r := &roleService{
+			a := &accessService{
 				cfg:                   tt.fields.cfg,
 				token:                 tt.fields.token,
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
-				domainRoleCache:       tt.fields.domainRoleCache,
-				group:                 tt.fields.group,
+				tokenCache:            tt.fields.tokenCache,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
 			}
 
-			got, err := r.updateRoleToken(tt.args.ctx, tt.args.domain, tt.args.role, tt.args.proxyForPrincipal, tt.args.minExpiry, tt.args.maxExpiry)
+			got, err := a.updateAccessToken(tt.args.ctx, tt.args.domain, tt.args.role, tt.args.proxyForPrincipal, tt.args.expiresIn)
 			if tt.wantErr == nil && err != nil {
 				t.Errorf("failed to instantiate, err: %v", err)
 				return
@@ -1723,25 +1728,24 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 
 			if tt.checkFunc != nil {
 				if err := tt.checkFunc(got, tt.want); err != nil {
-					t.Errorf("roleService.updateRoleToken() = %v", err)
+					t.Errorf("accessService.updateAccessToken() = %v", err)
 				}
 			} else {
 				if !reflect.DeepEqual(got, tt.want) {
-					t.Errorf("roleService.updateRoleToken() = %v, want %v", got, tt.want)
+					t.Errorf("accessService.updateAccessToken() = %v, want %v", got, tt.want)
 				}
 			}
 		})
 	}
 }
 
-func Test_roleService_fetchRoleToken(t *testing.T) {
+func Test_accessService_fetchAccessToken(t *testing.T) {
 	type fields struct {
-		cfg                   config.Role
+		cfg                   config.Access
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
-		domainRoleCache       gache.Gache
-		group                 singleflight.Group
+		tokenCache            gache.Gache
 		expiry                time.Duration
 		httpClient            *http.Client
 		refreshInterval       time.Duration
@@ -1753,21 +1757,20 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 		domain            string
 		role              string
 		proxyForPrincipal string
-		minExpiry         int64
-		maxExpiry         int64
+		expiry            int64
 	}
 	type test struct {
 		name    string
 		fields  fields
 		args    args
-		want    *RoleToken
+		want    *AccessTokenResponse
 		wantErr error
 	}
 	tests := []test{
 		func() test {
 			dummyTok := "dummyToken"
 			dummyExpTime := int64(999999999)
-			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprint(w, dummyToken)
@@ -1776,7 +1779,7 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
-				name: "fetch role token success",
+				name: "fetch access token success",
 				fields: fields{
 					token: func() (string, error) {
 						return "dummyNtoken", nil
@@ -1790,19 +1793,20 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         3600,
-					maxExpiry:         3600,
+					expiry:            3600,
 				},
-				want: &RoleToken{
-					Token:      dummyTok,
-					ExpiryTime: dummyExpTime,
+				want: &AccessTokenResponse{
+					AccessToken: dummyTok,
+					TokenType:   "Bearer",
+					Scope:       "dummyDomain:dummyRole",
+					ExpiresIn:   dummyExpTime,
 				},
 			}
 		}(),
 		func() test {
 			dummyTok := "dummyToken"
 			dummyExpTime := int64(999999999)
-			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				fmt.Fprint(w, dummyToken)
@@ -1826,8 +1830,7 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         3600,
-					maxExpiry:         3600,
+					expiry:            3600,
 				},
 				wantErr: dummyErr,
 			}
@@ -1853,10 +1856,9 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         3600,
-					maxExpiry:         3600,
+					expiry:            3600,
 				},
-				wantErr: ErrRoleTokenRequestFailed,
+				wantErr: ErrAccessTokenRequestFailed,
 			}
 		}(),
 		func() test {
@@ -1869,7 +1871,7 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			return test{
-				name: "Athenz server return invalid role token",
+				name: "Athenz server return invalid access token",
 				fields: fields{
 					token: func() (string, error) {
 						return "dummyNToken", nil
@@ -1883,8 +1885,7 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					domain:            "dummyDomain",
 					role:              "dummyRole",
 					proxyForPrincipal: "dummyProxy",
-					minExpiry:         3600,
-					maxExpiry:         3600,
+					expiry:            3600,
 				},
 				wantErr: errors.New("invalid character 'd' looking for beginning of value"),
 			}
@@ -1892,49 +1893,97 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &roleService{
+			a := &accessService{
 				cfg:                   tt.fields.cfg,
 				token:                 tt.fields.token,
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
-				domainRoleCache:       tt.fields.domainRoleCache,
-				group:                 tt.fields.group,
+				tokenCache:            tt.fields.tokenCache,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
 				refreshInterval:       tt.fields.refreshInterval,
 				errRetryMaxCount:      tt.fields.errRetryMaxCount,
 				errRetryInterval:      tt.fields.errRetryInterval,
 			}
-			got, err := r.fetchRoleToken(tt.args.ctx, tt.args.domain, tt.args.role, tt.args.proxyForPrincipal, tt.args.minExpiry, tt.args.maxExpiry)
+			got, err := a.fetchAccessToken(tt.args.ctx, tt.args.domain, tt.args.role, tt.args.proxyForPrincipal, tt.args.expiry)
 			if err != nil {
 				if tt.wantErr == nil {
-					t.Errorf("roleService.fetchRoleToken() error = %v, wantErr %v", err, tt.wantErr)
+					t.Errorf("accessService.fetchAccessToken() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
 				if err.Error() != tt.wantErr.Error() {
-					t.Errorf("roleService.fetchRoleToken() error = %v, wantErr %v", err, tt.wantErr)
+					t.Errorf("accessService.fetchAccessToken() error = %v, wantErr %v", err, tt.wantErr)
 					return
 				}
 			} else if tt.wantErr != nil {
-				t.Errorf("roleService.fetchRoleToken() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("accessService.fetchAccessToken() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("roleService.fetchRoleToken() = %v, want %v", got, tt.want)
+				t.Errorf("accessService.fetchAccessToken() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func Test_roleService_getCache(t *testing.T) {
+func Test_createScope(t *testing.T) {
+	type args struct {
+		domain string
+		role   string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "createScope single role",
+			args: args{
+				domain: "dummyDomain",
+				role:   "dummyRole",
+			},
+			want: "dummyDomain:role.dummyRole",
+		},
+		{
+			name: "createScope multi role",
+			args: args{
+				domain: "dummyDomain",
+				role:   "dummyRole1,dummyRole2",
+			},
+			want: "dummyDomain:role.dummyRole1 dummyDomain:role.dummyRole2",
+		},
+		{
+			name: "createScope empty role",
+			args: args{
+				domain: "dummyDomain",
+			},
+			want: "dummyDomain:domain",
+		},
+		{
+			name: "createScope empty domain",
+			args: args{
+				role: "dummyRole1,dummyRole2",
+			},
+			want: ":role.dummyRole1 :role.dummyRole2",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := createScope(tt.args.domain, tt.args.role); got != tt.want {
+				t.Errorf("createScope() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_accessService_getCache(t *testing.T) {
 	type fields struct {
-		cfg                   config.Role
+		cfg                   config.Access
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
-		domainRoleCache       gache.Gache
-		group                 singleflight.Group
+		tokenCache            gache.Gache
 		expiry                time.Duration
 	}
 	type args struct {
@@ -1946,7 +1995,7 @@ func Test_roleService_getCache(t *testing.T) {
 		name   string
 		fields fields
 		args   args
-		want   *RoleToken
+		want   *AccessTokenResponse
 		want1  bool
 	}
 	tests := []test{
@@ -1954,7 +2003,7 @@ func Test_roleService_getCache(t *testing.T) {
 			return test{
 				name: "getCache return not ok (cache not exist)",
 				fields: fields{
-					domainRoleCache: gache.New(),
+					tokenCache: gache.New(),
 				},
 				args: args{
 					domain:    "dummyDomain",
@@ -1970,188 +2019,82 @@ func Test_roleService_getCache(t *testing.T) {
 			dummyExpTime := int64(999999999)
 			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
 
-			roleToken := &RoleToken{
-				Token:      dummyToken,
-				ExpiryTime: dummyExpTime,
+			accessToken := &AccessTokenResponse{
+				AccessToken: dummyToken,
+				TokenType:   "Bearer",
+				Scope:       "dummyDomain:dummyRole",
+				ExpiresIn:   dummyExpTime,
 			}
 
-			domainRoleCache := gache.New()
-			domainRoleCache.Set("dummyDomain;dummyRole;principal", &cacheData{
-				token: roleToken,
+			tokenCache := gache.New()
+			tokenCache.Set("dummyDomain;dummyRole;principal", &accessCacheData{
+				token: accessToken,
 			})
 
 			return test{
 				name: "getCache return cache value",
 				fields: fields{
-					domainRoleCache: domainRoleCache,
+					tokenCache: tokenCache,
 				},
 				args: args{
 					domain:    "dummyDomain",
 					role:      "dummyRole",
 					principal: "principal",
 				},
-				want:  roleToken,
+				want:  accessToken,
 				want1: true,
 			}
 		}(),
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &roleService{
+			a := &accessService{
 				cfg:                   tt.fields.cfg,
 				token:                 tt.fields.token,
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
-				domainRoleCache:       tt.fields.domainRoleCache,
-				group:                 tt.fields.group,
+				tokenCache:            tt.fields.tokenCache,
 				expiry:                tt.fields.expiry,
 			}
-			got, got1 := r.getCache(tt.args.domain, tt.args.role, tt.args.principal)
+			got, got1 := a.getCache(tt.args.domain, tt.args.role, tt.args.principal)
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("roleService.getCache() got = %v, want %v", got, tt.want)
+				t.Errorf("accessService.getCache() got = %v, want %v", got, tt.want)
 			}
 			if got1 != tt.want1 {
-				t.Errorf("roleService.getCache() got1 = %v, want %v", got1, tt.want1)
+				t.Errorf("accessService.getCache() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}
 }
 
-func Test_encode(t *testing.T) {
-	type args struct {
-		domain    string
-		role      string
-		principal string
-	}
-	tests := []struct {
-		name string
-		args args
-		want string
-	}{
-		{
-			name: "Encode correct",
-			args: args{
-				domain:    "dummyDomain",
-				role:      "dummyRole",
-				principal: "dummyPrincipal",
-			},
-			want: "dummyDomain;dummyRole;dummyPrincipal",
-		},
-		{
-			name: "Encode correct without prinicipal",
-			args: args{
-				domain:    "dummyDomain",
-				role:      "dummyRole",
-				principal: "",
-			},
-			want: "dummyDomain;dummyRole",
-		},
-		{
-			name: "Encode with sorting",
-			args: args{
-				domain:    "dummyDomain",
-				role:      "dummyRole2,dummyRole,dummyRole1",
-				principal: "dummyPrincipal",
-			},
-			want: "dummyDomain;dummyRole,dummyRole1,dummyRole2;dummyPrincipal",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := encode(tt.args.domain, tt.args.role, tt.args.principal); got != tt.want {
-				t.Errorf("encode() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func Test_decode(t *testing.T) {
-	type args struct {
-		key string
-	}
-	tests := []struct {
-		name  string
-		args  args
-		want  string
-		want1 string
-		want2 string
-	}{
-		{
-			name: "decode correct",
-			args: args{
-				key: "dummyDomain;dummyRole",
-			},
-			want:  "dummyDomain",
-			want1: "dummyRole",
-			want2: "",
-		},
-		{
-			name: "decode correct no hyphen",
-			args: args{
-				key: "dummyDomain",
-			},
-			want:  "dummyDomain",
-			want1: "",
-			want2: "",
-		},
-		{
-			name: "decode correct 3 hyphen",
-			args: args{
-				key: "dummyDomain;domainRole;dummy1;dummy2",
-			},
-			want:  "dummyDomain",
-			want1: "domainRole",
-			want2: "dummy1;dummy2",
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, got1, got2 := decode(tt.args.key)
-			if got != tt.want {
-				t.Errorf("decode() got = %v, want %v", got, tt.want)
-			}
-			if got1 != tt.want1 {
-				t.Errorf("decode() got1 = %v, want %v", got1, tt.want1)
-			}
-			if got2 != tt.want2 {
-				t.Errorf("decode() got2 = %v, want %v", got2, tt.want2)
-			}
-		})
-	}
-}
-
-func Test_createGetRoleTokenRequest(t *testing.T) {
+func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 	type fields struct {
-		cfg                   config.Role
+		cfg                   config.Access
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
-		domainRoleCache       gache.Gache
+		tokenCache            gache.Gache
 		expiry                time.Duration
 	}
 	type args struct {
-		domain            string
-		role              string
-		minExpiry         int64
-		maxExpiry         int64
+		scope             string
 		proxyForPrincipal string
+		expiry            int64
 		token             string
 	}
 	tests := []struct {
 		name    string
+		fields  fields
 		args    args
 		want    *http.Request
 		wantErr error
-		fields  fields
 	}{
 		{
-			name: "createGetRoleTokenRequest correct",
+			name: "createPostAccessTokenRequest correct",
 			args: args{
-				domain:            "dummyDomain",
-				role:              "dummyRole",
-				minExpiry:         1,
-				maxExpiry:         1,
+				scope:             "dummyDomain:dummyRole",
 				proxyForPrincipal: "dummyProxyForPrincipal",
+				expiry:            1,
 				token:             "dummyToken",
 			},
 			fields: fields{
@@ -2159,18 +2102,21 @@ func Test_createGetRoleTokenRequest(t *testing.T) {
 				athenzPrincipleHeader: "dummyHeader",
 			},
 			want: func() *http.Request {
-				r, _ := http.NewRequest(http.MethodGet, "https://dummyUURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal&role=dummyRole", nil)
+				r, _ := http.NewRequest(http.MethodPost, "https://dummyUURL/oauth2/token", strings.NewReader(url.Values{}.Encode()))
+				r.Form = url.Values{}
+				r.Form.Add("grant_type", "client_credentials")
+				r.Form.Add("scope", "dummyDomain:dummyRole")
+				r.Form.Add("proxy_for_principal", "dummyProxyForPrincipal")
+				r.Form.Add("expires_in", "1")
 				r.Header.Set("dummyHeader", "dummyToken")
 
 				return r
 			}(),
 		},
 		{
-			name: "createGetRoleTokenRequest correct null minExpiry use default",
+			name: "createPostAccessTokenRequest correct null expiry use default",
 			args: args{
-				domain:            "dummyDomain",
-				role:              "dummyRole",
-				maxExpiry:         1,
+				scope:             "dummyDomain:dummyRole",
 				proxyForPrincipal: "dummyProxyForPrincipal",
 				token:             "dummyToken",
 			},
@@ -2180,67 +2126,34 @@ func Test_createGetRoleTokenRequest(t *testing.T) {
 				expiry:                time.Minute,
 			},
 			want: func() *http.Request {
-				r, _ := http.NewRequest(http.MethodGet, "https://dummyUURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=60&proxyForPrincipal=dummyProxyForPrincipal&role=dummyRole", nil)
+				r, _ := http.NewRequest(http.MethodPost, "https://dummyUURL/oauth2/token", strings.NewReader(url.Values{}.Encode()))
+				r.Form = url.Values{}
+				r.Form.Add("grant_type", "client_credentials")
+				r.Form.Add("scope", "dummyDomain:dummyRole")
+				r.Form.Add("proxy_for_principal", "dummyProxyForPrincipal")
+				r.Form.Add("expires_in", "60")
 				r.Header.Set("dummyHeader", "dummyToken")
 
 				return r
 			}(),
 		},
 		{
-			name: "createGetRoleTokenRequest correct null maxExpiry",
+			name: "createPostAccessTokenRequest correct null proxyForPrincipal",
 			args: args{
-				domain:            "dummyDomain",
-				role:              "dummyRole",
-				minExpiry:         1,
-				proxyForPrincipal: "dummyProxyForPrincipal",
-				token:             "dummyToken",
-			},
-			fields: fields{
-				athenzURL:             "dummyUURL",
-				athenzPrincipleHeader: "dummyHeader",
-				expiry:                60,
-			},
-			want: func() *http.Request {
-				r, _ := http.NewRequest(http.MethodGet, "https://dummyUURL/domain/dummyDomain/token?minExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal&role=dummyRole", nil)
-				r.Header.Set("dummyHeader", "dummyToken")
-
-				return r
-			}(),
-		},
-		{
-			name: "createGetRoleTokenRequest correct null proxyForPrincipal",
-			args: args{
-				domain:    "dummyDomain",
-				role:      "dummyRole",
-				minExpiry: 1,
-				maxExpiry: 1,
-				token:     "dummyToken",
+				scope:  "dummyDomain:dummyRole",
+				expiry: 1,
+				token:  "dummyToken",
 			},
 			fields: fields{
 				athenzURL:             "dummyUURL",
 				athenzPrincipleHeader: "dummyHeader",
 			},
 			want: func() *http.Request {
-				r, _ := http.NewRequest(http.MethodGet, "https://dummyUURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1&role=dummyRole", nil)
-				r.Header.Set("dummyHeader", "dummyToken")
-
-				return r
-			}(),
-		},
-		{
-			name: "createGetRoleTokenRequest correct null role",
-			args: args{
-				domain:    "dummyDomain",
-				minExpiry: 1,
-				maxExpiry: 1,
-				token:     "dummyToken",
-			},
-			fields: fields{
-				athenzURL:             "dummyUURL",
-				athenzPrincipleHeader: "dummyHeader",
-			},
-			want: func() *http.Request {
-				r, _ := http.NewRequest(http.MethodGet, "https://dummyUURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1", nil)
+				r, _ := http.NewRequest(http.MethodPost, "https://dummyUURL/oauth2/token", strings.NewReader(url.Values{}.Encode()))
+				r.Form = url.Values{}
+				r.Form.Add("grant_type", "client_credentials")
+				r.Form.Add("scope", "dummyDomain:dummyRole")
+				r.Form.Add("expires_in", "1")
 				r.Header.Set("dummyHeader", "dummyToken")
 
 				return r
@@ -2249,122 +2162,24 @@ func Test_createGetRoleTokenRequest(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r := &roleService{
+			a := &accessService{
 				cfg:                   tt.fields.cfg,
 				token:                 tt.fields.token,
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
-				domainRoleCache:       tt.fields.domainRoleCache,
+				tokenCache:            tt.fields.tokenCache,
 				expiry:                tt.fields.expiry,
 			}
-			got, err := r.createGetRoleTokenRequest(tt.args.domain, tt.args.role, tt.args.minExpiry, tt.args.maxExpiry, tt.args.proxyForPrincipal, tt.args.token)
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("createGetRoleTokenRequest(), got: %+v, want: %+v", got, tt.want)
+			got, err := a.createPostAccessTokenRequest(tt.args.scope, tt.args.proxyForPrincipal, tt.args.expiry, tt.args.token)
+			if got.URL.String() != tt.want.URL.String() &&
+				reflect.DeepEqual(got.PostForm, tt.want.PostForm) &&
+				reflect.DeepEqual(got.Header, tt.want.Header) {
+
+				t.Errorf("createPostAccessTokenRequest(), got: %+v, want: %+v", got, tt.want)
 			}
 			if err != tt.wantErr {
-				t.Errorf("createGetRoleTokenRequest() = %v, want %v", got, tt.want)
+				t.Errorf("createPostAccessTokenRequest() = %v, want %v", got, tt.want)
 			}
 		})
 	}
-}
-
-func Test_flushAndClose(t *testing.T) {
-	type args struct {
-		readCloser io.ReadCloser
-	}
-	type testcase struct {
-		name      string
-		args      args
-		wantError error
-	}
-	tests := []testcase{
-		{
-			name: "Check flushAndClose, readCloser is nil",
-			args: args{
-				readCloser: nil,
-			},
-			wantError: nil,
-		},
-		{
-			name: "Check flushAndClose, flush & close success",
-			args: args{
-				readCloser: &readCloserMock{
-					readMock: func(p []byte) (n int, err error) {
-						return 0, io.EOF
-					},
-					closeMock: func() error {
-						return nil
-					},
-				},
-			},
-			wantError: nil,
-		},
-		{
-			name: "Check flushAndClose, flush fail",
-			args: args{
-				readCloser: &readCloserMock{
-					readMock: func(p []byte) (n int, err error) {
-						return 0, fmt.Errorf("read-error-1332")
-					},
-					closeMock: func() error {
-						return nil
-					},
-				},
-			},
-			wantError: fmt.Errorf("read-error-1332"),
-		},
-		{
-			name: "Check flushAndClose, close fail",
-			args: args{
-				readCloser: &readCloserMock{
-					readMock: func(p []byte) (n int, err error) {
-						return 0, io.EOF
-					},
-					closeMock: func() error {
-						return fmt.Errorf("close-error-1349")
-					},
-				},
-			},
-			wantError: fmt.Errorf("close-error-1349"),
-		},
-		{
-			name: "Check flushAndClose, flush & close fail",
-			args: args{
-				readCloser: &readCloserMock{
-					readMock: func(p []byte) (n int, err error) {
-						return 0, fmt.Errorf("read-error-1360")
-					},
-					closeMock: func() error {
-						return fmt.Errorf("close-error-1363")
-					},
-				},
-			},
-			wantError: fmt.Errorf("read-error-1360"),
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			gotError := flushAndClose(tt.args.readCloser)
-			if !reflect.DeepEqual(gotError, tt.wantError) {
-				t.Errorf("flushAndClose() error = %v, want %v", gotError, tt.wantError)
-			}
-		})
-	}
-}
-
-// readCloserMock is the adapter implementation of io.ReadCloser interface for mocking.
-type readCloserMock struct {
-	readMock  func(p []byte) (n int, err error)
-	closeMock func() error
-}
-
-// Read is just an adapter.
-func (r *readCloserMock) Read(p []byte) (n int, err error) {
-	return r.readMock(p)
-}
-
-// Close is just an adapter.
-func (r *readCloserMock) Close() error {
-	return r.closeMock()
 }

@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package usecase
 
 import (
@@ -39,6 +40,7 @@ type clientd struct {
 	cfg     config.Config
 	token   ntokend.TokenService
 	server  service.Server
+	access  service.AccessService
 	role    service.RoleService
 	svccert service.SvcCertService
 }
@@ -58,6 +60,8 @@ func New(cfg config.Config) (Tenant, error) {
 		return nil, err
 	}
 
+	// create access service
+	var access service.AccessService
 	// create svccert service
 	var svccert service.SvcCertService
 
@@ -65,11 +69,20 @@ func New(cfg config.Config) (Tenant, error) {
 	// And it is disabled by default.
 	var svcCertProvider service.SvcCertProvider
 	if cfg.ServiceCert.Enable {
-		svccert, err := service.NewSvcCertService(cfg, token.GetTokenProvider())
+		svccert, err = service.NewSvcCertService(cfg, token.GetTokenProvider())
 		if err != nil {
 			return nil, err
 		}
 		svcCertProvider = svccert.GetSvcCertProvider()
+	}
+
+	var accessProvider service.AccessProvider
+	if cfg.Access.Enable {
+		access, err = service.NewAccessService(cfg.Access, token.GetTokenProvider())
+		if err != nil {
+			return nil, err
+		}
+		accessProvider = access.GetAccessProvider()
 	}
 
 	// create handler
@@ -77,6 +90,7 @@ func New(cfg config.Config) (Tenant, error) {
 		cfg.Proxy,
 		infra.NewBuffer(cfg.Proxy.BufferSize),
 		token.GetTokenProvider(),
+		accessProvider,
 		role.GetRoleProvider(),
 		svcCertProvider,
 	)
@@ -90,6 +104,7 @@ func New(cfg config.Config) (Tenant, error) {
 	return &clientd{
 		cfg:     cfg,
 		token:   token,
+		access:  access,
 		role:    role,
 		svccert: svccert,
 		server:  srv,
@@ -103,6 +118,15 @@ func (t *clientd) Start(ctx context.Context) chan []error {
 	// t.svccert only is null when the configuration of ServiceCert is disabled
 	if t.svccert != nil {
 		t.svccert.StartSvcCertUpdater(ctx)
+	}
+
+	// t.access only is null when the configuration of Access is disabled
+	if t.access != nil {
+		go func() {
+			for err := range t.access.StartAccessUpdater(ctx) {
+				glg.Error(err)
+			}
+		}()
 	}
 
 	go func() {

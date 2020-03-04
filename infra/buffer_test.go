@@ -105,10 +105,9 @@ func Test_buffer_Get(t *testing.T) {
 		size *uint64
 	}
 	type testcase struct {
-		name      string
-		fields    fields
-		want      []byte
-		checkFunc func(got, want *buffer) error
+		name   string
+		fields fields
+		want   []byte
 	}
 	tests := []testcase{
 		{
@@ -163,7 +162,7 @@ func Test_buffer_Put(t *testing.T) {
 				size: func(i uint64) *uint64 { return &i }(135),
 			},
 			args: args{
-				buf: make([]byte, 0, 0),
+				buf: make([]byte, 0),
 			},
 			checkFunc: func(got *buffer) error {
 				wantSize := uint64(135)
@@ -195,7 +194,7 @@ func Test_buffer_Put(t *testing.T) {
 				size: func(i uint64) *uint64 { return &i }(166),
 			},
 			args: args{
-				buf: make([]byte, 169, 169),
+				buf: make([]byte, 169),
 			},
 			checkFunc: func(got *buffer) error {
 				wantSize := uint64(169)

@@ -6,7 +6,7 @@
 
 # Table of Contents
 
-- [Athenz Client Sidecar for Kubernetes](#athenz-client-sidecar-for-kubernetes)
+- [Table of Contents](#table-of-contents)
   - [What is Athenz client sidecar?](#what-is-athenz-client-sidecar)
     - [Get Athenz N-Token from client sidecar](#get-athenz-n-token-from-client-sidecar)
     - [Get Athenz Access Token from client sidecar](#get-athenz-access-token-from-client-sidecar)
@@ -28,6 +28,9 @@
       - [Proxy request through client sidecar (append N-token)](#proxy-request-through-client-sidecar-append-n-token)
       - [Proxy request through client sidecar (append role token)](#proxy-request-through-client-sidecar-append-role-token)
   - [Deployment Procedure](#deployment-procedure)
+  - [License](#license)
+  - [Contributor License Agreement](#contributor-license-agreement)
+  - [Authors](#authors)
 
 ## What is Athenz client sidecar?
 
@@ -64,12 +67,16 @@ User can also use the reverse proxy endpoint to proxy the request to another ser
 
 1. `GET /ntoken`
    - Get service token from Athenz
+
 1. `POST /access-token`
    - Get accss token from Athenz
+
 1. `POST /roletoken`
    - Get role token from Athenz
+
 1. `/proxy/ntoken`
    - Append service token to the request header, and send the request to proxy destination
+
 1. `/proxy/roletoken`
    - Append role token to the request header, and send the request to proxy destination
 
@@ -118,12 +125,12 @@ Example:
 ```
 
 - Response body contains below information in JSON format.
-  | Name | Description | Example |
-  |--------------|---------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-  | access_token | The access token generated | eyJraWQiOiIwIiwidHlwIjoiYXQrand0IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiAiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImlhdCI6IDE1ODMxMTIwMTYsImV4cCI6IDE1ODMxMTIwMTYsImlzcyI6ICJodHRwczovL3d3dy5hdGhlbnouY29tOjQ0NDMvenRzL3YxIiwiYXVkIjogImRvbWFpbi5zaG9wcGluZyIsImF1dGhfdGltZSI6IDE1ODMxMTIxMTYsInZlciI6IDEsInNjcCI6IFsidXNlciJdLCJ1aWQiOiAiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImNsaWVudF9pZCI6ICJkb21haW4udHJhdmVsLnRyYXZlbC1zaXRlIn0.[signature] |
-  | token_type | The token type of the access token | Bearer |
-  | expires_in | The expiry time of the access token | 1528860825 |
-  | scope | The scope of the access token (Only added if role is not specified) | user, |
+  | Name         | Description                                                         | Example                                                                                                                                                                                                                                                                                                                                                                                                                                |
+  | ------------ | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | access_token | The access token generated                                          | eyJraWQiOiIwIiwidHlwIjoiYXQrand0IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiAiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImlhdCI6IDE1ODMxMTIwMTYsImV4cCI6IDE1ODMxMTIwMTYsImlzcyI6ICJodHRwczovL3d3dy5hdGhlbnouY29tOjQ0NDMvenRzL3YxIiwiYXVkIjogImRvbWFpbi5zaG9wcGluZyIsImF1dGhfdGltZSI6IDE1ODMxMTIxMTYsInZlciI6IDEsInNjcCI6IFsidXNlciJdLCJ1aWQiOiAiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImNsaWVudF9pZCI6ICJkb21haW4udHJhdmVsLnRyYXZlbC1zaXRlIn0.[signature] |
+  | token_type   | The token type of the access token                                  | Bearer                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+  | expires_in   | The expiry time of the access token                                 | 1528860825                                                                                                                                                                                                                                                                                                                                                                                                                             |
+  | scope        | The scope of the access token (Only added if role is not specified) | user,                                                                                                                                                                                                                                                                                                                                                                                                                                  |
 
 Example:
 

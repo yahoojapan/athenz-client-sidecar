@@ -78,16 +78,16 @@ type AccessTokenResponse struct {
 	TokenType string `json:"token_type"`
 
 	// Expiry in seconds
-	ExpiresIn int64 `json:"expires_in,omitempty" rdl:"optional"`
+	ExpiresIn int64 `json:"expires_in,omitempty"`
 
 	// Scope of the access token e.g. openid (delimited by space)
-	Scope string `json:"scope,omitempty" rdl:"optional"`
+	Scope string `json:"scope,omitempty"`
 
 	// RefreshToken
-	RefreshToken string `json:"refresh_token,omitempty" rdl:"optional"`
+	RefreshToken string `json:"refresh_token,omitempty"`
 
-	// IdToken
-	IdToken string `json:"id_token,omitempty" rdl:"optional"`
+	// IDToken
+	IDToken string `json:"id_token,omitempty"`
 }
 
 // AccessProvider represents a function pointer to retrieve the access token.

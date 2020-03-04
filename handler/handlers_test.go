@@ -61,14 +61,14 @@ func EqualResponse(writer http.ResponseWriter, code int, header map[string]strin
 
 	// check header
 	for k, v := range header {
-		if recorder.HeaderMap.Get(k) != v {
-			return &NotEqualError{"header", recorder.HeaderMap.Get(k), v}
+		if recorder.Header().Get(k) != v {
+			return &NotEqualError{"header", recorder.Header().Get(k), v}
 		}
 	}
 
 	// check body
 	if !bytes.Equal(recorder.Body.Bytes(), body) {
-		return &NotEqualError{"body", string(recorder.Body.Bytes()), string(body)}
+		return &NotEqualError{"body", recorder.Body.String(), string(body)}
 	}
 
 	return nil

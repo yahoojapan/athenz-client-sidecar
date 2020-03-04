@@ -83,7 +83,7 @@ type requestTemplate struct {
 	simpleName   zts.SimpleName
 }
 
-// SvcCertService represents a interface to automatically refresh the certificate.
+// SvcCertService represents an interface to automatically refresh the certificate.
 type SvcCertService interface {
 	StartSvcCertUpdater(context.Context) SvcCertService
 	GetSvcCertProvider() SvcCertProvider

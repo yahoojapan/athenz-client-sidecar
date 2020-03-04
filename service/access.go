@@ -39,7 +39,7 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-// AccessService represents an interface to automatically refresh the access token, and a access token provider function pointer.
+// AccessService represents an interface to automatically refresh the access token, and an access token provider function pointer.
 type AccessService interface {
 	StartAccessUpdater(context.Context) <-chan error
 	RefreshAccessTokenCache(ctx context.Context) <-chan error
@@ -97,7 +97,11 @@ type AccessProvider func(ctx context.Context, domain string, role string, proxyF
 var (
 	// ErrAccessTokenRequestFailed represents the error when failed to fetch the access token from Athenz server.
 	ErrAccessTokenRequestFailed = errors.New("Failed to fetch AccessToken")
-	scopeSeparator              = " "
+)
+
+const (
+	// scopeSeparator is the separator for scope
+	scopeSeparator = " "
 )
 
 // NewAccessService returns a AccessService to update and fetch the access token from Athenz.
@@ -345,9 +349,9 @@ func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, prox
 // The format of scope is like `[domain]:role.[role1] [domain]:role.[role2]`.
 // If role is empty, the format is `[domain]:domain`.
 func createScope(domain, role string) string {
-	roles := strings.Split(role, roleSeparater)
-	scopes := make([]string, len(roles))
 	if role != "" {
+		roles := strings.Split(role, roleSeparator)
+		scopes := make([]string, len(roles))
 		for i, r := range roles {
 			scopes[i] = domain + ":role." + r
 		}

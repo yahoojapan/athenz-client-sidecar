@@ -101,7 +101,7 @@ type Proxy struct {
 	BufferSize uint64 `yaml:"buffer_size"`
 }
 
-// Token represent the N-token detail to get the host certificate and role token
+// Token represent the N-token detail to retrieve other Athenz credentials
 type Token struct {
 	// AthenzDomain represent the Athenz domain value to generate the N-token.
 	AthenzDomain string `yaml:"athenz_domain"`
@@ -160,7 +160,7 @@ type Role struct {
 	// PrincipalAuthHeaderName is the HTTP header name for holding the n-token.
 	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
 
-	// AthenzURL represent the Athenz URL to get the role token
+	// AthenzURL represent the Athenz URL to retrieve the role token
 	AthenzURL string `yaml:"athenz_url"`
 
 	// AthenzRootCA represent the Athenz server Root Certificate
@@ -184,7 +184,7 @@ type ServiceCert struct {
 	// Enable decides wheather use service cert
 	Enable bool `yaml:"enable"`
 
-	// AthenzURL represent the Athenz URL to get the role token
+	// AthenzURL represent the Athenz URL to retrieve the service certificate
 	AthenzURL string `yaml:"athenz_url"`
 
 	// AthenzRootCA represent the Athenz server Root Certificate

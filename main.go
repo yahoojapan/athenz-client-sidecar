@@ -127,7 +127,7 @@ func main() {
 	}
 
 	errs := run(*cfg)
-	if errs != nil && len(errs) > 0 {
+	if len(errs) > 0 {
 		glg.Fatal(errs)
 		return
 	}

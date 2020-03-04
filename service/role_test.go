@@ -388,7 +388,6 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 		args      args
 		checkFunc func(RoleService, <-chan error) error
 		afterFunc func()
-		want      RoleService
 	}
 	tests := []test{
 		func() test {
@@ -410,7 +409,7 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 			dummyToken2 := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok2, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken2)
+				fmt.Fprint(w, dummyToken2)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
@@ -1181,7 +1180,6 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 		name      string
 		fields    fields
 		args      args
-		want      <-chan error
 		checkFunc func(<-chan error) error
 		afterFunc func() error
 	}
@@ -1192,7 +1190,7 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
@@ -1248,7 +1246,7 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 				if i < 3 {
 					w.WriteHeader(http.StatusInternalServerError)
 				} else {
-					fmt.Fprintf(w, dummyToken)
+					fmt.Fprint(w, dummyToken)
 				}
 				i++
 			})
@@ -1408,14 +1406,13 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 		maxExpiry         int64
 	}
 	type test struct {
-		name       string
-		fields     fields
-		args       args
-		beforeFunc func() error
-		checkFunc  func(got, want *RoleToken) error
-		afterFunc  func() error
-		want       *RoleToken
-		wantErr    error
+		name      string
+		fields    fields
+		args      args
+		checkFunc func(got, want *RoleToken) error
+		afterFunc func() error
+		want      *RoleToken
+		wantErr   error
 	}
 	tests := []test{
 		func() test {
@@ -1424,7 +1421,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
@@ -1486,7 +1483,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
@@ -1552,7 +1549,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			dummyToken := "dummyToken"
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
@@ -1588,7 +1585,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %d}`, dummyTok, dummyExpTime.UnixNano()/int64(time.Second))
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
@@ -1641,7 +1638,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 
 			// create a dummy server that returns a dummy token
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
@@ -1773,7 +1770,7 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 				w.WriteHeader(http.StatusOK)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
@@ -1808,7 +1805,7 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 				w.WriteHeader(http.StatusOK)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
@@ -1866,7 +1863,7 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 			dummyTok := "dummyToken"
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyTok)
+				fmt.Fprint(w, dummyTok)
 				w.WriteHeader(http.StatusOK)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
@@ -2130,11 +2127,9 @@ func Test_createGetRoleTokenRequest(t *testing.T) {
 		athenzURL             string
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
-		group                 singleflight.Group
 		expiry                time.Duration
 	}
 	type args struct {
-		athenzURL         string
 		domain            string
 		role              string
 		minExpiry         int64
@@ -2260,7 +2255,6 @@ func Test_createGetRoleTokenRequest(t *testing.T) {
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
 				domainRoleCache:       tt.fields.domainRoleCache,
-				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 			}
 			got, err := r.createGetRoleTokenRequest(tt.args.domain, tt.args.role, tt.args.minExpiry, tt.args.maxExpiry, tt.args.proxyForPrincipal, tt.args.token)

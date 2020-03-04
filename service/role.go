@@ -40,7 +40,7 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-// RoleService represent a interface to automatically refresh the role token, and a role token provider function pointer.
+// RoleService represent an interface to automatically refresh the role token, and a role token provider function pointer.
 type RoleService interface {
 	StartRoleUpdater(context.Context) <-chan error
 	RefreshRoleTokenCache(ctx context.Context) <-chan error
@@ -102,11 +102,11 @@ const (
 	// defaultErrRetryInterval represents the default error retry interval.
 	defaultErrRetryInterval = time.Second * 5
 
-	// cacheKeySeparater is the separater of the internal cache key name.
-	cacheKeySeparater = ";"
+	// cacheKeySeparator is the separator of the internal cache key name.
+	cacheKeySeparator = ";"
 
-	// roleSeparater is the separater of the role names
-	roleSeparater = ","
+	// roleSeparator is the separator of the role names
+	roleSeparator = ","
 
 	// expiryCheckInterval represents default cache expiration check interval
 	expiryCheckInterval = time.Minute
@@ -234,9 +234,9 @@ func (r *roleService) getRoleToken(ctx context.Context, domain, role, proxyForPr
 	return tok, nil
 }
 
-// refreshRoleTokenCache returns the error channel when it is updated.
+// RefreshRoleTokenCache returns the error channel when it is updated.
 func (r *roleService) RefreshRoleTokenCache(ctx context.Context) <-chan error {
-	glg.Info("refreshRoleTokenCache started")
+	glg.Info("RefreshRoleTokenCache started")
 
 	echan := make(chan error, r.domainRoleCache.Len()*(r.errRetryMaxCount+1))
 	go func() {
@@ -256,6 +256,7 @@ func (r *roleService) RefreshRoleTokenCache(ctx context.Context) <-chan error {
 	return echan
 }
 
+// updateRoleTokenWithRetry wraps updateRoleToken with retry logic.
 func (r *roleService) updateRoleTokenWithRetry(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) <-chan error {
 	glg.Debugf("updateRoleTokenWithRetry started, domain: %s, role: %s, proxyForPrincipal: %s, minExpiry: %d, maxExpiry: %d", domain, role, proxyForPrincipal, minExpiry, maxExpiry)
 
@@ -403,18 +404,18 @@ func (r *roleService) createGetRoleTokenRequest(domain, role string, minExpiry, 
 }
 
 func encode(domain, role, principal string) string {
-	roles := strings.Split(role, roleSeparater)
+	roles := strings.Split(role, roleSeparator)
 	sort.Strings(roles)
 
-	s := []string{domain, strings.Join(roles, roleSeparater), principal}
+	s := []string{domain, strings.Join(roles, roleSeparator), principal}
 	if principal == "" {
-		return strings.Join(s[:2], cacheKeySeparater)
+		return strings.Join(s[:2], cacheKeySeparator)
 	}
-	return strings.Join(s, cacheKeySeparater)
+	return strings.Join(s, cacheKeySeparator)
 }
 
 func decode(key string) (string, string, string) {
-	keys := strings.SplitN(key, cacheKeySeparater, 3)
+	keys := strings.SplitN(key, cacheKeySeparator, 3)
 	res := make([]string, 3)
 	copy(res, keys)
 	return res[0], res[1], res[2]

@@ -36,13 +36,13 @@ type Config struct {
 	// Token represent the configuration to generate N-token to connect to athenz.
 	Token Token `yaml:"ntoken"`
 
-	// Access represent the configuration to retrieve access token from athenz server.
+	// Access represent the configuration to retrieve access token from Athenz server.
 	Access Access `yaml:"access_token"`
 
-	// Role represent the configuration to retrieve role token from athenz server.
+	// Role represent the configuration to retrieve role token from Athenz server.
 	Role Role `yaml:"roletoken"`
 
-	// Proxy represent the configuration of the reverse proxy server to connect to athenz to get N-token and role token.
+	// Proxy represent the configuration of the reverse proxy server to connect to Athenz to get N-token and role token.
 	Proxy Proxy `yaml:"proxy"`
 
 	// ServiceCert represent the configuration of the service identify in the form of short-lived X.509 certificates that can be used instead of N-token in athenz.
@@ -100,12 +100,12 @@ type Proxy struct {
 	BufferSize uint64 `yaml:"buffer_size"`
 }
 
-// Token represent the N-token detail to get the host certificate and role token
+// Token represent the N-token detail to retrieve other Athenz credentials
 type Token struct {
-	// AthenzDomain represent the athenz domain value to generate the N-token.
+	// AthenzDomain represent the Athenz domain value to generate the N-token.
 	AthenzDomain string `yaml:"athenz_domain"`
 
-	// ServiceName represent the athenz service name value to generate the N-token.
+	// ServiceName represent the Athenz service name value to generate the N-token.
 	ServiceName string `yaml:"service_name"`
 
 	// NTokenPath represent the N-token path, this field is only for Copper Argos.
@@ -135,7 +135,7 @@ type Access struct {
 	// PrincipalAuthHeaderName is the HTTP header name for holding the n-token.
 	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
 
-	// AthenzURL represent the athenz URL to retrieve the access token
+	// AthenzURL represent the Athenz URL to retrieve the access token
 	AthenzURL string `yaml:"athenz_url"`
 
 	// AthenzRootCA represent the Athenz server Root Certificate
@@ -159,7 +159,7 @@ type Role struct {
 	// PrincipalAuthHeaderName is the HTTP header name for holding the n-token.
 	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
 
-	// AthenzURL represent the athenz URL to get the role token
+	// AthenzURL represent the Athenz URL to retrieve the role token
 	AthenzURL string `yaml:"athenz_url"`
 
 	// AthenzRootCA represent the Athenz server Root Certificate
@@ -183,7 +183,7 @@ type ServiceCert struct {
 	// Enable decides wheather use service cert
 	Enable bool `yaml:"enable"`
 
-	// AthenzURL represent the athenz URL to get the role token
+	// AthenzURL represent the Athenz URL to retrieve the service certificate
 	AthenzURL string `yaml:"athenz_url"`
 
 	// AthenzRootCA represent the Athenz server Root Certificate

@@ -19,7 +19,7 @@ import (
 	"github.com/yahoojapan/athenz-client-sidecar/service"
 )
 
-// AccessRequest represents the request information to revrieve the access token.
+// AccessRequest represents the request information to retrieve the access token.
 type AccessRequest struct {
 	// Domain represents the domain field of the request.
 	Domain string `json:"domain"`

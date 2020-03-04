@@ -2,6 +2,6 @@
   "plugins": [
     "remark-preset-lint-recommended",
     ["remark-lint-list-item-indent", false],
-    ["[remark-lint-list-item-bullet-indent", false]
+    ["remark-lint-list-item-bullet-indent", false]
   ]
 }

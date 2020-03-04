@@ -408,7 +408,7 @@ func Test_accessService_StartAccessUpdater(t *testing.T) {
 			dummyToken2 := `{"access_token":"dummyToken2","token_type":"Bearer","expires_in":1000,"scope":"dummyDomain2:dummyRole2"}"`
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken2)
+				fmt.Fprint(w, dummyToken2)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
@@ -1200,7 +1200,7 @@ func Test_accessService_updateAccessTokenWithRetry(t *testing.T) {
 			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
@@ -1256,7 +1256,7 @@ func Test_accessService_updateAccessTokenWithRetry(t *testing.T) {
 				if i < 3 {
 					w.WriteHeader(http.StatusInternalServerError)
 				} else {
-					fmt.Fprintf(w, dummyToken)
+					fmt.Fprint(w, dummyToken)
 				}
 				i++
 			})
@@ -1435,7 +1435,7 @@ func Test_accessService_updateAccessToken(t *testing.T) {
 			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
@@ -1497,7 +1497,7 @@ func Test_accessService_updateAccessToken(t *testing.T) {
 			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
@@ -1561,7 +1561,7 @@ func Test_accessService_updateAccessToken(t *testing.T) {
 			dummyToken := "dummyToken"
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
@@ -1596,7 +1596,7 @@ func Test_accessService_updateAccessToken(t *testing.T) {
 			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime.Unix())
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
@@ -1648,7 +1648,7 @@ func Test_accessService_updateAccessToken(t *testing.T) {
 
 			// create a dummy server that returns a dummy token
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
@@ -1785,7 +1785,7 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 				w.WriteHeader(http.StatusOK)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
@@ -1821,7 +1821,7 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyToken)
+				fmt.Fprint(w, dummyToken)
 				w.WriteHeader(http.StatusOK)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
@@ -1877,7 +1877,7 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 			dummyTok := "dummyToken"
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprintf(w, dummyTok)
+				fmt.Fprint(w, dummyTok)
 				w.WriteHeader(http.StatusOK)
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)

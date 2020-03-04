@@ -32,7 +32,6 @@ import (
 	ntokend "github.com/kpango/ntokend"
 	"github.com/pkg/errors"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
-	"golang.org/x/sync/singleflight"
 )
 
 func TestNewAccessService(t *testing.T) {
@@ -373,7 +372,6 @@ func Test_accessService_StartAccessUpdater(t *testing.T) {
 		athenzURL             string
 		athenzPrincipleHeader string
 		tokenCache            gache.Gache
-		group                 singleflight.Group
 		expiry                time.Duration
 		httpClient            *http.Client
 		refreshInterval       time.Duration
@@ -630,7 +628,6 @@ func Test_accessService_StartAccessUpdater(t *testing.T) {
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
 				tokenCache:            tt.fields.tokenCache,
-				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
 				refreshInterval:       tt.fields.refreshInterval,
@@ -670,7 +667,6 @@ func Test_accessService_getAccessToken(t *testing.T) {
 		athenzURL             string
 		athenzPrincipleHeader string
 		tokenCache            gache.Gache
-		group                 singleflight.Group
 		expiry                time.Duration
 		httpClient            *http.Client
 	}
@@ -807,7 +803,6 @@ func Test_accessService_getAccessToken(t *testing.T) {
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
 				tokenCache:            tt.fields.tokenCache,
-				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
 			}
@@ -835,7 +830,6 @@ func Test_accessService_RefreshAccessTokenCache(t *testing.T) {
 		athenzURL             string
 		athenzPrincipleHeader string
 		tokenCache            gache.Gache
-		group                 singleflight.Group
 		expiry                time.Duration
 		httpClient            *http.Client
 		refreshInterval       time.Duration
@@ -1150,7 +1144,6 @@ func Test_accessService_RefreshAccessTokenCache(t *testing.T) {
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
 				tokenCache:            tt.fields.tokenCache,
-				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
 				refreshInterval:       tt.fields.refreshInterval,
@@ -1172,7 +1165,6 @@ func Test_accessService_updateAccessTokenWithRetry(t *testing.T) {
 		athenzURL             string
 		athenzPrincipleHeader string
 		tokenCache            gache.Gache
-		group                 singleflight.Group
 		expiry                time.Duration
 		httpClient            *http.Client
 		refreshInterval       time.Duration
@@ -1386,7 +1378,6 @@ func Test_accessService_updateAccessTokenWithRetry(t *testing.T) {
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
 				tokenCache:            tt.fields.tokenCache,
-				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
 				refreshInterval:       tt.fields.refreshInterval,
@@ -1408,7 +1399,6 @@ func Test_accessService_updateAccessToken(t *testing.T) {
 		athenzURL             string
 		athenzPrincipleHeader string
 		tokenCache            gache.Gache
-		group                 singleflight.Group
 		expiry                time.Duration
 		httpClient            *http.Client
 	}
@@ -1722,7 +1712,6 @@ func Test_accessService_updateAccessToken(t *testing.T) {
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
 				tokenCache:            tt.fields.tokenCache,
-				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
 			}
@@ -1757,7 +1746,6 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 		athenzURL             string
 		athenzPrincipleHeader string
 		tokenCache            gache.Gache
-		group                 singleflight.Group
 		expiry                time.Duration
 		httpClient            *http.Client
 		refreshInterval       time.Duration
@@ -1911,7 +1899,6 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
 				tokenCache:            tt.fields.tokenCache,
-				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
 				refreshInterval:       tt.fields.refreshInterval,
@@ -1997,7 +1984,6 @@ func Test_accessService_getCache(t *testing.T) {
 		athenzURL             string
 		athenzPrincipleHeader string
 		tokenCache            gache.Gache
-		group                 singleflight.Group
 		expiry                time.Duration
 	}
 	type args struct {
@@ -2068,7 +2054,6 @@ func Test_accessService_getCache(t *testing.T) {
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
 				tokenCache:            tt.fields.tokenCache,
-				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 			}
 			got, got1 := a.getCache(tt.args.domain, tt.args.role, tt.args.principal)
@@ -2089,7 +2074,6 @@ func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 		athenzURL             string
 		athenzPrincipleHeader string
 		tokenCache            gache.Gache
-		group                 singleflight.Group
 		expiry                time.Duration
 	}
 	type args struct {
@@ -2184,7 +2168,6 @@ func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
 				tokenCache:            tt.fields.tokenCache,
-				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 			}
 			got, err := a.createPostAccessTokenRequest(tt.args.scope, tt.args.proxyForPrincipal, tt.args.expiry, tt.args.token)

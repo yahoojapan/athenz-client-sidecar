@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 */
+
 package infra
 
 import (
@@ -26,7 +27,7 @@ type buffer struct {
 	size *uint64
 }
 
-// newBuffer implements httputil.BufferPool for providing byte slices of same size.
+// NewBuffer implements httputil.BufferPool for providing byte slices of same size.
 func NewBuffer(size uint64) httputil.BufferPool {
 	if size == 0 {
 		return nil

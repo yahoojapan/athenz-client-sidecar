@@ -124,7 +124,7 @@ Example:
 
 | Name | Description | Example |
 | ---- | ----------- | ------- |
-| access_token | The access token generated                                          | eyJraWQiOiIwIiwidHlwIjoiYXQrand0IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiAiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImlhdCI6IDE1ODMxMTIwMTYsImV4cCI6IDE1ODMxMTIwMTYsImlzcyI6ICJodHRwczovL3d3dy5hdGhlbnouY29tOjQ0NDMvenRzL3YxIiwiYXVkIjogImRvbWFpbi5zaG9wcGluZyIsImF1dGhfdGltZSI6IDE1ODMxMTIxMTYsInZlciI6IDEsInNjcCI6IFsidXNlciJdLCJ1aWQiOiAiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImNsaWVudF9pZCI6ICJkb21haW4udHJhdmVsLnRyYXZlbC1zaXRlIn0.\[signature] |
+| access_token | The access token generated | eyJraWQiOiIwIiwidHlwIjoiYXQrand0IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJkb21haW4udHJhdmVsLnRyYXZlbC1zaXRlIiwiaWF0IjoxNTgzNzE0NzA0LCJleHAiOjE1ODM3MTY1MDQsImlzcyI6Imh0dHBzOi8venRzLmF0aGVuei5pbyIsImF1ZCI6ImRvbWFpbi5zaG9wcGluZyIsImF1dGhfdGltZSI6MTU4MzcxNDcwNCwidmVyIjoxLCJzY3AiOlsidXNlcnMiXSwidWlkIjoiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImNsaWVudF9pZCI6ImRvbWFpbi50cmF2ZWwudHJhdmVsLXNpdGUifQ.\[signature] |
 | token_type   | The token type of the access token | Bearer |
 | expires_in   | The expiry time of the access token | 1000 |
 | scope        | The scope of the access token | domain.shopping:role.user |
@@ -133,7 +133,7 @@ Example:
 
 ```json
 {
-  "access_token": "eyJraWQiOiIwIiwidHlwIjoiYXQrand0IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiAiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImlhdCI6IDE1ODMxMTIwMTYsImV4cCI6IDE1ODMxMTIwMTYsImlzcyI6ICJodHRwczovL3d3dy5hdGhlbnouY29tOjQ0NDMvenRzL3YxIiwiYXVkIjogImRvbWFpbi5zaG9wcGluZyIsImF1dGhfdGltZSI6IDE1ODMxMTIxMTYsInZlciI6IDEsInNjcCI6IFsidXNlciJdLCJ1aWQiOiAiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImNsaWVudF9pZCI6ICJkb21haW4udHJhdmVsLnRyYXZlbC1zaXRlIn0.0-kQJj5XzYRIZqEqvnDISPBRTHn96draLZtm06UDPWw",
+  "access_token": "eyJraWQiOiIwIiwidHlwIjoiYXQrand0IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJkb21haW4udHJhdmVsLnRyYXZlbC1zaXRlIiwiaWF0IjoxNTgzNzE0NzA0LCJleHAiOjE1ODM3MTY1MDQsImlzcyI6Imh0dHBzOi8venRzLmF0aGVuei5pbyIsImF1ZCI6ImRvbWFpbi5zaG9wcGluZyIsImF1dGhfdGltZSI6MTU4MzcxNDcwNCwidmVyIjoxLCJzY3AiOlsidXNlcnMiXSwidWlkIjoiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImNsaWVudF9pZCI6ImRvbWFpbi50cmF2ZWwudHJhdmVsLXNpdGUifQ.F2x9_Q4GRmgRAXB0_tQRAWSwfJ9W3VtIoIVP1F4R19Ah8x1ml8jbxe88auOGmdElR8Gd2oQBNGMSyTkBgVBi9lRmYRpvYI94DN27zy5ZQzAPx_GgWshCbv8ebK9mHmcHkvGjJQzvoc7mgtKSRCZB4fC8-95c8Nb3BlebXWOz9evhO-xlkt5QYcavvSBzU6gNzZ7IjANTwIh4_iES-drWZOZ_yg4WS9wMpk1ycJRsdr5En5QMwQJEzcMRL-5-D8gLChXEESFSsY86ekd-fXOncP1N-V1xjfVURw_TzWKiIj6DFwRsMV1dTm9ffZC0tFKOKe9M3sUYdfkm0qWuEqLjfA",
   "token_type": "Bearer",
   "expires_in": 1000,
   "scope": "domain.shopping:role.user"

@@ -105,7 +105,7 @@ Example:
 | Name                | Description                                   | Required? | Example           |
 | ------------------- | --------------------------------------------- | --------- | ----------------- |
 | domain              | Access token domain name                      | Yes       | domain.shopping   |
-| role                | Access token role name (spac separated list)  | No        | user              |
+| role                | Access token role name (comma separated list) | No        | user              |
 | proxy_for_principal | Access token proxyForPrincipal name           | No        | proxyForPrincipal |
 | expiry              | Access token expiry time (in second)          | No        | 1000              |
 

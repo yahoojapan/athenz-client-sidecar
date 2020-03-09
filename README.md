@@ -107,7 +107,7 @@ Example:
 | domain              | Access token domain name                      | Yes       | domain.shopping   |
 | role                | Access token role name (comma separated list) | No        | user              |
 | proxy_for_principal | Access token proxyForPrincipal name           | No        | proxyForPrincipal |
-| expiry              | Access token expiry time (in second)          | No        | 100               |
+| expiry              | Access token expiry time (in second)          | No        | 1000              |
 
 Example:
 
@@ -116,17 +116,18 @@ Example:
   "domain": "domain.shopping",
   "role": "user",
   "proxy_for_principal": "proxyForPrincipal",
-  "expiry": 100
+  "expiry": 1000
 }
 ```
 
 - Response body contains below information in JSON format.
-  | Name         | Description                                                         | Example                                                                                                                                                                                                                                                                                                                                                                                                                                |
-  | ------------ | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-  | access_token | The access token generated                                          | eyJraWQiOiIwIiwidHlwIjoiYXQrand0IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiAiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImlhdCI6IDE1ODMxMTIwMTYsImV4cCI6IDE1ODMxMTIwMTYsImlzcyI6ICJodHRwczovL3d3dy5hdGhlbnouY29tOjQ0NDMvenRzL3YxIiwiYXVkIjogImRvbWFpbi5zaG9wcGluZyIsImF1dGhfdGltZSI6IDE1ODMxMTIxMTYsInZlciI6IDEsInNjcCI6IFsidXNlciJdLCJ1aWQiOiAiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImNsaWVudF9pZCI6ICJkb21haW4udHJhdmVsLnRyYXZlbC1zaXRlIn0.\[signature] |
-  | token_type   | The token type of the access token                                  | Bearer                                                                                                                                                                                                                                                                                                                                                                                                                                 |
-  | expires_in   | The expiry time of the access token                                 | 1528860825                                                                                                                                                                                                                                                                                                                                                                                                                             |
-  | scope        | The scope of the access token (Only added if role is not specified) | user,                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+
+| Name | Description | Example |
+| ---- | ----------- | ------- |
+| access_token | The access token generated                                          | eyJraWQiOiIwIiwidHlwIjoiYXQrand0IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiAiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImlhdCI6IDE1ODMxMTIwMTYsImV4cCI6IDE1ODMxMTIwMTYsImlzcyI6ICJodHRwczovL3d3dy5hdGhlbnouY29tOjQ0NDMvenRzL3YxIiwiYXVkIjogImRvbWFpbi5zaG9wcGluZyIsImF1dGhfdGltZSI6IDE1ODMxMTIxMTYsInZlciI6IDEsInNjcCI6IFsidXNlciJdLCJ1aWQiOiAiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImNsaWVudF9pZCI6ICJkb21haW4udHJhdmVsLnRyYXZlbC1zaXRlIn0.\[signature] |
+| token_type   | The token type of the access token | Bearer |
+| expires_in   | The expiry time of the access token | 1000 |
+| scope        | The scope of the access token | domain.shopping:role.user |
 
 Example:
 

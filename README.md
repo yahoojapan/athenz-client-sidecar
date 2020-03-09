@@ -127,7 +127,7 @@ Example:
 | access_token | The access token generated | eyJraWQiOiIwIiwidHlwIjoiYXQrand0IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJkb21haW4udHJhdmVsLnRyYXZlbC1zaXRlIiwiaWF0IjoxNTgzNzE0NzA0LCJleHAiOjE1ODM3MTY1MDQsImlzcyI6Imh0dHBzOi8venRzLmF0aGVuei5pbyIsImF1ZCI6ImRvbWFpbi5zaG9wcGluZyIsImF1dGhfdGltZSI6MTU4MzcxNDcwNCwidmVyIjoxLCJzY3AiOlsidXNlcnMiXSwidWlkIjoiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImNsaWVudF9pZCI6ImRvbWFpbi50cmF2ZWwudHJhdmVsLXNpdGUifQ.\[signature] |
 | token_type   | The token type of the access token | Bearer |
 | expires_in   | The expiry duration of the access token | 1000 |
-| scope        | The scope of the access token (space separated) | domain.shopping:role.user |
+| scope        | The scope of the access token (Only added if role is not specified, space separated) | domain.shopping:role.user |
 
 Example:
 

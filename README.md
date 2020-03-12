@@ -126,7 +126,7 @@ Example:
 | ---- | ----------- | ------- |
 | access_token | The access token generated | eyJraWQiOiIwIiwidHlwIjoiYXQrand0IiwiYWxnIjoiUlMyNTYifQ.eyJzdWIiOiJkb21haW4udHJhdmVsLnRyYXZlbC1zaXRlIiwiaWF0IjoxNTgzNzE0NzA0LCJleHAiOjE1ODM3MTY1MDQsImlzcyI6Imh0dHBzOi8venRzLmF0aGVuei5pbyIsImF1ZCI6ImRvbWFpbi5zaG9wcGluZyIsImF1dGhfdGltZSI6MTU4MzcxNDcwNCwidmVyIjoxLCJzY3AiOlsidXNlcnMiXSwidWlkIjoiZG9tYWluLnRyYXZlbC50cmF2ZWwtc2l0ZSIsImNsaWVudF9pZCI6ImRvbWFpbi50cmF2ZWwudHJhdmVsLXNpdGUifQ.\[signature] |
 | token_type   | The token type of the access token | Bearer |
-| expires_in   | The expiry duration of the access token | 1000 |
+| expires_in   | The expiry duration (in second) of the access token | 1000 |
 | scope        | The scope of the access token (Only added if role is not specified, space separated) | domain.shopping:role.user |
 
 Example:
@@ -170,7 +170,7 @@ Example:
 | Name       | Description                       | Example                                                                                                                                                |
 | ---------- | --------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | token      | The role token generated          | v=Z1;d=domain.shopping;r=users;p=domain.travel.travel-site;h=athenz.co.jp;a=9109ee08b79e6b63;t=1528853625;e=1528860825;k=0;i=192.168.1.1;s=\[signature] |
-| expiryTime | The expiry time of the role token | 1528860825                                                                                                                                             |
+| expiryTime | The expiry time (unix timestamp) of the role token | 1528860825                                                                                                                                             |
 
 Example:
 

@@ -41,14 +41,14 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-// RoleService represent an interface to automatically refresh the role token, and a role token provider function pointer.
+// RoleService represents an interface to automatically refresh the role token, and a role token provider function pointer.
 type RoleService interface {
 	StartRoleUpdater(context.Context) <-chan error
 	RefreshRoleTokenCache(ctx context.Context) <-chan error
 	GetRoleProvider() RoleProvider
 }
 
-// roleService represent the implementation of Athenz RoleService
+// roleService represents the implementation of Athenz RoleService
 type roleService struct {
 	cfg                   config.Role
 	token                 ntokend.TokenProvider
@@ -73,20 +73,20 @@ type cacheData struct {
 	maxExpiry         int64
 }
 
-// RoleToken represent the basic information of the role token.
+// RoleToken represents the basic information of the role token.
 type RoleToken struct {
 	Token      string `json:"token"`
 	ExpiryTime int64  `json:"expiryTime"`
 }
 
-// RoleProvider represent a function pointer to get the role token.
+// RoleProvider represents a function pointer to get the role token.
 type RoleProvider func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry int64, maxExpiry int64) (*RoleToken, error)
 
 var (
-	// ErrRoleTokenRequestFailed represent an error when failed to fetch the role token from RoleProvider.
+	// ErrRoleTokenRequestFailed represents an error when failed to fetch the role token from RoleProvider.
 	ErrRoleTokenRequestFailed = errors.New("Failed to fetch RoleToken")
 
-	// ErrInvalidSetting represent an error when the config file is invalid.
+	// ErrInvalidSetting represents an error when the config file is invalid.
 	ErrInvalidSetting = errors.New("Invalid config")
 )
 

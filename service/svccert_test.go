@@ -914,7 +914,7 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 			svcCertService.client.Transport = transpoter
 
 			wantErr := fmt.Errorf(
-				"Post %s/instance/%s/%s/refresh: request error",
+				`Post "%s/instance/%s/%s/refresh": request error`,
 				cfg.ServiceCert.AthenzURL,
 				cfg.Token.AthenzDomain,
 				cfg.Token.ServiceName,
@@ -1272,7 +1272,7 @@ func TestSvcCertService_RefreshSvcCert(t *testing.T) {
 			svcCertService.client.Transport = transpoter
 
 			wantErr := fmt.Errorf(
-				"Post %s/instance/%s/%s/refresh: request error",
+				`Post "%s/instance/%s/%s/refresh": request error`,
 				cfg.ServiceCert.AthenzURL,
 				cfg.Token.AthenzDomain,
 				cfg.Token.ServiceName,

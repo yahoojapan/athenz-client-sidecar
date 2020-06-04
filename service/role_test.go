@@ -1506,7 +1506,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 					minExpiry:         1,
 					maxExpiry:         1,
 				},
-				wantErr: fmt.Errorf("Get https://127.0.0.1:9876/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1&proxyForPrincipal=dummyProxy&role=dummyRole: dial tcp 127.0.0.1:9876: connect: connection refused"),
+				wantErr: fmt.Errorf(`Get "https://127.0.0.1:9876/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1&proxyForPrincipal=dummyProxy&role=dummyRole": dial tcp 127.0.0.1:9876: connect: connection refused`),
 			}
 		}(),
 		func() test {

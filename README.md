@@ -38,26 +38,26 @@ Athenz client sidecar is an implementation of [Kubernetes sidecar container](htt
 
 ### Get Athenz N-Token from client sidecar
 
-![Sidecar architecture (get N-token)](./doc/assets/client_sidecar_arch_n_token.png)
+![Sidecar architecture (get N-token)](./docs/assets/client_sidecar_arch_n_token.png)
 
 Whenever user wants to get the N-token, user does not need to focus on extra logic to generate token, user can access client sidecar container instead of implementing the logic themselves, to avoid the extra logic implemented by user.
 For instance, the client sidecar container caches the token and periodically generates the token automatically. For user this logic is transparent, but it improves the overall performance as it does not generate the token every time whenever the user asks for it.
 
 ### Get Athenz Access Token from client sidecar
 
-![Sidecar architecture (get Access token)](./doc/assets/client_sidecar_arch_access_token.png)
+![Sidecar architecture (get Access token)](./docs/assets/client_sidecar_arch_access_token.png)
 
 User can get the access token from the client sidecar container. Whenever user requests for the access token, the sidecar process will get the access token from Athenz if it is not in the cache, and cache it in memory. The background thread will update corresponding access token periodically.
 
 ### Get Athenz Role Token from client sidecar
 
-![Sidecar architecture (get Role token)](./doc/assets/client_sidecar_arch_z_token.png)
+![Sidecar architecture (get Role token)](./docs/assets/client_sidecar_arch_z_token.png)
 
 User can get the role token from the client sidecar container. Whenever user requests for the role token, the sidecar process will get the role token from Athenz if it is not in the cache, and cache it in memory. The background thread will update corresponding role token periodically.
 
 ### Proxy HTTP request (add corresponding Athenz authorization token)
 
-![Sidecar architecture (proxy request)](./doc/assets/client_sidecar_arch_proxy.png)
+![Sidecar architecture (proxy request)](./docs/assets/client_sidecar_arch_proxy.png)
 
 User can also use the reverse proxy endpoint to proxy the request to another server that supports Athenz token validation. The proxy endpoint will append the necessary authorization (N-token or role token) HTTP header to the request and proxy the request to the destination server. User does not need to care about the token generation logic where this sidecar container will handle it, also it supports similar caching mechanism with the N-token usage.
 

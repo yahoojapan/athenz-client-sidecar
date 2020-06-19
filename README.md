@@ -1,13 +1,22 @@
-[![License: Apache](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](https://opensource.org/licenses/Apache-2.0) [![release](https://img.shields.io/github/release/yahoojapan/athenz-client-sidecar.svg?style=flat-square)](https://github.com/yahoojapan/athenz-client-sidecar/releases/latest) [![CircleCI](https://circleci.com/gh/yahoojapan/athenz-client-sidecar.svg)](https://circleci.com/gh/yahoojapan/athenz-client-sidecar) [![codecov](https://codecov.io/gh/yahoojapan/athenz-client-sidecar/branch/master/graph/badge.svg?token=2CzooNJtUu&style=flat-square)](https://codecov.io/gh/yahoojapan/athenz-client-sidecar) [![Go Report Card](https://goreportcard.com/badge/github.com/yahoojapan/athenz-client-sidecar)](https://goreportcard.com/report/github.com/yahoojapan/athenz-client-sidecar) [![GolangCI](https://golangci.com/badges/github.com/yahoojapan/athenz-client-sidecar.svg?style=flat-square)](https://golangci.com/r/github.com/yahoojapan/athenz-client-sidecar) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/f5e641145b274353919ee4a2ff6566e3)](https://www.codacy.com/app/i.can.feel.gravity/athenz-client-sidecar?utm_source=github.com&utm_medium=referral&utm_content=yahoojapan/athenz-client-sidecar&utm_campaign=Badge_Grade) [![GoDoc](http://godoc.org/github.com/yahoojapan/athenz-client-sidecar?status.svg)](http://godoc.org/github.com/yahoojapan/athenz-client-sidecar)
+# Athenz client sidecar
+
+[![License: Apache](https://img.shields.io/badge/License-Apache%202.0-blue.svg?style=flat-square)](https://opensource.org/licenses/Apache-2.0)
+[![GitHub release (latest by date)](https://img.shields.io/github/v/release/yahoojapan/athenz-client-sidecar?style=flat-square&label=Github%20version)](https://github.com/yahoojapan/athenz-client-sidecar/releases/latest)
+[![Docker Image Version (tag latest)](https://img.shields.io/docker/v/yahoojapan/athenz-client-sidecar/latest?style=flat-square&label=Docker%20version)](https://hub.docker.com/r/yahoojapan/athenz-client-sidecar/tags)
+[![CircleCI](https://circleci.com/gh/yahoojapan/athenz-client-sidecar.svg)](https://circleci.com/gh/yahoojapan/athenz-client-sidecar)
+[![codecov](https://codecov.io/gh/yahoojapan/athenz-client-sidecar/branch/master/graph/badge.svg?token=2CzooNJtUu&style=flat-square)](https://codecov.io/gh/yahoojapan/athenz-client-sidecar)
+[![Go Report Card](https://goreportcard.com/badge/github.com/yahoojapan/athenz-client-sidecar)](https://goreportcard.com/report/github.com/yahoojapan/athenz-client-sidecar)
+[![GolangCI](https://golangci.com/badges/github.com/yahoojapan/athenz-client-sidecar.svg?style=flat-square)](https://golangci.com/r/github.com/yahoojapan/athenz-client-sidecar)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/f5e641145b274353919ee4a2ff6566e3)](https://www.codacy.com/app/i.can.feel.gravity/athenz-client-sidecar?utm_source=github.com&utm_medium=referral&utm_content=yahoojapan/athenz-client-sidecar&utm_campaign=Badge_Grade)
+[![GoDoc](http://godoc.org/github.com/yahoojapan/athenz-client-sidecar?status.svg)](http://godoc.org/github.com/yahoojapan/athenz-client-sidecar)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg)](code_of_conduct.md)
 
 ![logo](./images/logo.png)
 
----
+<!-- TOC insertAnchor:false -->
 
-# Table of Contents
-
-- [Table of Contents](#table-of-contents)
-    - [What is Athenz client sidecar?](#what-is-athenz-client-sidecar)
+- [Athenz client sidecar](#athenz-client-sidecar)
+    - [What is Athenz client sidecar](#what-is-athenz-client-sidecar)
         - [Get Athenz N-Token from client sidecar](#get-athenz-n-token-from-client-sidecar)
         - [Get Athenz Access Token from client sidecar](#get-athenz-access-token-from-client-sidecar)
         - [Get Athenz Role Token from client sidecar](#get-athenz-role-token-from-client-sidecar)
@@ -30,34 +39,37 @@
     - [Deployment Procedure](#deployment-procedure)
     - [License](#license)
     - [Contributor License Agreement](#contributor-license-agreement)
+    - [About releases](#about-releases)
     - [Authors](#authors)
 
-## What is Athenz client sidecar?
+<!-- /TOC -->
+
+## What is Athenz client sidecar
 
 Athenz client sidecar is an implementation of [Kubernetes sidecar container](https://kubernetes.io/blog/2015/06/the-distributed-system-toolkit-patterns/) to provide a common interface to retrieve authentication and authorization credential from Athenz server.
 
 ### Get Athenz N-Token from client sidecar
 
-![Sidecar architecture (get N-token)](./doc/assets/client_sidecar_arch_n_token.png)
+![Sidecar architecture (get N-token)](./docs/assets/client_sidecar_arch_n_token.png)
 
 Whenever user wants to get the N-token, user does not need to focus on extra logic to generate token, user can access client sidecar container instead of implementing the logic themselves, to avoid the extra logic implemented by user.
 For instance, the client sidecar container caches the token and periodically generates the token automatically. For user this logic is transparent, but it improves the overall performance as it does not generate the token every time whenever the user asks for it.
 
 ### Get Athenz Access Token from client sidecar
 
-![Sidecar architecture (get Access token)](./doc/assets/client_sidecar_arch_access_token.png)
+![Sidecar architecture (get Access token)](./docs/assets/client_sidecar_arch_access_token.png)
 
 User can get the access token from the client sidecar container. Whenever user requests for the access token, the sidecar process will get the access token from Athenz if it is not in the cache, and cache it in memory. The background thread will update corresponding access token periodically.
 
 ### Get Athenz Role Token from client sidecar
 
-![Sidecar architecture (get Role token)](./doc/assets/client_sidecar_arch_z_token.png)
+![Sidecar architecture (get Role token)](./docs/assets/client_sidecar_arch_z_token.png)
 
 User can get the role token from the client sidecar container. Whenever user requests for the role token, the sidecar process will get the role token from Athenz if it is not in the cache, and cache it in memory. The background thread will update corresponding role token periodically.
 
 ### Proxy HTTP request (add corresponding Athenz authorization token)
 
-![Sidecar architecture (proxy request)](./doc/assets/client_sidecar_arch_proxy.png)
+![Sidecar architecture (proxy request)](./docs/assets/client_sidecar_arch_proxy.png)
 
 User can also use the reverse proxy endpoint to proxy the request to another server that supports Athenz token validation. The proxy endpoint will append the necessary authorization (N-token or role token) HTTP header to the request and proxy the request to the destination server. User does not need to care about the token generation logic where this sidecar container will handle it, also it supports similar caching mechanism with the N-token usage.
 
@@ -68,7 +80,7 @@ User can also use the reverse proxy endpoint to proxy the request to another ser
 1. `GET /ntoken`
     - Get service token from Athenz
 1. `POST /access-token`
-    - Get accss token from Athenz
+    - Get access token from Athenz
 1. `POST /roletoken`
     - Get role token from Athenz
 1. `/proxy/ntoken`
@@ -85,15 +97,15 @@ User can also use the reverse proxy endpoint to proxy the request to another ser
 - Only Accept HTTP GET request.
 - Response body contains below information in JSON format.
 
-| Name  | Description           | Example                                                                                            |
-| ----- | --------------------- | -------------------------------------------------------------------------------------------------- |
-| token | The n-token generated | v=S1;d=client;n=service;h=localhost;a=6996e6fc49915494;t=1486004464;e=1486008064;k=0;s=[signeture] |
+| Name  | Description           | Example                                                                                             |
+| ----- | --------------------- | --------------------------------------------------------------------------------------------------- |
+| token | The n-token generated | v=S1;d=client;n=service;h=localhost;a=6996e6fc49915494;t=1486004464;e=1486008064;k=0;s=\[signature] |
 
 Example:
 
 ```json
 {
-  "token": "v=S1;d=client;n=service;h=localhost;a=6996e6fc49915494;t=1486004464;e=1486008064;k=0;s=[signeture]"
+  "token": "v=S1;d=client;n=service;h=localhost;a=6996e6fc49915494;t=1486004464;e=1486008064;k=0;s=[signature]"
 }
 ```
 
@@ -561,7 +573,13 @@ limitations under the License.
 
 This project requires contributors to agree to a [Contributor License Agreement (CLA)](https://gist.github.com/ydnjp/3095832f100d5c3d2592).
 
-Note that only for contributions to the garm repository on the [GitHub](https://github.com/yahoojapan/garm), the contributors of them shall be deemed to have agreed to the CLA without individual written agreements.
+Note that only for contributions to the `athenz-client-sidecar` repository on the [GitHub](https://github.com/yahoojapan/garathenz-client-sidecarm), the contributors of them shall be deemed to have agreed to the CLA without individual written agreements.
+
+## About releases
+
+- Releases
+    - [![GitHub release (latest by date)](https://img.shields.io/github/v/release/yahoojapan/athenz-client-sidecar?style=flat-square&label=Github%20version)](https://github.com/yahoojapan/athenz-client-sidecar/releases/latest)
+    - [![Docker Image Version (tag latest)](https://img.shields.io/docker/v/yahoojapan/athenz-client-sidecar/latest?style=flat-square&label=Docker%20version)](https://hub.docker.com/r/yahoojapan/athenz-client-sidecar/tags)
 
 ## Authors
 
@@ -569,3 +587,4 @@ Note that only for contributions to the garm repository on the [GitHub](https://
 - [kevindiu](https://github.com/kevindiu)
 - [TakuyaMatsu](https://github.com/TakuyaMatsu)
 - [tatyano](https://github.com/tatyano)
+- [WindzCUHK](https://github.com/WindzCUHK)

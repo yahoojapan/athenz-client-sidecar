@@ -1509,7 +1509,7 @@ func Test_accessService_updateAccessToken(t *testing.T) {
 					proxyForPrincipal: "dummyProxy",
 					expiresIn:         1,
 				},
-				wantErr: fmt.Errorf("Post https://127.0.0.1:9876/oauth2/token: dial tcp 127.0.0.1:9876: connect: connection refused"),
+				wantErr: fmt.Errorf(`Post "https://127.0.0.1:9876/oauth2/token": dial tcp 127.0.0.1:9876: connect: connection refused`),
 			}
 		}(),
 		func() test {

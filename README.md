@@ -97,9 +97,9 @@ User can also use the reverse proxy endpoint to proxy the request to another ser
 - Only Accept HTTP GET request.
 - Response body contains below information in JSON format.
 
-| Name  | Description           | Example                                                                                            |
-| ----- | --------------------- | -------------------------------------------------------------------------------------------------- |
-| token | The n-token generated | v=S1;d=client;n=service;h=localhost;a=6996e6fc49915494;t=1486004464;e=1486008064;k=0;s=[signature] |
+| Name  | Description           | Example                                                                                             |
+| ----- | --------------------- | --------------------------------------------------------------------------------------------------- |
+| token | The n-token generated | v=S1;d=client;n=service;h=localhost;a=6996e6fc49915494;t=1486004464;e=1486008064;k=0;s=\[signature] |
 
 Example:
 

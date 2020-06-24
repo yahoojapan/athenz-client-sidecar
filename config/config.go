@@ -24,220 +24,234 @@ import (
 )
 
 const (
+	// currentVersion represents the current configuration version.
 	currentVersion = "v2.0.0"
 )
 
-// Config represents the configuration of client sidecar application.
+// Config represents the configuration (config.yaml) of client sidecar.
 type Config struct {
-	// Version represents the client sidecar application version.
+	// Version represents the configuration file version.
 	Version string `yaml:"version"`
 
-	// EnableColorLogging represents if user want to enable colorized logging.
-	EnableColorLogging bool `yaml:"enable_log_color"`
-
-	// Server represents the client sidecar and health check server configuration.
+	// Server represents the client sidecar and the health check server configuration.
 	Server Server `yaml:"server"`
 
-	// Token represents the configuration to generate N-token to connect to Athenz.
-	Token Token `yaml:"ntoken"`
+	// NToken represents the configuration to generate N-token for connecting to the Athenz server.
+	NToken NToken `yaml:"nToken"`
 
-	// Access represents the configuration to retrieve access token from Athenz server.
-	Access Access `yaml:"access_token"`
+	// AccessToken represents the configuration to retrieve access token from the Athenz server.
+	AccessToken AccessToken `yaml:"accessToken"`
 
-	// Role represents the configuration to retrieve role token from Athenz server.
-	Role Role `yaml:"roletoken"`
+	// RoleToken represents the configuration to retrieve role token from the Athenz server.
+	RoleToken RoleToken `yaml:"roleToken"`
 
-	// Proxy represents the configuration of the reverse proxy server to connect to Athenz to get N-token and role token.
+	// ServiceCert represents the configuration to retrieve short-lived X.509 service certificates from the Athenz server.
+	ServiceCert ServiceCert `yaml:"serviceCert"`
+
+	// Proxy represents the configuration of the forward proxy that automatically injects N-token or role token to the requests.
 	Proxy Proxy `yaml:"proxy"`
-
-	// ServiceCert represents the configuration of the service identify in the form of short-lived X.509 certificates that can be used instead of N-token in Athenz.
-	ServiceCert ServiceCert `yaml:"service_cert"`
 
 	// Log represents the logger configuration.
 	Log Log `yaml:"log"`
 }
 
-// Server represents client sidecar server and health check server configuration.
+// Server represents the client sidecar and the health check server configuration.
 type Server struct {
-	// Port represents client sidecar server port.
+	// Port represents the server listening port.
 	Port int `yaml:"port"`
 
-	// HealthzPort represents health check server port for K8s.
-	HealthzPort int `yaml:"health_check_port"`
-
-	// HealthzPath represents the server path (pattern) for health check server.
-	HealthzPath string `yaml:"health_check_path"`
-
-	// Timeout represents the client sidecar server timeout value.
+	// Timeout represents the maximum request handling duration.
 	Timeout string `yaml:"timeout"`
 
-	// ShutdownDuration represents the parse duration before the server shutdown.
-	ShutdownDuration string `yaml:"shutdown_duration"`
+	// ShutdownTimeout represents the duration before force shutdown.
+	ShutdownTimeout string `yaml:"shutdownTimeout"`
 
-	// ProbeWaitTime represents the parse duration between health check server and client sidecar server shutdown.
-	ProbeWaitTime string `yaml:"probe_wait_time"`
+	// ShutdownDelay represents the delay duration between the health check server shutdown and the client sidecar server shutdown.
+	ShutdownDelay string `yaml:"shutdownDelay"`
 
-	// TLS represents the TLS configuration for client sidecar server.
+	// TLS represents the TLS configuration of the client sidecar server.
 	TLS TLS `yaml:"tls"`
+
+	// HealthCheck represents the health check server configuration.
+	HealthCheck HealthCheck `yaml:"healthCheck"`
 }
 
-// TLS represents the TLS configuration for client sidecar server.
+// TLS represents the TLS configuration of the client sidecar server.
 type TLS struct {
-	// Enable represents the client sidecar server enable TLS or not.
-	Enabled bool `yaml:"enabled"`
-
-	// Cert represents the certificate used to start client sidecar server.
-	Cert string `yaml:"cert"`
-
-	// Key represents the private key used to start client sidecar server.
-	Key string `yaml:"key"`
-
-	// CAKey represents the CA certificate used to start client sidecar server.
-	CA string `yaml:"ca"`
-}
-
-// Proxy represents the reverse proxy configuration to connect to Athenz server
-type Proxy struct {
-	// PrincipalAuthHeaderName represents the HTTP header key name of the authenication token for N-Token proxy request
-	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
-
-	// RoleAuthHeaderName represents the HTTP header key name of the role token for Role token proxy request
-	RoleAuthHeaderName string `yaml:"role_header_key"`
-
-	// BufferSize represents the reverse proxy buffer size
-	BufferSize uint64 `yaml:"buffer_size"`
-}
-
-// Token represents the N-token detail to retrieve other Athenz credentials
-type Token struct {
-	// AthenzDomain represents the Athenz domain value to generate the N-token.
-	AthenzDomain string `yaml:"athenz_domain"`
-
-	// ServiceName represents the Athenz service name value to generate the N-token.
-	ServiceName string `yaml:"service_name"`
-
-	// NTokenPath represents the N-token path, this field is only for Copper Argos.
-	NTokenPath string `yaml:"ntoken_path"`
-
-	// PrivateKeyPath represents the private key environment name to sign the token.
-	PrivateKeyPath string `yaml:"private_key_path"`
-
-	// ValidateToken represents to validate the token or not, this should be set to true when the NTokenPath is set.
-	ValidateToken bool `yaml:"validate_token"`
-
-	// RefreshDuration represents the token refresh duration, weather it is generated, or it is Copper Argos.
-	RefreshDuration string `yaml:"refresh_duration"`
-
-	// KeyVersion represents the key version on the N-token.
-	KeyVersion string `yaml:"key_version"`
-
-	// Expiration represents the duration of the expiration.
-	Expiration string `yaml:"expiration"`
-}
-
-// Access represents the Access token configuration
-type Access struct {
-	// Enable decides wheather use access token
+	// Enable represents whether to enable TLS.
 	Enable bool `yaml:"enable"`
 
-	// PrincipalAuthHeaderName is the HTTP header name for holding the n-token.
-	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
+	// CertPath represents the server certificate file path.
+	CertPath string `yaml:"certPath"`
 
-	// AthenzURL represents the Athenz URL to retrieve the access token
-	AthenzURL string `yaml:"athenz_url"`
+	// KeyPath represents the private key file path of the server certificate.
+	KeyPath string `yaml:"keyPath"`
 
-	// AthenzRootCA represents the Athenz server Root Certificate
-	AthenzRootCA string `yaml:"athenz_root_ca"`
-
-	// TokenExpiry represents the duration of the expiration
-	TokenExpiry string `yaml:"expiration"`
-
-	// RefreshInterval represents the access token refresh duration.
-	RefreshInterval string `yaml:"refresh_interval"`
-
-	// ErrRetryMaxCount represents the maximum error retry count during refreshing the access token cache.
-	ErrRetryMaxCount int `yaml:"err_retry_max_count"`
-
-	// ErrRetryInterval represents the error retry interval when refreshing the access token cache.
-	ErrRetryInterval string `yaml:"err_retry_interval"`
+	// CAPath represents the CA certificate chain file path for verifying client certificates.
+	CAPath string `yaml:"caPath"`
 }
 
-// Role represents the Role token configuration
-type Role struct {
-	// PrincipalAuthHeaderName is the HTTP header name for holding the n-token.
-	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
+// HealthCheck represents the health check server configuration.
+type HealthCheck struct {
+	// Port represents the server listening port.
+	Port int `yaml:"port"`
 
-	// AthenzURL represents the Athenz URL to retrieve the role token
-	AthenzURL string `yaml:"athenz_url"`
-
-	// AthenzRootCA represents the Athenz server Root Certificate
-	AthenzRootCA string `yaml:"athenz_root_ca"`
-
-	// TokenExpiry represents the duration of the expiration
-	TokenExpiry string `yaml:"expiration"`
-
-	// RefreshInterval represents the role token refresh duration.
-	RefreshInterval string `yaml:"refresh_interval"`
-
-	// ErrRetryMaxCount represents the maximum error retry count during refreshing the role token cache.
-	ErrRetryMaxCount int `yaml:"err_retry_max_count"`
-
-	// ErrRetryInterval represents the error retry interval when refreshing the role token cache.
-	ErrRetryInterval string `yaml:"err_retry_interval"`
+	// Endpoint represents the health check endpoint (pattern).
+	Endpoint string `yaml:"endpoint"`
 }
 
-// ServiceCert represents the service cert configuration
+// NToken represents the configuration to generate N-token for connecting to the Athenz server.
+type NToken struct {
+	// AthenzDomain represents the Athenz domain.
+	AthenzDomain string `yaml:"athenzDomain"`
+
+	// ServiceName represents the Athenz service name.
+	ServiceName string `yaml:"serviceName"`
+
+	// PrivateKeyPath represents the private key file path for signning the N-token.
+	PrivateKeyPath string `yaml:"privateKeyPath"`
+
+	// KeyVersion represents the key version.
+	KeyVersion string `yaml:"keyVersion"`
+
+	// Expiry represents the duration before expires.
+	Expiry string `yaml:"expiry"`
+
+	// RefreshPeriod represents the duration of the refresh period.
+	RefreshPeriod string `yaml:"refreshPeriod"`
+
+	// ExistingTokenPath represents the exisiting N-token file path. (ONLY for Copper Argos)
+	ExistingTokenPath string `yaml:"existingTokenPath"`
+
+	// Validate represents whether to validate the N-token. Set to true when ExistingTokenPath is set.
+	Validate bool `yaml:"validate"`
+}
+
+// AccessToken represents the configuration to retrieve access token from the Athenz server.
+type AccessToken struct {
+	// Enable represents whether to enable retrieving endpoint.
+	Enable bool `yaml:"enable"`
+
+	// PrincipalAuthHeader represents the HTTP header for injecting N-token.
+	PrincipalAuthHeader string `yaml:"principalAuthHeader"`
+
+	// AthenzURL represents the Athenz API URL.
+	AthenzURL string `yaml:"athenzURL"`
+
+	// AthenzCAPath represents the Athenz CA certificate chain file path.
+	AthenzCAPath string `yaml:"athenzCAPath"`
+
+	// Expiry represents the duration before expires.
+	Expiry string `yaml:"expiry"`
+
+	// RefreshPeriod represents the duration of the refresh period.
+	RefreshPeriod string `yaml:"refreshPeriod"`
+
+	// Retry represents the retry configuration.
+	Retry Retry `yaml:"retry"`
+}
+
+// RoleToken represents the configuration to retrieve role token from the Athenz server.
+type RoleToken struct {
+	// PrincipalAuthHeader represents the HTTP header for injecting N-token.
+	PrincipalAuthHeader string `yaml:"principalAuthHeader"`
+
+	// AthenzURL represents the Athenz API URL.
+	AthenzURL string `yaml:"athenzURL"`
+
+	// AthenzCAPath represents the Athenz CA certificate chain file path.
+	AthenzCAPath string `yaml:"athenzCAPath"`
+
+	// Expiry represents the duration before expires.
+	Expiry string `yaml:"expiry"`
+
+	// RefreshPeriod represents the duration of the refresh period.
+	RefreshPeriod string `yaml:"refreshPeriod"`
+
+	// Retry represents the retry configuration.
+	Retry Retry `yaml:"retry"`
+}
+
+// ServiceCert represents the configuration to retrieve short-lived X.509 service certificates from the Athenz server.
 type ServiceCert struct {
-	// Enable decides wheather use service cert
+	// Enable represents whether to enable retrieving endpoint.
 	Enable bool `yaml:"enable"`
 
-	// AthenzURL represents the Athenz URL to retrieve the service certificate
-	AthenzURL string `yaml:"athenz_url"`
+	// PrincipalAuthHeader represents the HTTP header for injecting N-token.
+	PrincipalAuthHeader string `yaml:"principalAuthHeader"`
 
-	// AthenzRootCA represents the Athenz server Root Certificate
-	AthenzRootCA string `yaml:"athenz_root_ca"`
+	// AthenzURL represents the Athenz API URL.
+	AthenzURL string `yaml:"athenzURL"`
 
-	// DNSSuffix is the suffix of SAN
-	DNSSuffix string `yaml:"dns_suffix"`
+	// AthenzCAPath represents the Athenz CA certificate chain file path.
+	AthenzCAPath string `yaml:"athenzCAPath"`
 
-	// RefreshDuration represents the svccert refresh duration
-	RefreshDuration string `yaml:"refresh_duration"`
+	// Expiry represents the duration before expires.
+	Expiry string `yaml:"expiry"`
 
-	// ExpireMargin represents the duration.
-	// Certificate is updated before ExpireMargin in "Not After" field.
-	ExpireMargin string `yaml:"expire_margin"`
+	// RefreshPeriod represents the duration of the refresh period.
+	RefreshPeriod string `yaml:"refreshPeriod"`
 
-	// Expiration represents the duration of expire time for the certificate.
-	Expiration string `yaml:"expiration"`
+	// ExpiryMargin represents the certificate ("Not After" field) expiry margin to force refresh certificates beforehand.
+	ExpiryMargin string `yaml:"expiryMargin"`
 
-	// IntermediateCert decides wheather concatinate intermediate cert to end-entity cert
-	IntermediateCert bool `yaml:"intermediate_cert"`
+	// DNSSuffix is the suffix of SAN.
+	DNSSuffix string `yaml:"dnsSuffix"`
 
-	// PrincipalAuthHeaderName is the HTTP header name for holding the n-token.
-	PrincipalAuthHeaderName string `yaml:"auth_header_key"`
+	// IntermediateCert represents whether to concatinate intermediate cert in the response.
+	IntermediateCert bool `yaml:"intermediateCert"`
 
-	// Spiffe decides wheather include spiffe or not
+	// Spiffe represents whether to include spiffe ID in the certificate.
 	Spiffe bool `yaml:"spiffe"`
 
-	// Subject is subject fields of the certificate
+	// Subject represents the certificate subject field.
 	Subject Subject `yaml:"subject"`
 }
 
-// Subject represents subject fields of the certificate
+// Subject represents the certificate subject field.
 type Subject struct {
-	// Country is the Subject C/Country field of certificate
+	// Country is the Subject C/Country field.
 	Country string `yaml:"country"`
 
-	// Province is the Subject ST/State or Province field of certificate
+	// Province is the Subject ST/StateOrProvince field.
 	Province string `yaml:"province"`
 
-	// Organization is the Subject O/Organization field of the certificate
+	// Organization is the Subject O/Organization field.
 	Organization string `yaml:"organization"`
 
-	// OrganizationalUnit is the Subject OU/OrganizationalUnit field of the certificate
-	OrganizationalUnit string `yaml:"organizational_unit"`
+	// OrganizationalUnit is the Subject OU/OrganizationalUnit field.
+	OrganizationalUnit string `yaml:"organizationalUnit"`
 }
 
+// Proxy represents the configuration of the forward proxy that automatically injects N-token or role token to the requests.
+type Proxy struct {
+	// PrincipalAuthHeader represents the HTTP header for injecting N-token.
+	PrincipalAuthHeader string `yaml:"principalAuthHeader"`
+
+	// RoleAuthHeader represents the HTTP header for injecting role token.
+	RoleAuthHeader string `yaml:"roleAuthHeader"`
+
+	// BufferSize represents the foward proxy buffer size.
+	BufferSize uint64 `yaml:"bufferSize"`
+}
+
+// Log represents the logger configuration.
+type Log struct {
+	// Level represents the logger output level. Values: "debug", "info", "warn", "error", "fatal".
+	Level string `yaml:"level"`
+
+	// Color represents whether to print ANSI escape code.
+	Color bool `yaml:"color"`
+}
+
+// Retry represents the retry configuration.
+type Retry struct {
+	// Attempts represents number of attempts to retry.
+	Attempts int `yaml:"attempts"`
+
+	// Delay represents the duration between each retry.
+	Delay string `yaml:"delay"`
+}
 
 // New returns *Config or error when decode the configuration file to actually *Config struct.
 func New(path string) (*Config, error) {

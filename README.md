@@ -17,7 +17,7 @@
 
 - [Athenz client sidecar](#athenz-client-sidecar)
     - [What is Athenz client sidecar](#what-is-athenz-client-sidecar)
-        - [Get Athenz N-Token from client sidecar](#get-athenz-n-token-from-client-sidecar)
+        - [Get Athenz N-token from client sidecar](#get-athenz-n-token-from-client-sidecar)
         - [Get Athenz Access Token from client sidecar](#get-athenz-access-token-from-client-sidecar)
         - [Get Athenz Role Token from client sidecar](#get-athenz-role-token-from-client-sidecar)
         - [Proxy HTTP request (add corresponding Athenz authorization token)](#proxy-http-request-add-corresponding-athenz-authorization-token)
@@ -48,7 +48,7 @@
 
 Athenz client sidecar is an implementation of [Kubernetes sidecar container](https://kubernetes.io/blog/2015/06/the-distributed-system-toolkit-patterns/) to provide a common interface to retrieve authentication and authorization credential from Athenz server.
 
-### Get Athenz N-Token from client sidecar
+### Get Athenz N-token from client sidecar
 
 ![Sidecar architecture (get N-token)](./docs/assets/client_sidecar_arch_n_token.png)
 
@@ -99,7 +99,7 @@ User can also use the reverse proxy endpoint to proxy the request to another ser
 
 | Name  | Description           | Example                                                                                             |
 | ----- | --------------------- | --------------------------------------------------------------------------------------------------- |
-| token | The n-token generated | v=S1;d=client;n=service;h=localhost;a=6996e6fc49915494;t=1486004464;e=1486008064;k=0;s=\[signature] |
+| token | The N-token generated | v=S1;d=client;n=service;h=localhost;a=6996e6fc49915494;t=1486004464;e=1486008064;k=0;s=\[signature] |
 
 Example:
 
@@ -195,7 +195,7 @@ Example:
 ### Proxy requests and append N-token authentication header
 
 - Accept any HTTP request.
-- Athenz client sidecar will proxy the request and append the n-token to the request header.
+- Athenz client sidecar will proxy the request and append the N-token to the request header.
 - The destination server will return back to user via proxy.
 
 ### Proxy requests and append role token authentication header

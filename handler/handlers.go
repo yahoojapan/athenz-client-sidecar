@@ -31,9 +31,9 @@ import (
 
 // Handler for handling a set of HTTP requests.
 type Handler interface {
-	// NToken handles get n-token requests.
+	// NToken handles get N-token requests.
 	NToken(http.ResponseWriter, *http.Request) error
-	// NTokenProxy handles proxy requests that require a n-token.
+	// NTokenProxy handles proxy requests that require a N-token.
 	NTokenProxy(http.ResponseWriter, *http.Request) error
 	// AccessToken handles post access token requests.
 	AccessToken(http.ResponseWriter, *http.Request) error
@@ -72,7 +72,7 @@ func New(cfg config.Proxy, bp httputil.BufferPool, token ntokend.TokenProvider, 
 	}
 }
 
-// NToken handles n-token requests and responses the corresponding n-token. Depends on token service.
+// NToken handles N-token requests and responses the corresponding N-token. Depends on token service.
 func (h *handler) NToken(w http.ResponseWriter, r *http.Request) error {
 	defer flushAndClose(r.Body)
 
@@ -87,7 +87,7 @@ func (h *handler) NToken(w http.ResponseWriter, r *http.Request) error {
 	})
 }
 
-// NTokenProxy attaches n-token to HTTP requests and proxies it. Depends on token service.
+// NTokenProxy attaches N-token to HTTP requests and proxies it. Depends on token service.
 func (h *handler) NTokenProxy(w http.ResponseWriter, r *http.Request) error {
 	defer flushAndClose(r.Body)
 

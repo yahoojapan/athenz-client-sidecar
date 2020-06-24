@@ -304,7 +304,7 @@ func (a *accessService) updateAccessToken(ctx context.Context, domain, role, pro
 func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, proxyForPrincipal string, expiry int64) (*AccessTokenResponse, error) {
 	glg.Debugf("get access token, domain: %s, role: %s, proxyForPrincipal: %s, expiry: %d", domain, role, proxyForPrincipal, expiry)
 
-	// get the n-token
+	// get the N-token
 	cred, err := a.token()
 	if err != nil {
 		return nil, err

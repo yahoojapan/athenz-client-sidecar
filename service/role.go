@@ -314,7 +314,7 @@ func (r *roleService) updateRoleToken(ctx context.Context, domain, role, proxyFo
 func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) (*RoleToken, error) {
 	glg.Debugf("get role token, domain: %s, role: %s, proxyForPrincipal: %s, minExpiry: %d, maxExpiry: %d", domain, role, proxyForPrincipal, minExpiry, maxExpiry)
 
-	// get the n-token
+	// get the N-token
 	tok, err := r.token()
 	if err != nil {
 		return nil, err

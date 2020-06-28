@@ -35,9 +35,9 @@ import (
 func TestNew(t *testing.T) {
 	// prepare handler.Handler for calling New()
 	proxyConfig := config.Proxy{
-		PrincipalAuthHeaderName: "X-test-auth-header",
-		RoleAuthHeaderName:      "X-test-role-header",
-		BufferSize:              1024,
+		PrincipalAuthHeader: "X-test-auth-header",
+		RoleAuthHeader:      "X-test-role-header",
+		BufferSize:          1024,
 	}
 	h := handler.New(proxyConfig, nil, nil, nil, nil, nil)
 
@@ -102,7 +102,7 @@ func Test_routing(t *testing.T) {
 	}
 	tests := []test{
 		func() test {
-			testStr := "testhoge"
+			testStr := "test string"
 			want := testStr
 			wantStatusCode := http.StatusOK
 
@@ -139,7 +139,7 @@ func Test_routing(t *testing.T) {
 			}
 		}(),
 		func() test {
-			testStr := "testhoge"
+			testStr := "test string"
 			want := testStr
 			wantStatusCode := http.StatusOK
 
@@ -182,7 +182,7 @@ func Test_routing(t *testing.T) {
 			}
 		}(),
 		func() test {
-			testStr := "testhoge"
+			testStr := "test string"
 			want := "Error: " + testStr + "\t" + http.StatusText(http.StatusInternalServerError) + "\n"
 			wantStatusCode := http.StatusInternalServerError
 
@@ -219,7 +219,7 @@ func Test_routing(t *testing.T) {
 			}
 		}(),
 		func() test {
-			testStr := "testhoge"
+			testStr := "test string"
 			want := "Method: GET" + "\t" + http.StatusText(http.StatusMethodNotAllowed) + "\n"
 			wantStatusCode := http.StatusMethodNotAllowed
 
@@ -256,7 +256,7 @@ func Test_routing(t *testing.T) {
 			}
 		}(),
 		func() test {
-			testStr := "testhoge"
+			testStr := "test string"
 			want := "Method: GET" + "\t" + http.StatusText(http.StatusMethodNotAllowed) + "\n"
 			wantStatusCode := http.StatusMethodNotAllowed
 
@@ -290,7 +290,7 @@ func Test_routing(t *testing.T) {
 			}
 		}(),
 		func() test {
-			testStr := "testhoge"
+			testStr := "test string"
 			want := "Handler Time Out:"
 
 			timeoutSec := time.Second * 1
@@ -332,7 +332,7 @@ func Test_routing(t *testing.T) {
 			}
 		}(),
 		func() test {
-			testStr := "testhoge"
+			testStr := "test string"
 			want := "Handler Time Out:"
 
 			timeoutSec := time.Second * 1

@@ -108,7 +108,7 @@ type NToken struct {
 	// ServiceName represents the Athenz service name.
 	ServiceName string `yaml:"serviceName"`
 
-	// PrivateKeyPath represents the private key file path for signning the N-token.
+	// PrivateKeyPath represents the private key file path for signing the N-token.
 	PrivateKeyPath string `yaml:"privateKeyPath"`
 
 	// KeyVersion represents the key version.
@@ -120,7 +120,7 @@ type NToken struct {
 	// RefreshPeriod represents the duration of the refresh period.
 	RefreshPeriod string `yaml:"refreshPeriod"`
 
-	// ExistingTokenPath represents the exisiting N-token file path. (ONLY for Copper Argos)
+	// ExistingTokenPath represents the existing N-token file path. (ONLY for Copper Argos)
 	ExistingTokenPath string `yaml:"existingTokenPath"`
 
 	// Validate represents whether to validate the N-token. Set to true when ExistingTokenPath is set.
@@ -198,7 +198,7 @@ type ServiceCert struct {
 	// DNSSuffix is the suffix of SAN.
 	DNSSuffix string `yaml:"dnsSuffix"`
 
-	// IntermediateCert represents whether to concatinate intermediate cert in the response.
+	// IntermediateCert represents whether to concatenate intermediate cert in the response.
 	IntermediateCert bool `yaml:"intermediateCert"`
 
 	// Spiffe represents whether to include spiffe ID in the certificate.
@@ -231,7 +231,7 @@ type Proxy struct {
 	// RoleAuthHeader represents the HTTP header for injecting role token.
 	RoleAuthHeader string `yaml:"roleAuthHeader"`
 
-	// BufferSize represents the foward proxy buffer size.
+	// BufferSize represents the forward proxy buffer size.
 	BufferSize uint64 `yaml:"bufferSize"`
 }
 

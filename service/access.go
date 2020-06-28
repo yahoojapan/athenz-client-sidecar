@@ -33,7 +33,7 @@ import (
 	"github.com/kpango/fastime"
 	"github.com/kpango/gache"
 	"github.com/kpango/glg"
-	ntokend "github.com/kpango/ntokend"
+	"github.com/kpango/ntokend"
 	"github.com/pkg/errors"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"golang.org/x/sync/singleflight"
@@ -48,7 +48,7 @@ type AccessService interface {
 
 // accessService represents the implementation of Athenz AccessService
 type accessService struct {
-	cfg                   config.Access
+	cfg                   config.AccessToken
 	token                 ntokend.TokenProvider
 	athenzURL             string
 	athenzPrincipleHeader string
@@ -57,7 +57,7 @@ type accessService struct {
 	expiry                time.Duration
 	httpClient            *http.Client
 
-	refreshInterval  time.Duration
+	refreshPeriod    time.Duration
 	errRetryMaxCount int
 	errRetryInterval time.Duration
 }
@@ -105,46 +105,46 @@ const (
 )
 
 // NewAccessService returns a AccessService to update and fetch the access token from Athenz.
-func NewAccessService(cfg config.Access, token ntokend.TokenProvider) (AccessService, error) {
+func NewAccessService(cfg config.AccessToken, token ntokend.TokenProvider) (AccessService, error) {
 	var (
 		err              error
-		exp              = defaultTokenExpiry
-		refreshInterval  = defaultRefreshInterval
+		exp              = defaultExpiry
+		refreshPeriod    = defaultRefreshPeriod
 		errRetryInterval = defaultErrRetryInterval
 	)
 
-	if cfg.TokenExpiry != "" {
-		if exp, err = time.ParseDuration(cfg.TokenExpiry); err != nil {
-			return nil, errors.Wrap(ErrInvalidSetting, "TokenExpiry: "+err.Error())
+	if cfg.Expiry != "" {
+		if exp, err = time.ParseDuration(cfg.Expiry); err != nil {
+			return nil, errors.Wrap(ErrInvalidSetting, "Expiry: "+err.Error())
 		}
 	}
-	if cfg.RefreshInterval != "" {
-		if refreshInterval, err = time.ParseDuration(cfg.RefreshInterval); err != nil {
-			return nil, errors.Wrap(ErrInvalidSetting, "RefreshInterval: "+err.Error())
+	if cfg.RefreshPeriod != "" {
+		if refreshPeriod, err = time.ParseDuration(cfg.RefreshPeriod); err != nil {
+			return nil, errors.Wrap(ErrInvalidSetting, "RefreshPeriod: "+err.Error())
 		}
 	}
-	if cfg.ErrRetryInterval != "" {
-		if errRetryInterval, err = time.ParseDuration(cfg.ErrRetryInterval); err != nil {
+	if cfg.Retry.Delay != "" {
+		if errRetryInterval, err = time.ParseDuration(cfg.Retry.Delay); err != nil {
 			return nil, errors.Wrap(ErrInvalidSetting, "ErrRetryInterval: "+err.Error())
 		}
 	}
 
 	// if user set the expiry time and refresh duration > expiry time then return error
-	if exp != 0 && refreshInterval > exp {
+	if exp != 0 && refreshPeriod > exp {
 		return nil, errors.Wrap(ErrInvalidSetting, "refresh interval > token expiry time")
 	}
 
 	errRetryMaxCount := defaultErrRetryMaxCount
-	if cfg.ErrRetryMaxCount > 0 {
-		errRetryMaxCount = cfg.ErrRetryMaxCount
-	} else if cfg.ErrRetryMaxCount != 0 {
+	if cfg.Retry.Attempts > 0 {
+		errRetryMaxCount = cfg.Retry.Attempts
+	} else if cfg.Retry.Attempts != 0 {
 		return nil, errors.Wrap(ErrInvalidSetting, "ErrRetryMaxCount < 0")
 	}
 
 	var cp *x509.CertPool
 	var httpClient *http.Client
-	if len(cfg.AthenzRootCA) > 0 {
-		certPath := config.GetActualValue(cfg.AthenzRootCA)
+	if len(cfg.AthenzCAPath) > 0 {
+		certPath := config.GetActualValue(cfg.AthenzCAPath)
 		_, err := os.Stat(certPath)
 		if !os.IsNotExist(err) {
 			cp, err = NewX509CertPool(certPath)
@@ -169,11 +169,11 @@ func NewAccessService(cfg config.Access, token ntokend.TokenProvider) (AccessSer
 		cfg:                   cfg,
 		token:                 token,
 		athenzURL:             cfg.AthenzURL,
-		athenzPrincipleHeader: cfg.PrincipalAuthHeaderName,
+		athenzPrincipleHeader: cfg.PrincipalAuthHeader,
 		tokenCache:            gache.New(),
 		expiry:                exp,
 		httpClient:            httpClient,
-		refreshInterval:       refreshInterval,
+		refreshPeriod:         refreshPeriod,
 		errRetryMaxCount:      errRetryMaxCount,
 		errRetryInterval:      errRetryInterval,
 	}, nil
@@ -188,7 +188,7 @@ func (a *accessService) StartAccessUpdater(ctx context.Context) <-chan error {
 	go func() {
 		defer close(ech)
 
-		ticker := time.NewTicker(a.refreshInterval)
+		ticker := time.NewTicker(a.refreshPeriod)
 		for {
 			select {
 			case <-ctx.Done():
@@ -204,14 +204,14 @@ func (a *accessService) StartAccessUpdater(ctx context.Context) <-chan error {
 		}
 	}()
 
-	a.tokenCache.StartExpired(ctx, expiryCheckInterval)
+	a.tokenCache.StartExpired(ctx, cachePurgePeriod)
 	a.tokenCache.EnableExpiredHook().SetExpiredHook(func(ctx context.Context, k string) {
 		glg.Warnf("the following cache is expired, key: %v", k)
 	})
 	return ech
 }
 
-// GetAccessProvider returns a function pointer to get the accesss token.
+// GetAccessProvider returns a function pointer to get the access token.
 func (a *accessService) GetAccessProvider() AccessProvider {
 	return a.getAccessToken
 }
@@ -393,7 +393,7 @@ func (a *accessService) createPostAccessTokenRequest(scope, proxyForPrincipal st
 		return nil, err
 	}
 
-	// set authenication token
+	// set authentication token
 	req.Header.Set(a.athenzPrincipleHeader, token)
 
 	return req, nil

@@ -28,15 +28,14 @@ import (
 
 	"github.com/kpango/fastime"
 	"github.com/kpango/gache"
-	ntokend "github.com/kpango/ntokend"
+	"github.com/kpango/ntokend"
 	"github.com/pkg/errors"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
-	"golang.org/x/sync/singleflight"
 )
 
 func TestNewRoleService(t *testing.T) {
 	type args struct {
-		cfg   config.Role
+		cfg   config.RoleToken
 		token ntokend.TokenProvider
 	}
 	type test struct {
@@ -49,11 +48,11 @@ func TestNewRoleService(t *testing.T) {
 	tests := []test{
 		func() test {
 			args := args{
-				cfg: config.Role{
-					TokenExpiry:             "5s",
-					AthenzURL:               "dummy",
-					PrincipalAuthHeaderName: "dummyAuthHeader",
-					RefreshInterval:         "1s",
+				cfg: config.RoleToken{
+					Expiry:              "5s",
+					AthenzURL:           "dummy",
+					PrincipalAuthHeader: "dummyAuthHeader",
+					RefreshPeriod:       "1s",
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -80,10 +79,10 @@ func TestNewRoleService(t *testing.T) {
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
-					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
+					athenzPrincipleHeader: args.cfg.PrincipalAuthHeader,
 					domainRoleCache:       gache.New(),
 					expiry: func() time.Duration {
-						dur, _ := time.ParseDuration(args.cfg.TokenExpiry)
+						dur, _ := time.ParseDuration(args.cfg.Expiry)
 						return dur
 					}(),
 				},
@@ -91,9 +90,9 @@ func TestNewRoleService(t *testing.T) {
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Role{
-					AthenzURL:               "dummy",
-					PrincipalAuthHeaderName: "dummyAuthHeader",
+				cfg: config.RoleToken{
+					AthenzURL:           "dummy",
+					PrincipalAuthHeader: "dummyAuthHeader",
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -111,7 +110,7 @@ func TestNewRoleService(t *testing.T) {
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
 						//!reflect.DeepEqual(gotS.domainRoleCache, wantS.domainRoleCache) ||
 						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
-						!reflect.DeepEqual(gotS.refreshInterval, wantS.refreshInterval) ||
+						!reflect.DeepEqual(gotS.refreshPeriod, wantS.refreshPeriod) ||
 						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
 						!reflect.DeepEqual(gotS.errRetryInterval, wantS.errRetryInterval) {
 
@@ -123,43 +122,45 @@ func TestNewRoleService(t *testing.T) {
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
-					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
+					athenzPrincipleHeader: args.cfg.PrincipalAuthHeader,
 					domainRoleCache:       gache.New(),
 					expiry:                0,
 					errRetryInterval:      defaultErrRetryInterval,
 					errRetryMaxCount:      defaultErrRetryMaxCount,
-					refreshInterval:       defaultRefreshInterval,
+					refreshPeriod:         defaultRefreshPeriod,
 				},
 			}
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Role{
-					TokenExpiry: "1x",
-				},
-			}
-			return test{
-				name:    "NewRoleService return error with TokenExpiry of invalid format",
-				args:    args,
-				wantErr: errors.Wrap(ErrInvalidSetting, "TokenExpiry: time: unknown unit x in duration 1x"),
-			}
-		}(),
-		func() test {
-			args := args{
-				cfg: config.Role{
-					RefreshInterval: "1x",
+				cfg: config.RoleToken{
+					Expiry: "1x",
 				},
 			}
 			return test{
-				name:    "NewRoleService return error with RefreshInterval of invalid format",
+				name:    "NewRoleService return error with Expiry of invalid format",
 				args:    args,
-				wantErr: errors.Wrap(ErrInvalidSetting, "RefreshInterval: time: unknown unit x in duration 1x"),
+				wantErr: errors.Wrap(ErrInvalidSetting, "Expiry: time: unknown unit x in duration 1x"),
 			}
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Role{
-					ErrRetryInterval: "1x",
+				cfg: config.RoleToken{
+					RefreshPeriod: "1x",
+				},
+			}
+			return test{
+				name:    "NewRoleService return error with RefreshPeriod of invalid format",
+				args:    args,
+				wantErr: errors.Wrap(ErrInvalidSetting, "RefreshPeriod: time: unknown unit x in duration 1x"),
+			}
+		}(),
+		func() test {
+			args := args{
+				cfg: config.RoleToken{
+					Retry: config.Retry{
+						Delay: "1x",
+					},
 				},
 			}
 			return test{
@@ -170,8 +171,10 @@ func TestNewRoleService(t *testing.T) {
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Role{
-					ErrRetryMaxCount: -1,
+				cfg: config.RoleToken{
+					Retry: config.Retry{
+						Attempts: -1,
+					},
 				},
 			}
 			return test{
@@ -182,11 +185,11 @@ func TestNewRoleService(t *testing.T) {
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Role{
-					AthenzURL:               "dummy",
-					PrincipalAuthHeaderName: "dummyAuthHeader",
-					RefreshInterval:         "60s",
-					TokenExpiry:             "1s",
+				cfg: config.RoleToken{
+					AthenzURL:           "dummy",
+					PrincipalAuthHeader: "dummyAuthHeader",
+					RefreshPeriod:       "60s",
+					Expiry:              "1s",
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -201,10 +204,12 @@ func TestNewRoleService(t *testing.T) {
 		func() test {
 			cnt := 10
 			args := args{
-				cfg: config.Role{
-					AthenzURL:               "dummy",
-					PrincipalAuthHeaderName: "dummyAuthHeader",
-					ErrRetryMaxCount:        cnt,
+				cfg: config.RoleToken{
+					AthenzURL:           "dummy",
+					PrincipalAuthHeader: "dummyAuthHeader",
+					Retry: config.Retry{
+						Attempts: cnt,
+					},
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -222,7 +227,7 @@ func TestNewRoleService(t *testing.T) {
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
 						//!reflect.DeepEqual(gotS.domainRoleCache, wantS.domainRoleCache) ||
 						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
-						!reflect.DeepEqual(gotS.refreshInterval, wantS.refreshInterval) ||
+						!reflect.DeepEqual(gotS.refreshPeriod, wantS.refreshPeriod) ||
 						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
 						!reflect.DeepEqual(gotS.errRetryInterval, wantS.errRetryInterval) {
 
@@ -234,21 +239,21 @@ func TestNewRoleService(t *testing.T) {
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
-					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
+					athenzPrincipleHeader: args.cfg.PrincipalAuthHeader,
 					domainRoleCache:       gache.New(),
 					expiry:                0,
 					errRetryInterval:      defaultErrRetryInterval,
 					errRetryMaxCount:      cnt,
-					refreshInterval:       defaultRefreshInterval,
+					refreshPeriod:         defaultRefreshPeriod,
 				},
 			}
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Role{
-					AthenzURL:               "dummy",
-					PrincipalAuthHeaderName: "dummyAuthHeader",
-					AthenzRootCA:            "assets/dummyCa.pem",
+				cfg: config.RoleToken{
+					AthenzURL:           "dummy",
+					PrincipalAuthHeader: "dummyAuthHeader",
+					AthenzCAPath:        "assets/dummyCa.pem",
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -266,13 +271,13 @@ func TestNewRoleService(t *testing.T) {
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
 						//!reflect.DeepEqual(gotS.domainRoleCache, wantS.domainRoleCache) ||
 						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
-						!reflect.DeepEqual(gotS.refreshInterval, wantS.refreshInterval) ||
+						!reflect.DeepEqual(gotS.refreshPeriod, wantS.refreshPeriod) ||
 						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
 						!reflect.DeepEqual(gotS.errRetryInterval, wantS.errRetryInterval) {
 
 						return fmt.Errorf("got: %+v, want: %+v", got, want)
 					}
-					cp, _ := NewX509CertPool(args.cfg.AthenzRootCA)
+					cp, _ := NewX509CertPool(args.cfg.AthenzCAPath)
 					t := gotS.httpClient.Transport.(*http.Transport)
 					if !reflect.DeepEqual(t.TLSClientConfig.RootCAs, cp) {
 						return fmt.Errorf("cert not match, got: %+v, want: %+v", t, cp)
@@ -284,21 +289,21 @@ func TestNewRoleService(t *testing.T) {
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
-					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
+					athenzPrincipleHeader: args.cfg.PrincipalAuthHeader,
 					domainRoleCache:       gache.New(),
 					expiry:                0,
 					errRetryInterval:      defaultErrRetryInterval,
 					errRetryMaxCount:      defaultErrRetryMaxCount,
-					refreshInterval:       defaultRefreshInterval,
+					refreshPeriod:         defaultRefreshPeriod,
 				},
 			}
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Role{
-					AthenzURL:               "dummy",
-					PrincipalAuthHeaderName: "dummyAuthHeader",
-					AthenzRootCA:            "assets/invalid_dummyCa.pem",
+				cfg: config.RoleToken{
+					AthenzURL:           "dummy",
+					PrincipalAuthHeader: "dummyAuthHeader",
+					AthenzCAPath:        "assets/invalid_dummyCa.pem",
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -316,7 +321,7 @@ func TestNewRoleService(t *testing.T) {
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
 						//!reflect.DeepEqual(gotS.domainRoleCache, wantS.domainRoleCache) ||
 						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
-						!reflect.DeepEqual(gotS.refreshInterval, wantS.refreshInterval) ||
+						!reflect.DeepEqual(gotS.refreshPeriod, wantS.refreshPeriod) ||
 						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
 						!reflect.DeepEqual(gotS.errRetryInterval, wantS.errRetryInterval) {
 
@@ -332,12 +337,12 @@ func TestNewRoleService(t *testing.T) {
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
-					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
+					athenzPrincipleHeader: args.cfg.PrincipalAuthHeader,
 					domainRoleCache:       gache.New(),
 					expiry:                0,
 					errRetryInterval:      defaultErrRetryInterval,
 					errRetryMaxCount:      defaultErrRetryMaxCount,
-					refreshInterval:       defaultRefreshInterval,
+					refreshPeriod:         defaultRefreshPeriod,
 				},
 			}
 		}(),
@@ -366,16 +371,15 @@ func TestNewRoleService(t *testing.T) {
 
 func Test_roleService_StartRoleUpdater(t *testing.T) {
 	type fields struct {
-		cfg                   config.Role
+		cfg                   config.RoleToken
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
-		group                 singleflight.Group
 		expiry                time.Duration
 		httpClient            *http.Client
 
-		refreshInterval  time.Duration
+		refreshPeriod    time.Duration
 		errRetryMaxCount int
 		errRetryInterval time.Duration
 	}
@@ -422,9 +426,9 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "Athenz-Principal",
 					token: func() (string, error) {
-						return "dummy ntoken", nil
+						return "dummy N-token", nil
 					},
-					refreshInterval:  time.Second,
+					refreshPeriod:    time.Second,
 					errRetryMaxCount: 5,
 					errRetryInterval: time.Second,
 				},
@@ -494,7 +498,7 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "Athenz-Principal",
 					errRetryMaxCount:      9,
-					refreshInterval:       time.Millisecond * 100,
+					refreshPeriod:         time.Millisecond * 100,
 					errRetryInterval:      time.Millisecond,
 					expiry:                time.Millisecond * 200,
 				},
@@ -571,7 +575,7 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "Athenz-Principal",
 					errRetryMaxCount:      9,
-					refreshInterval:       time.Millisecond * 700,
+					refreshPeriod:         time.Millisecond * 700,
 					errRetryInterval:      time.Millisecond,
 					expiry:                time.Millisecond * 700,
 				},
@@ -627,10 +631,9 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
 				domainRoleCache:       tt.fields.domainRoleCache,
-				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
-				refreshInterval:       tt.fields.refreshInterval,
+				refreshPeriod:         tt.fields.refreshPeriod,
 				errRetryMaxCount:      tt.fields.errRetryMaxCount,
 				errRetryInterval:      tt.fields.errRetryInterval,
 			}
@@ -652,7 +655,7 @@ func Test_roleService_GetRoleProvider(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r, _ := NewRoleService(config.Role{}, nil)
+			r, _ := NewRoleService(config.RoleToken{}, nil)
 			if got := r.GetRoleProvider(); got == nil {
 				t.Error("provier is nil")
 			}
@@ -662,12 +665,11 @@ func Test_roleService_GetRoleProvider(t *testing.T) {
 
 func Test_roleService_getRoleToken(t *testing.T) {
 	type fields struct {
-		cfg                   config.Role
+		cfg                   config.RoleToken
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
-		group                 singleflight.Group
 		expiry                time.Duration
 		httpClient            *http.Client
 	}
@@ -798,7 +800,6 @@ func Test_roleService_getRoleToken(t *testing.T) {
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
 				domainRoleCache:       tt.fields.domainRoleCache,
-				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
 			}
@@ -821,15 +822,14 @@ func Test_roleService_getRoleToken(t *testing.T) {
 
 func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 	type fields struct {
-		cfg                   config.Role
+		cfg                   config.RoleToken
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
-		group                 singleflight.Group
 		expiry                time.Duration
 		httpClient            *http.Client
-		refreshInterval       time.Duration
+		refreshPeriod         time.Duration
 		errRetryMaxCount      int
 		errRetryInterval      time.Duration
 	}
@@ -873,7 +873,7 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 					domainRoleCache:       roleCache,
 					expiry:                time.Minute,
 					httpClient:            dummyServer.Client(),
-					refreshInterval:       time.Second,
+					refreshPeriod:         time.Second,
 					errRetryMaxCount:      5,
 					errRetryInterval:      time.Second,
 				},
@@ -941,7 +941,7 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 					domainRoleCache:       roleCache,
 					expiry:                time.Minute,
 					httpClient:            dummyServer.Client(),
-					refreshInterval:       time.Second,
+					refreshPeriod:         time.Second,
 					errRetryMaxCount:      5,
 					errRetryInterval:      time.Second,
 				},
@@ -1139,10 +1139,9 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
 				domainRoleCache:       tt.fields.domainRoleCache,
-				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
-				refreshInterval:       tt.fields.refreshInterval,
+				refreshPeriod:         tt.fields.refreshPeriod,
 				errRetryMaxCount:      tt.fields.errRetryMaxCount,
 				errRetryInterval:      tt.fields.errRetryInterval,
 			}
@@ -1156,15 +1155,14 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 
 func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 	type fields struct {
-		cfg                   config.Role
+		cfg                   config.RoleToken
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
-		group                 singleflight.Group
 		expiry                time.Duration
 		httpClient            *http.Client
-		refreshInterval       time.Duration
+		refreshPeriod         time.Duration
 		errRetryMaxCount      int
 		errRetryInterval      time.Duration
 	}
@@ -1221,7 +1219,7 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 
 					tok, ok := domainRoleCache.Get("dummyDomain;dummyRole;dummyProxy")
 					if !ok {
-						return errors.New("token donot set to the cache")
+						return errors.New("token is not set to the cache")
 					}
 
 					if tok.(*cacheData).token.Token != dummyTok {
@@ -1292,7 +1290,7 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 
 					tok, ok := domainRoleCache.Get("dummyDomain;dummyRole;dummyProxy")
 					if !ok {
-						return errors.New("token donot set to the cache")
+						return errors.New("token is not set to the cache")
 					}
 
 					if tok.(*cacheData).token.Token != dummyTok {
@@ -1371,10 +1369,9 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
 				domainRoleCache:       tt.fields.domainRoleCache,
-				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
-				refreshInterval:       tt.fields.refreshInterval,
+				refreshPeriod:         tt.fields.refreshPeriod,
 				errRetryMaxCount:      tt.fields.errRetryMaxCount,
 				errRetryInterval:      tt.fields.errRetryInterval,
 			}
@@ -1388,12 +1385,11 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 
 func Test_roleService_updateRoleToken(t *testing.T) {
 	type fields struct {
-		cfg                   config.Role
+		cfg                   config.RoleToken
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
-		group                 singleflight.Group
 		expiry                time.Duration
 		httpClient            *http.Client
 	}
@@ -1706,7 +1702,6 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
 				domainRoleCache:       tt.fields.domainRoleCache,
-				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
 			}
@@ -1736,15 +1731,14 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 
 func Test_roleService_fetchRoleToken(t *testing.T) {
 	type fields struct {
-		cfg                   config.Role
+		cfg                   config.RoleToken
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
-		group                 singleflight.Group
 		expiry                time.Duration
 		httpClient            *http.Client
-		refreshInterval       time.Duration
+		refreshPeriod         time.Duration
 		errRetryMaxCount      int
 		errRetryInterval      time.Duration
 	}
@@ -1812,7 +1806,7 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 
 			dummyErr := errors.New("dummy error")
 			return test{
-				name: "ntoken provider return error",
+				name: "N-token provider return error",
 				fields: fields{
 					token: func() (string, error) {
 						return "", dummyErr
@@ -1898,10 +1892,9 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
 				domainRoleCache:       tt.fields.domainRoleCache,
-				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
-				refreshInterval:       tt.fields.refreshInterval,
+				refreshPeriod:         tt.fields.refreshPeriod,
 				errRetryMaxCount:      tt.fields.errRetryMaxCount,
 				errRetryInterval:      tt.fields.errRetryInterval,
 			}
@@ -1929,12 +1922,11 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 
 func Test_roleService_getCache(t *testing.T) {
 	type fields struct {
-		cfg                   config.Role
+		cfg                   config.RoleToken
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
-		group                 singleflight.Group
 		expiry                time.Duration
 	}
 	type args struct {
@@ -2003,7 +1995,6 @@ func Test_roleService_getCache(t *testing.T) {
 				athenzURL:             tt.fields.athenzURL,
 				athenzPrincipleHeader: tt.fields.athenzPrincipleHeader,
 				domainRoleCache:       tt.fields.domainRoleCache,
-				group:                 tt.fields.group,
 				expiry:                tt.fields.expiry,
 			}
 			got, got1 := r.getCache(tt.args.domain, tt.args.role, tt.args.principal)
@@ -2038,7 +2029,7 @@ func Test_encode(t *testing.T) {
 			want: "dummyDomain;dummyRole;dummyPrincipal",
 		},
 		{
-			name: "Encode correct without prinicipal",
+			name: "Encode correct without principal",
 			args: args{
 				domain:    "dummyDomain",
 				role:      "dummyRole",
@@ -2122,7 +2113,7 @@ func Test_decode(t *testing.T) {
 
 func Test_createGetRoleTokenRequest(t *testing.T) {
 	type fields struct {
-		cfg                   config.Role
+		cfg                   config.RoleToken
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
@@ -2155,11 +2146,11 @@ func Test_createGetRoleTokenRequest(t *testing.T) {
 				token:             "dummyToken",
 			},
 			fields: fields{
-				athenzURL:             "dummyUURL",
+				athenzURL:             "dummyAthenzURL",
 				athenzPrincipleHeader: "dummyHeader",
 			},
 			want: func() *http.Request {
-				r, _ := http.NewRequest(http.MethodGet, "https://dummyUURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal&role=dummyRole", nil)
+				r, _ := http.NewRequest(http.MethodGet, "https://dummyAthenzURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal&role=dummyRole", nil)
 				r.Header.Set("dummyHeader", "dummyToken")
 
 				return r
@@ -2175,12 +2166,12 @@ func Test_createGetRoleTokenRequest(t *testing.T) {
 				token:             "dummyToken",
 			},
 			fields: fields{
-				athenzURL:             "dummyUURL",
+				athenzURL:             "dummyAthenzURL",
 				athenzPrincipleHeader: "dummyHeader",
 				expiry:                time.Minute,
 			},
 			want: func() *http.Request {
-				r, _ := http.NewRequest(http.MethodGet, "https://dummyUURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=60&proxyForPrincipal=dummyProxyForPrincipal&role=dummyRole", nil)
+				r, _ := http.NewRequest(http.MethodGet, "https://dummyAthenzURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=60&proxyForPrincipal=dummyProxyForPrincipal&role=dummyRole", nil)
 				r.Header.Set("dummyHeader", "dummyToken")
 
 				return r
@@ -2196,12 +2187,12 @@ func Test_createGetRoleTokenRequest(t *testing.T) {
 				token:             "dummyToken",
 			},
 			fields: fields{
-				athenzURL:             "dummyUURL",
+				athenzURL:             "dummyAthenzURL",
 				athenzPrincipleHeader: "dummyHeader",
 				expiry:                60,
 			},
 			want: func() *http.Request {
-				r, _ := http.NewRequest(http.MethodGet, "https://dummyUURL/domain/dummyDomain/token?minExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal&role=dummyRole", nil)
+				r, _ := http.NewRequest(http.MethodGet, "https://dummyAthenzURL/domain/dummyDomain/token?minExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal&role=dummyRole", nil)
 				r.Header.Set("dummyHeader", "dummyToken")
 
 				return r
@@ -2217,11 +2208,11 @@ func Test_createGetRoleTokenRequest(t *testing.T) {
 				token:     "dummyToken",
 			},
 			fields: fields{
-				athenzURL:             "dummyUURL",
+				athenzURL:             "dummyAthenzURL",
 				athenzPrincipleHeader: "dummyHeader",
 			},
 			want: func() *http.Request {
-				r, _ := http.NewRequest(http.MethodGet, "https://dummyUURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1&role=dummyRole", nil)
+				r, _ := http.NewRequest(http.MethodGet, "https://dummyAthenzURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1&role=dummyRole", nil)
 				r.Header.Set("dummyHeader", "dummyToken")
 
 				return r
@@ -2236,11 +2227,11 @@ func Test_createGetRoleTokenRequest(t *testing.T) {
 				token:     "dummyToken",
 			},
 			fields: fields{
-				athenzURL:             "dummyUURL",
+				athenzURL:             "dummyAthenzURL",
 				athenzPrincipleHeader: "dummyHeader",
 			},
 			want: func() *http.Request {
-				r, _ := http.NewRequest(http.MethodGet, "https://dummyUURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1", nil)
+				r, _ := http.NewRequest(http.MethodGet, "https://dummyAthenzURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1", nil)
 				r.Header.Set("dummyHeader", "dummyToken")
 
 				return r

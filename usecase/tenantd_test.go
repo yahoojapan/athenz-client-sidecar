@@ -25,7 +25,7 @@ import (
 	"testing"
 	"time"
 
-	ntokend "github.com/kpango/ntokend"
+	"github.com/kpango/ntokend"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"github.com/yahoojapan/athenz-client-sidecar/handler"
 	"github.com/yahoojapan/athenz-client-sidecar/infra"
@@ -50,7 +50,7 @@ func TestNew(t *testing.T) {
 			name: "Check error when new token service",
 			args: args{
 				cfg: config.Config{
-					Token: config.Token{},
+					NToken: config.NToken{},
 				},
 			},
 			wantErr: fmt.Errorf("invalid token refresh duration , time: invalid duration "),
@@ -59,27 +59,24 @@ func TestNew(t *testing.T) {
 			keyKey := "_dummyKey_"
 			key := "./assets/dummyServer.key"
 			cfg := config.Config{
-				Token: config.Token{
-					AthenzDomain:    strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					ServiceName:     strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					PrivateKeyPath:  key,
-					ValidateToken:   false,
-					RefreshDuration: "1m",
-					KeyVersion:      "1",
-					Expiration:      "1m",
-					NTokenPath:      "",
-				},
-				Server: config.Server{
-					HealthzPath: "/dummyPath",
+				NToken: config.NToken{
+					AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					ServiceName:       strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					PrivateKeyPath:    key,
+					Validate:          false,
+					RefreshPeriod:     "1m",
+					KeyVersion:        "1",
+					Expiry:            "1m",
+					ExistingTokenPath: "",
 				},
 				ServiceCert: config.ServiceCert{
 					Enable:       true,
-					AthenzRootCA: "ca.pem",
+					AthenzCAPath: "ca.pem",
 				},
 			}
 
 			return test{
-				name: "Check failure when svccert is enabled but AthenzRootCA file path is wrong",
+				name: "Check failure when svccert is enabled but AthenzCAPath file path is wrong",
 				args: args{
 					cfg: cfg,
 				},
@@ -90,18 +87,15 @@ func TestNew(t *testing.T) {
 			keyKey := "_dummyKey_"
 			key := "./assets/dummyServer.key"
 			cfg := config.Config{
-				Token: config.Token{
-					AthenzDomain:    strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					ServiceName:     strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					PrivateKeyPath:  key,
-					ValidateToken:   false,
-					RefreshDuration: "1m",
-					KeyVersion:      "1",
-					Expiration:      "1m",
-					NTokenPath:      "",
-				},
-				Server: config.Server{
-					HealthzPath: "/dummyPath",
+				NToken: config.NToken{
+					AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					ServiceName:       strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					PrivateKeyPath:    key,
+					Validate:          false,
+					RefreshPeriod:     "1m",
+					KeyVersion:        "1",
+					Expiry:            "1m",
+					ExistingTokenPath: "",
 				},
 				ServiceCert: config.ServiceCert{
 					Enable: true,
@@ -129,18 +123,15 @@ func TestNew(t *testing.T) {
 			keyKey := "_dummyKey_"
 			key := "./assets/dummyServer.key"
 			cfg := config.Config{
-				Token: config.Token{
-					AthenzDomain:    strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					ServiceName:     strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					PrivateKeyPath:  key,
-					ValidateToken:   false,
-					RefreshDuration: "1m",
-					KeyVersion:      "1",
-					Expiration:      "1m",
-					NTokenPath:      "",
-				},
-				Server: config.Server{
-					HealthzPath: "/dummyPath",
+				NToken: config.NToken{
+					AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					ServiceName:       strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					PrivateKeyPath:    key,
+					Validate:          false,
+					RefreshPeriod:     "1m",
+					KeyVersion:        "1",
+					Expiry:            "1m",
+					ExistingTokenPath: "",
 				},
 				ServiceCert: config.ServiceCert{
 					Enable: false,
@@ -167,18 +158,15 @@ func TestNew(t *testing.T) {
 			keyKey := "_dummyKey_"
 			key := "./assets/dummyServer.key"
 			cfg := config.Config{
-				Token: config.Token{
-					AthenzDomain:    strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					ServiceName:     strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					PrivateKeyPath:  key,
-					ValidateToken:   false,
-					RefreshDuration: "1m",
-					KeyVersion:      "1",
-					Expiration:      "1m",
-					NTokenPath:      "",
-				},
-				Server: config.Server{
-					HealthzPath: "/dummyPath",
+				NToken: config.NToken{
+					AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					ServiceName:       strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					PrivateKeyPath:    key,
+					Validate:          false,
+					RefreshPeriod:     "1m",
+					KeyVersion:        "1",
+					Expiry:            "1m",
+					ExistingTokenPath: "",
 				},
 			}
 
@@ -258,27 +246,26 @@ func Test_clientd_Start(t *testing.T) {
 			cert := "./assets/dummyServer.crt"
 
 			cfg := config.Config{
-				Token: config.Token{
-					AthenzDomain:    strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					ServiceName:     strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					PrivateKeyPath:  key,
-					ValidateToken:   false,
-					RefreshDuration: "1m",
-					KeyVersion:      "1",
-					Expiration:      "1m",
-					NTokenPath:      "",
+				NToken: config.NToken{
+					AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					ServiceName:       strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+					PrivateKeyPath:    key,
+					Validate:          false,
+					RefreshPeriod:     "1m",
+					KeyVersion:        "1",
+					Expiry:            "1m",
+					ExistingTokenPath: "",
 				},
 				Server: config.Server{
-					HealthzPath: "/dummyPath",
 					TLS: config.TLS{
-						Enabled: true,
-						Cert:    certKey,
-						Key:     keyKey,
+						Enable:   true,
+						CertPath: certKey,
+						KeyPath:  keyKey,
 					},
 				},
 				ServiceCert: config.ServiceCert{
-					AthenzRootCA:    "./assets/dummyCa.pem",
-					RefreshDuration: "",
+					AthenzCAPath:  "./assets/dummyCa.pem",
+					RefreshPeriod: "",
 				},
 			}
 
@@ -290,15 +277,15 @@ func Test_clientd_Start(t *testing.T) {
 			return test{
 				name: "Token updater works",
 				fields: func() fields {
-					token, err := createNtokend(cfg.Token)
+					token, err := createNtokend(cfg.NToken)
 					if err != nil {
 						panic(err)
 					}
-					access, err := service.NewAccessService(cfg.Access, token.GetTokenProvider())
+					access, err := service.NewAccessService(cfg.AccessToken, token.GetTokenProvider())
 					if err != nil {
 						panic(err)
 					}
-					role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+					role, err := service.NewRoleService(cfg.RoleToken, token.GetTokenProvider())
 					if err != nil {
 						panic(err)
 					}
@@ -376,7 +363,7 @@ func Test_clientd_Start(t *testing.T) {
 
 func Test_createNtokend(t *testing.T) {
 	type args struct {
-		cfg config.Token
+		cfg config.NToken
 	}
 	type test struct {
 		name       string
@@ -391,21 +378,21 @@ func Test_createNtokend(t *testing.T) {
 		{
 			name: "refresh duration invalid",
 			args: args{
-				cfg: config.Token{
-					RefreshDuration: "dummy",
+				cfg: config.NToken{
+					RefreshPeriod: "dummy",
 				},
 			},
 			wantErr: fmt.Errorf("invalid token refresh duration %s, %v", "dummy", "time: invalid duration dummy"),
 		},
 		{
-			name: "token expiration invalid",
+			name: "token expiry invalid",
 			args: args{
-				cfg: config.Token{
-					RefreshDuration: "1s",
-					Expiration:      "dummy",
+				cfg: config.NToken{
+					RefreshPeriod: "1s",
+					Expiry:        "dummy",
 				},
 			},
-			wantErr: fmt.Errorf("invalid token expiration %s, %v", "dummy", "time: invalid duration dummy"),
+			wantErr: fmt.Errorf("invalid token expiry %s, %v", "dummy", "time: invalid duration dummy"),
 		},
 		func() test {
 			keyKey := "_dummyKey_"
@@ -415,10 +402,10 @@ func Test_createNtokend(t *testing.T) {
 				name: "Test error private key not exist",
 				args: func() args {
 					return args{
-						cfg: config.Token{
-							RefreshDuration: "1m",
-							Expiration:      "1m",
-							PrivateKeyPath:  keyKey,
+						cfg: config.NToken{
+							RefreshPeriod:  "1m",
+							Expiry:         "1m",
+							PrivateKeyPath: keyKey,
 						},
 					}
 				}(),
@@ -440,11 +427,11 @@ func Test_createNtokend(t *testing.T) {
 				args: func() args {
 
 					return args{
-						cfg: config.Token{
-							RefreshDuration: "1m",
-							Expiration:      "1m",
-							PrivateKeyPath:  keyKey,
-							NTokenPath:      "",
+						cfg: config.NToken{
+							RefreshPeriod:     "1m",
+							Expiry:            "1m",
+							PrivateKeyPath:    keyKey,
+							ExistingTokenPath: "",
 						},
 					}
 				}(),
@@ -460,15 +447,15 @@ func Test_createNtokend(t *testing.T) {
 		func() test {
 			keyKey := "_dummyKey_"
 			key := "./assets/dummyServer.key"
-			cfg := config.Token{
-				AthenzDomain:    strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-				ServiceName:     strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-				NTokenPath:      "",
-				PrivateKeyPath:  keyKey,
-				ValidateToken:   false,
-				RefreshDuration: "1s",
-				KeyVersion:      "1",
-				Expiration:      "1s",
+			cfg := config.NToken{
+				AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+				ServiceName:       strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+				ExistingTokenPath: "",
+				PrivateKeyPath:    keyKey,
+				Validate:          false,
+				RefreshPeriod:     "1s",
+				KeyVersion:        "1",
+				Expiry:            "1s",
 			}
 			keyData, _ := ioutil.ReadFile(key)
 			athenzDomain := config.GetActualValue(cfg.AthenzDomain)
@@ -481,8 +468,14 @@ func Test_createNtokend(t *testing.T) {
 				},
 				want: func() ntokend.TokenService {
 					tok, err := ntokend.New(
-						ntokend.RefreshDuration(time.Second), ntokend.TokenExpiration(time.Second), ntokend.KeyVersion(cfg.KeyVersion), ntokend.KeyData(keyData), ntokend.TokenFilePath(cfg.NTokenPath),
-						ntokend.AthenzDomain(athenzDomain), ntokend.ServiceName(serviceName))
+						ntokend.RefreshDuration(time.Second),
+						ntokend.TokenExpiration(time.Second),
+						ntokend.KeyVersion(cfg.KeyVersion),
+						ntokend.KeyData(keyData),
+						ntokend.TokenFilePath(cfg.ExistingTokenPath),
+						ntokend.AthenzDomain(athenzDomain),
+						ntokend.ServiceName(serviceName),
+					)
 
 					if err != nil {
 						panic(err)

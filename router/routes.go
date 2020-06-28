@@ -68,13 +68,13 @@ func NewRoutes(cfg config.Config, h handler.Handler) []Route {
 		},
 	}
 
-	if cfg.Access.Enable {
+	if cfg.AccessToken.Enable {
 		r = append(r, Route{
 			"Access Token Handler",
 			[]string{
 				http.MethodPost,
 			},
-			"/access-token",
+			"/accesstoken",
 			h.AccessToken,
 		})
 	}

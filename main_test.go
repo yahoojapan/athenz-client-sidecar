@@ -98,22 +98,22 @@ func Test_run(t *testing.T) {
 				name: "run error",
 				args: args{
 					cfg: config.Config{
-						Token: config.Token{
-							AthenzDomain:    "domain",
-							ServiceName:     "service",
-							RefreshDuration: "1h",
-							KeyVersion:      "keyId",
-							Expiration:      "1h",
-							PrivateKeyPath:  "./usecase/assets/dummyServer.key",
+						NToken: config.NToken{
+							AthenzDomain:   "domain",
+							ServiceName:    "service",
+							RefreshPeriod:  "1h",
+							KeyVersion:     "keyId",
+							Expiry:         "1h",
+							PrivateKeyPath: "./usecase/assets/dummyServer.key",
 						},
-						Role: config.Role{
-							RefreshInterval: "dummy",
+						RoleToken: config.RoleToken{
+							RefreshPeriod: "dummy",
 						},
 					},
 				},
 				checkFunc: func(cfg config.Config) error {
 					got := run(cfg)
-					want := "RefreshInterval: time: invalid duration dummy: Invalid config"
+					want := "RefreshPeriod: time: invalid duration dummy: Invalid config"
 					if len(got) != 1 {
 						return errors.New("len(got) != 1")
 					}
@@ -129,8 +129,8 @@ func Test_run(t *testing.T) {
 				name: "daemon init error",
 				args: args{
 					cfg: config.Config{
-						Token: config.Token{
-							RefreshDuration: "dummy",
+						NToken: config.NToken{
+							RefreshPeriod: "dummy",
 						},
 					},
 				},

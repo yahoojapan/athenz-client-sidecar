@@ -1,54 +1,66 @@
 ---
-version: v1.0.0
+version: v2.0.0
 server:
   port: 8080
-  health_check_port: 80
-  health_check_path: /healthz
   timeout: 10s
-  shutdown_duration: 10s
-  probe_wait_time: 9s
+  shutdownTimeout: 10s
+  shutdownDelay: 9s
   tls:
-    enabled: true
-    cert: cert
-    key: key
-    ca: ca
-ntoken:
-  athenz_domain:  _athenz_domain_
-  service_name: _service_name_
-  ntoken_path: "/tmp/ntoken"
-  private_key_path: _athenz_private_key_
-  validate_token: false
-  refresh_duration: 30m
-  key_version: v1.0
-  expiration: 20m
-access_token:
+    enable: true
+    certPath: cert
+    keyPath: key
+    caPath: ca
+  healthCheck:
+    port: 80
+    endpoint: "/healthz"
+nToken:
+  athenzDomain: _athenz_domain_
+  serviceName: _service_name_
+  privateKeyPath: _athenz_private_key_
+  keyVersion: "v1.0"
+  expiry: "20m"
+  refreshPeriod: "30m"
+  existingTokenPath: "/tmp/ntoken"
+  validate: false
+accessToken:
   enable: true
-  auth_header_key: Athenz-Principal
-  athenz_url: https://www.athenz.com:4443/zts/v1
-  expiration: "30m"
-  proxy_principal: ""
-roletoken:
-  auth_header_key: Athenz-Principal
-  athenz_url: https://www.athenz.com:4443/zts/v1
-  expiration: 30m
-  proxy_principal: ""
-proxy:
-  auth_header_key: Athenz-Principal
-  role_header_key: Athenz-Role-Auth
-  buffer_size: 1024
-service_cert:
+  principalAuthHeader: Athenz-Principal
+  athenzURL: https://www.athenz.com:4443/zts/v1
+  athenzCAPath: ""
+  expiry: "30m"
+  refreshPeriod: ""
+  retry:
+    attempts: 0
+    delay: ""
+roleToken:
+  principalAuthHeader: Athenz-Principal
+  athenzURL: https://www.athenz.com:4443/zts/v1
+  athenzCAPath: ""
+  expiry: "30m"
+  refreshPeriod: ""
+  retry:
+    attempts: 0
+    delay: ""
+serviceCert:
   enable: true
-  athenz_url: https://www.athenz.com:4443/zts/v1
-  athenz_root_ca: /etc/ssl/cert.pem
-  dns_suffix: athenz.cloud
-  refresh_duration: 30m
-  expire_margin: 30h
-  expiration: 720h
-  intermediate_cert: true
-  auth_header_key: Athenz-Principal
+  principalAuthHeader: Athenz-Principal
+  athenzURL: https://www.athenz.com:4443/zts/v1
+  athenzCAPath: /etc/ssl/cert.pem
+  expiry: 720h
+  refreshPeriod: 30m
+  expiryMargin: 30h
+  dnsSuffix: athenz.cloud
+  intermediateCert: true
   spiffe: false
   subject:
     country: US
     province: California
     organization: "Oath Inc."
-    organizational_unit: Athenz
+    organizationalUnit: Athenz
+proxy:
+  principalAuthHeader: Athenz-Principal
+  roleAuthHeader: Athenz-Role-Auth
+  bufferSize: 1024
+log:
+  level: "info"
+  color: true

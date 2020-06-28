@@ -29,7 +29,7 @@ import (
 	"testing"
 	"time"
 
-	ntokend "github.com/kpango/ntokend"
+	"github.com/kpango/ntokend"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"github.com/yahoojapan/athenz-client-sidecar/infra"
 	"github.com/yahoojapan/athenz-client-sidecar/service"
@@ -94,8 +94,8 @@ func TestNew(t *testing.T) {
 			name: "Check New, works normally",
 			args: args{
 				cfg: config.Proxy{
-					BufferSize:              72,
-					PrincipalAuthHeaderName: "auth-header-73",
+					BufferSize:          72,
+					PrincipalAuthHeader: "auth-header-73",
 				},
 				bp: infra.NewBuffer(uint64(75)),
 				token: func() (string, error) {
@@ -113,8 +113,8 @@ func TestNew(t *testing.T) {
 			},
 			want: &handler{
 				cfg: config.Proxy{
-					BufferSize:              72,
-					PrincipalAuthHeaderName: "auth-header-73",
+					BufferSize:          72,
+					PrincipalAuthHeader: "auth-header-73",
 				},
 			},
 			checkFunc: func(got, want *handler) error {
@@ -363,7 +363,7 @@ func Test_handler_NTokenProxy(t *testing.T) {
 					return "token-365", nil
 				},
 				cfg: config.Proxy{
-					PrincipalAuthHeaderName: "auth-header-368",
+					PrincipalAuthHeader: "auth-header-368",
 				},
 			},
 			args: args{
@@ -402,7 +402,7 @@ func Test_handler_NTokenProxy(t *testing.T) {
 					return "token-405", nil
 				},
 				cfg: config.Proxy{
-					PrincipalAuthHeaderName: "auth-header-408",
+					PrincipalAuthHeader: "auth-header-408",
 				},
 			},
 			args: args{
@@ -438,7 +438,7 @@ func Test_handler_NTokenProxy(t *testing.T) {
 					return "token-445", nil
 				},
 				cfg: config.Proxy{
-					PrincipalAuthHeaderName: "auth-header-448",
+					PrincipalAuthHeader: "auth-header-448",
 				},
 			},
 			args: args{
@@ -1008,7 +1008,7 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 					}, nil
 				},
 				cfg: config.Proxy{
-					RoleAuthHeaderName: "role-header-836",
+					RoleAuthHeader: "role-header-836",
 				},
 			},
 			args: args{
@@ -1066,7 +1066,7 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 					}, nil
 				},
 				cfg: config.Proxy{
-					RoleAuthHeaderName: "role-header-894",
+					RoleAuthHeader: "role-header-894",
 				},
 			},
 			args: args{
@@ -1116,7 +1116,7 @@ func Test_handler_RoleTokenProxy(t *testing.T) {
 					}, nil
 				},
 				cfg: config.Proxy{
-					RoleAuthHeaderName: "role-header-944",
+					RoleAuthHeader: "role-header-944",
 				},
 			},
 			args: args{

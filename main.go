@@ -59,8 +59,38 @@ func parseParams() (*params, error) {
 }
 
 func run(cfg config.Config) []error {
-	if !cfg.EnableColorLogging {
-		glg.Get().DisableColor()
+	g := glg.Get().SetMode(glg.NONE)
+
+	switch cfg.Log.Level {
+	case "":
+		// disable logging
+	case "fatal":
+		g = g.SetLevelMode(glg.FATAL, glg.STD).
+			SetLevelMode(glg.ERR, glg.STD)
+	case "error":
+		g = g.SetLevelMode(glg.FATAL, glg.STD).
+			SetLevelMode(glg.ERR, glg.STD)
+	case "warn":
+		g = g.SetLevelMode(glg.FATAL, glg.STD).
+			SetLevelMode(glg.ERR, glg.STD).
+			SetLevelMode(glg.WARN, glg.STD)
+	case "info":
+		g = g.SetLevelMode(glg.FATAL, glg.STD).
+			SetLevelMode(glg.ERR, glg.STD).
+			SetLevelMode(glg.WARN, glg.STD).
+			SetLevelMode(glg.INFO, glg.STD)
+	case "debug":
+		g = g.SetLevelMode(glg.FATAL, glg.STD).
+			SetLevelMode(glg.ERR, glg.STD).
+			SetLevelMode(glg.WARN, glg.STD).
+			SetLevelMode(glg.INFO, glg.STD).
+			SetLevelMode(glg.DEBG, glg.STD)
+	default:
+		return []error{errors.New("invalid log level")}
+	}
+
+	if !cfg.Log.Color {
+		g.DisableColor()
 	}
 
 	daemon, err := usecase.New(cfg)

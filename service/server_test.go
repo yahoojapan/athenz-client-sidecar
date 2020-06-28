@@ -44,8 +44,10 @@ func TestNewServer(t *testing.T) {
 			args: args{
 				opts: []Option{
 					WithServerConfig(config.Server{
-						HealthzPath: "/healthz",
-						HealthzPort: 8080,
+						HealthCheck: config.HealthCheck{
+							Port:     8080,
+							Endpoint: "/healthz",
+						},
 					}),
 					WithServerHandler(func() http.Handler {
 						return nil
@@ -69,9 +71,11 @@ func TestNewServer(t *testing.T) {
 			args: args{
 				opts: []Option{
 					WithServerConfig(config.Server{
-						Port:        8081,
-						HealthzPath: "/healthz",
-						HealthzPort: 8080,
+						Port: 8081,
+						HealthCheck: config.HealthCheck{
+							Port:     8080,
+							Endpoint: "/healthz",
+						},
 					}),
 					WithServerHandler(func() http.Handler {
 						return nil
@@ -170,12 +174,14 @@ func Test_server_ListenAndServe(t *testing.T) {
 						return s
 					}(),
 					cfg: config.Server{
-						Port:        apiSrvPort,
-						HealthzPort: hcSrvPort,
+						Port: apiSrvPort,
 						TLS: config.TLS{
-							Enabled: true,
-							Cert:    certKey,
-							Key:     keyKey,
+							Enable:   true,
+							CertPath: certKey,
+							KeyPath:  keyKey,
+						},
+						HealthCheck: config.HealthCheck{
+							Port: hcSrvPort,
 						},
 					},
 				},
@@ -263,12 +269,14 @@ func Test_server_ListenAndServe(t *testing.T) {
 						return srv
 					}(),
 					cfg: config.Server{
-						Port:        apiSrvPort,
-						HealthzPort: hcSrvPort,
+						Port: apiSrvPort,
 						TLS: config.TLS{
-							Enabled: true,
-							Cert:    certKey,
-							Key:     keyKey,
+							Enable:   true,
+							CertPath: certKey,
+							KeyPath:  keyKey,
+						},
+						HealthCheck: config.HealthCheck{
+							Port: hcSrvPort,
 						},
 					},
 				},
@@ -356,12 +364,14 @@ func Test_server_ListenAndServe(t *testing.T) {
 						return srv
 					}(),
 					cfg: config.Server{
-						Port:        apiSrvPort,
-						HealthzPort: hcSrvPort,
+						Port: apiSrvPort,
 						TLS: config.TLS{
-							Enabled: true,
-							Cert:    certKey,
-							Key:     keyKey,
+							Enable:   true,
+							CertPath: certKey,
+							KeyPath:  keyKey,
+						},
+						HealthCheck: config.HealthCheck{
+							Port: hcSrvPort,
 						},
 					},
 				},
@@ -448,11 +458,13 @@ func Test_server_ListenAndServe(t *testing.T) {
 					}(),
 					cfg: config.Server{
 						Port: apiSrvPort,
-						// HealthzPort: hcSrvPort,
 						TLS: config.TLS{
-							Enabled: true,
-							Cert:    cert,
-							Key:     key,
+							Enable:   true,
+							CertPath: cert,
+							KeyPath:  key,
+						},
+						HealthCheck: config.HealthCheck{
+							// Port: hcSrvPort,
 						},
 					},
 				},
@@ -660,9 +672,9 @@ func Test_server_listenAndServeAPI(t *testing.T) {
 					cfg: config.Server{
 						Port: 9999,
 						TLS: config.TLS{
-							Enabled: true,
-							Cert:    certKey,
-							Key:     keyKey,
+							Enable:   true,
+							CertPath: certKey,
+							KeyPath:  keyKey,
 						},
 					},
 				},

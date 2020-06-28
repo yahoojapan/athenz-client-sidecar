@@ -79,7 +79,7 @@ User can also use the reverse proxy endpoint to proxy the request to another ser
 
 1. `GET /ntoken`
     - Get service token from Athenz
-1. `POST /access-token`
+1. `POST /accesstoken`
     - Get access token from Athenz
 1. `POST /roletoken`
     - Get role token from Athenz

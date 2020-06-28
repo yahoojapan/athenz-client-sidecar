@@ -23,7 +23,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 
-	ntokend "github.com/kpango/ntokend"
+	"github.com/kpango/ntokend"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
 	"github.com/yahoojapan/athenz-client-sidecar/model"
 	"github.com/yahoojapan/athenz-client-sidecar/service"
@@ -95,7 +95,7 @@ func (h *handler) NTokenProxy(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	r.Header.Set(h.cfg.PrincipalAuthHeaderName, tok)
+	r.Header.Set(h.cfg.PrincipalAuthHeader, tok)
 	h.proxy.ServeHTTP(w, r)
 	return nil
 }
@@ -147,7 +147,7 @@ func (h *handler) RoleTokenProxy(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	r.Header.Set(h.cfg.RoleAuthHeaderName, tok.Token)
+	r.Header.Set(h.cfg.RoleAuthHeader, tok.Token)
 	h.proxy.ServeHTTP(w, r)
 	return nil
 }

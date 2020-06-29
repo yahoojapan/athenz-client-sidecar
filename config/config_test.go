@@ -57,7 +57,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "Read valid config file",
 			args: args{
-				path: "./assets/valid_config.yaml",
+				path: "../test/data/valid_config.yaml",
 			},
 			want: &Config{
 				Version: "v2.0.0",
@@ -130,7 +130,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "Read invalid config file",
 			args: args{
-				path: "./assets/invalid_config.yaml",
+				path: "../test/data/invalid_config.yaml",
 			},
 			wantErr: fmt.Errorf("yaml: line "),
 		},

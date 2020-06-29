@@ -44,9 +44,9 @@ func TestNewTLSConfig(t *testing.T) {
 	}
 
 	defaultArgs := args{
-		CertKeyPath: "./assets/dummyServer.crt",
-		KeyKeyPath:  "./assets/dummyServer.key",
-		CAKeyPath:   "./assets/dummyCa.pem",
+		CertKeyPath: "../test/data/dummyServer.crt",
+		KeyKeyPath:  "../test/data/dummyServer.key",
+		CAKeyPath:   "../test/data/dummyCa.pem",
 		cfg: config.TLS{
 			CertPath: "_test_cert_",
 			KeyPath:  "_test_key_",
@@ -307,7 +307,7 @@ func TestNewTLSConfig(t *testing.T) {
 			name: "Request with invalid cert file",
 			args: defaultArgs,
 			beforeFunc: func(args args) {
-				args.CertKeyPath = "./assets/invalid_dummyServer.crt"
+				args.CertKeyPath = "../test/data/invalid_dummyServer.crt"
 				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertPath, "_"), "_"), args.CertKeyPath)
 				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyPath, "_"), "_"), args.KeyKeyPath)
 				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAPath, "_"), "_"), args.CAKeyPath)
@@ -323,7 +323,7 @@ func TestNewTLSConfig(t *testing.T) {
 			name: "Request with invalid key file",
 			args: defaultArgs,
 			beforeFunc: func(args args) {
-				args.KeyKeyPath = "./assets/invalid_dummyServer.key"
+				args.KeyKeyPath = "../test/data/invalid_dummyServer.key"
 				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertPath, "_"), "_"), args.CertKeyPath)
 				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyPath, "_"), "_"), args.KeyKeyPath)
 				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAPath, "_"), "_"), args.CAKeyPath)
@@ -339,7 +339,7 @@ func TestNewTLSConfig(t *testing.T) {
 			name: "Request with invalid CA file",
 			args: defaultArgs,
 			beforeFunc: func(args args) {
-				args.CAKeyPath = "./assets/invalid_dummyCa.pem"
+				args.CAKeyPath = "../test/data/invalid_dummyCa.pem"
 				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CertPath, "_"), "_"), args.CertKeyPath)
 				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.KeyPath, "_"), "_"), args.KeyKeyPath)
 				os.Setenv(strings.TrimPrefix(strings.TrimSuffix(args.cfg.CAPath, "_"), "_"), args.CAKeyPath)
@@ -405,7 +405,7 @@ func TestNewX509CertPool(t *testing.T) {
 		{
 			name: "Get CA cert pool",
 			args: args{
-				path: "./assets/dummyCa.pem",
+				path: "../test/data/dummyCa.pem",
 			},
 		},
 		{
@@ -425,7 +425,7 @@ func TestNewX509CertPool(t *testing.T) {
 		{
 			name: "Request with invalid CA file",
 			args: args{
-				path: "./assets/invalid_dummyCa.pem",
+				path: "../test/data/invalid_dummyCa.pem",
 			},
 			wantErr: fmt.Errorf("Certification Failed"),
 		},

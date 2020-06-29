@@ -198,9 +198,9 @@ func TestNewAccessService(t *testing.T) {
 				},
 			}
 			return test{
-				name:    "NewAccessService return error when refresh interval > token expiry",
+				name:    "NewAccessService return error when refresh period > token expiry",
 				args:    args,
-				wantErr: errors.Wrap(ErrInvalidSetting, "refresh interval > token expiry time"),
+				wantErr: errors.Wrap(ErrInvalidSetting, "refresh period > token expiry time"),
 			}
 		}(),
 		func() test {
@@ -255,7 +255,7 @@ func TestNewAccessService(t *testing.T) {
 				cfg: config.AccessToken{
 					AthenzURL:           "dummy",
 					PrincipalAuthHeader: "dummyAuthHeader",
-					AthenzCAPath:        "assets/dummyCa.pem",
+					AthenzCAPath:        "../test/data/dummyCa.pem",
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -305,7 +305,7 @@ func TestNewAccessService(t *testing.T) {
 				cfg: config.AccessToken{
 					AthenzURL:           "dummy",
 					PrincipalAuthHeader: "dummyAuthHeader",
-					AthenzCAPath:        "assets/invalid_dummyCa.pem",
+					AthenzCAPath:        "../test/data/invalid_dummyCa.pem",
 				},
 				token: func() (string, error) {
 					return "", nil

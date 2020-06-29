@@ -196,9 +196,9 @@ func TestNewRoleService(t *testing.T) {
 				},
 			}
 			return test{
-				name:    "NewRoleService return error when refresh interval > token expiry",
+				name:    "NewRoleService return error when refresh period > token expiry",
 				args:    args,
-				wantErr: errors.Wrap(ErrInvalidSetting, "refresh interval > token expiry time"),
+				wantErr: errors.Wrap(ErrInvalidSetting, "refresh period > token expiry time"),
 			}
 		}(),
 		func() test {
@@ -253,7 +253,7 @@ func TestNewRoleService(t *testing.T) {
 				cfg: config.RoleToken{
 					AthenzURL:           "dummy",
 					PrincipalAuthHeader: "dummyAuthHeader",
-					AthenzCAPath:        "assets/dummyCa.pem",
+					AthenzCAPath:        "../test/data/dummyCa.pem",
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -303,7 +303,7 @@ func TestNewRoleService(t *testing.T) {
 				cfg: config.RoleToken{
 					AthenzURL:           "dummy",
 					PrincipalAuthHeader: "dummyAuthHeader",
-					AthenzCAPath:        "assets/invalid_dummyCa.pem",
+					AthenzCAPath:        "../test/data/invalid_dummyCa.pem",
 				},
 				token: func() (string, error) {
 					return "", nil

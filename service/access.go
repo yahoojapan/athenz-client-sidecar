@@ -129,9 +129,9 @@ func NewAccessService(cfg config.AccessToken, token ntokend.TokenProvider) (Acce
 		}
 	}
 
-	// if user set the expiry time and refresh duration > expiry time then return error
+	// if user set the expiry time and refresh period > expiry time then return error
 	if exp != 0 && refreshPeriod > exp {
-		return nil, errors.Wrap(ErrInvalidSetting, "refresh interval > token expiry time")
+		return nil, errors.Wrap(ErrInvalidSetting, "refresh period > token expiry time")
 	}
 
 	errRetryMaxCount := defaultErrRetryMaxCount

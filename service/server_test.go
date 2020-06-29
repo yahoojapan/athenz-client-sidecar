@@ -140,9 +140,9 @@ func Test_server_ListenAndServe(t *testing.T) {
 			ctx, cancelFunc := context.WithCancel(context.Background())
 
 			keyKey := "_dummy_key_"
-			key := "./assets/dummyServer.key"
+			key := "../test/data/dummyServer.key"
 			certKey := "_dummy_cert_"
-			cert := "./assets/dummyServer.crt"
+			cert := "../test/data/dummyServer.crt"
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(200)
@@ -233,9 +233,9 @@ func Test_server_ListenAndServe(t *testing.T) {
 		}(),
 		func() test {
 			keyKey := "_dummy_key_"
-			key := "./assets/dummyServer.key"
+			key := "../test/data/dummyServer.key"
 			certKey := "_dummy_cert_"
-			cert := "./assets/dummyServer.crt"
+			cert := "../test/data/dummyServer.crt"
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(200)
@@ -328,9 +328,9 @@ func Test_server_ListenAndServe(t *testing.T) {
 
 		func() test {
 			keyKey := "_dummy_key_"
-			key := "./assets/dummyServer.key"
+			key := "../test/data/dummyServer.key"
 			certKey := "_dummy_cert_"
-			cert := "./assets/dummyServer.crt"
+			cert := "../test/data/dummyServer.crt"
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(200)
@@ -422,8 +422,8 @@ func Test_server_ListenAndServe(t *testing.T) {
 		}(),
 		func() test {
 			ctx, cancelFunc := context.WithCancel(context.Background())
-			key := "./assets/dummyServer.key"
-			cert := "./assets/dummyServer.crt"
+			key := "../test/data/dummyServer.key"
+			cert := "../test/data/dummyServer.crt"
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(200)
@@ -656,9 +656,9 @@ func Test_server_listenAndServeAPI(t *testing.T) {
 	tests := []test{
 		func() test {
 			keyKey := "_dummy_key_"
-			key := "./assets/dummyServer.key"
+			key := "../test/data/dummyServer.key"
 			certKey := "_dummy_cert_"
-			cert := "./assets/dummyServer.crt"
+			cert := "../test/data/dummyServer.crt"
 
 			return test{
 				name: "Test server startup",

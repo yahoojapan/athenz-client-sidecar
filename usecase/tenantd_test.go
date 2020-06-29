@@ -53,11 +53,11 @@ func TestNew(t *testing.T) {
 					NToken: config.NToken{},
 				},
 			},
-			wantErr: fmt.Errorf("invalid token refresh duration , time: invalid duration "),
+			wantErr: fmt.Errorf("invalid token refresh period , time: invalid duration "),
 		},
 		func() test {
 			keyKey := "_dummyKey_"
-			key := "./assets/dummyServer.key"
+			key := "../test/data/dummyServer.key"
 			cfg := config.Config{
 				NToken: config.NToken{
 					AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
@@ -85,7 +85,7 @@ func TestNew(t *testing.T) {
 		}(),
 		func() test {
 			keyKey := "_dummyKey_"
-			key := "./assets/dummyServer.key"
+			key := "../test/data/dummyServer.key"
 			cfg := config.Config{
 				NToken: config.NToken{
 					AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
@@ -121,7 +121,7 @@ func TestNew(t *testing.T) {
 		}(),
 		func() test {
 			keyKey := "_dummyKey_"
-			key := "./assets/dummyServer.key"
+			key := "../test/data/dummyServer.key"
 			cfg := config.Config{
 				NToken: config.NToken{
 					AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
@@ -156,7 +156,7 @@ func TestNew(t *testing.T) {
 		}(),
 		func() test {
 			keyKey := "_dummyKey_"
-			key := "./assets/dummyServer.key"
+			key := "../test/data/dummyServer.key"
 			cfg := config.Config{
 				NToken: config.NToken{
 					AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
@@ -240,10 +240,10 @@ func Test_clientd_Start(t *testing.T) {
 	tests := []test{
 		func() test {
 			keyKey := "_dummyKey_"
-			key := "./assets/dummyServer.key"
+			key := "../test/data/dummyServer.key"
 
 			certKey := "_dummy_cert_"
-			cert := "./assets/dummyServer.crt"
+			cert := "../test/data/dummyServer.crt"
 
 			cfg := config.Config{
 				NToken: config.NToken{
@@ -264,7 +264,7 @@ func Test_clientd_Start(t *testing.T) {
 					},
 				},
 				ServiceCert: config.ServiceCert{
-					AthenzCAPath:  "./assets/dummyCa.pem",
+					AthenzCAPath:  "../test/data/dummyCa.pem",
 					RefreshPeriod: "",
 				},
 			}
@@ -376,13 +376,13 @@ func Test_createNtokend(t *testing.T) {
 	}
 	tests := []test{
 		{
-			name: "refresh duration invalid",
+			name: "refresh period invalid",
 			args: args{
 				cfg: config.NToken{
 					RefreshPeriod: "dummy",
 				},
 			},
-			wantErr: fmt.Errorf("invalid token refresh duration %s, %v", "dummy", "time: invalid duration dummy"),
+			wantErr: fmt.Errorf("invalid token refresh period %s, %v", "dummy", "time: invalid duration dummy"),
 		},
 		{
 			name: "token expiry invalid",
@@ -420,7 +420,7 @@ func Test_createNtokend(t *testing.T) {
 		}(),
 		func() test {
 			keyKey := "_dummyKey_"
-			key := "./assets/invalid_dummyServer.key"
+			key := "../test/data/invalid_dummyServer.key"
 
 			return test{
 				name: "Test error private key not valid",
@@ -446,7 +446,7 @@ func Test_createNtokend(t *testing.T) {
 		}(),
 		func() test {
 			keyKey := "_dummyKey_"
-			key := "./assets/dummyServer.key"
+			key := "../test/data/dummyServer.key"
 			cfg := config.NToken{
 				AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
 				ServiceName:       strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),

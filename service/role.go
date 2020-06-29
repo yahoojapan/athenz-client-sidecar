@@ -94,7 +94,7 @@ const (
 	// defaultExpiry represents the default role token expiry. (0 implies unspecified.)
 	defaultExpiry = time.Duration(0)
 
-	// defaultRefreshPeriod represents the default token refresh interval.
+	// defaultRefreshPeriod represents the default token refresh period.
 	defaultRefreshPeriod = time.Minute * 30
 
 	// defaultErrRetryMaxCount represents the default maximum error retry count.
@@ -138,9 +138,9 @@ func NewRoleService(cfg config.RoleToken, token ntokend.TokenProvider) (RoleServ
 		}
 	}
 
-	// if user set the expiry time and refresh duration > expiry time then return error
+	// if user set the expiry time and refresh period > expiry time then return error
 	if exp != 0 && refreshPeriod > exp {
-		return nil, errors.Wrap(ErrInvalidSetting, "refresh interval > token expiry time")
+		return nil, errors.Wrap(ErrInvalidSetting, "refresh period > token expiry time")
 	}
 
 	errRetryMaxCount := defaultErrRetryMaxCount

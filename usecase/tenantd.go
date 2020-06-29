@@ -141,7 +141,7 @@ func (t *clientd) Start(ctx context.Context) chan []error {
 func createNtokend(cfg config.NToken) (ntokend.TokenService, error) {
 	dur, err := time.ParseDuration(cfg.RefreshPeriod)
 	if err != nil {
-		return nil, fmt.Errorf("invalid token refresh duration %s, %v", cfg.RefreshPeriod, err)
+		return nil, fmt.Errorf("invalid token refresh period %s, %v", cfg.RefreshPeriod, err)
 	}
 
 	exp, err := time.ParseDuration(cfg.Expiry)

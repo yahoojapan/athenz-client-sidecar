@@ -104,7 +104,7 @@ func Test_run(t *testing.T) {
 							RefreshPeriod:  "1h",
 							KeyVersion:     "keyId",
 							Expiry:         "1h",
-							PrivateKeyPath: "./usecase/assets/dummyServer.key",
+							PrivateKeyPath: "./test/data/dummyServer.key",
 						},
 						RoleToken: config.RoleToken{
 							RefreshPeriod: "dummy",
@@ -136,7 +136,7 @@ func Test_run(t *testing.T) {
 				},
 				checkFunc: func(cfg config.Config) error {
 					got := run(cfg)
-					want := "invalid token refresh duration dummy, time: invalid duration dummy"
+					want := "invalid token refresh period dummy, time: invalid duration dummy"
 					if len(got) != 1 {
 						return errors.New("len(got) != 1")
 					}

@@ -65,8 +65,7 @@ func run(cfg config.Config) []error {
 	case "":
 		// disable logging
 	case "fatal":
-		g = g.SetLevelMode(glg.FATAL, glg.STD).
-			SetLevelMode(glg.ERR, glg.STD)
+		g = g.SetLevelMode(glg.FATAL, glg.STD)
 	case "error":
 		g = g.SetLevelMode(glg.FATAL, glg.STD).
 			SetLevelMode(glg.ERR, glg.STD)
@@ -95,7 +94,7 @@ func run(cfg config.Config) []error {
 
 	daemon, err := usecase.New(cfg)
 	if err != nil {
-		return []error{err}
+		return []error{errors.Wrap(err, "usecase returned error")}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

@@ -2,8 +2,10 @@ package main
 
 import (
 	"os"
+	"reflect"
 	"testing"
 
+	"github.com/kpango/glg"
 	"github.com/pkg/errors"
 	"github.com/yahoojapan/athenz-client-sidecar/config"
 )
@@ -90,68 +92,341 @@ func Test_run(t *testing.T) {
 	type test struct {
 		name      string
 		args      args
-		checkFunc func(config.Config) error
+		checkFunc func([]error) error
 	}
 	tests := []test{
-		func() test {
-			return test{
-				name: "run error",
-				args: args{
-					cfg: config.Config{
-						NToken: config.NToken{
-							AthenzDomain:   "domain",
-							ServiceName:    "service",
-							RefreshPeriod:  "1h",
-							KeyVersion:     "keyId",
-							Expiry:         "1h",
-							PrivateKeyPath: "./test/data/dummyServer.key",
-						},
-						RoleToken: config.RoleToken{
-							RefreshPeriod: "dummy",
-						},
+
+		{
+			name: "run with log level, default",
+			args: args{
+				cfg: config.Config{
+					NToken: config.NToken{
+						RefreshPeriod: "invalid",
+					},
+					Log: config.Log{
+						Level: "",
 					},
 				},
-				checkFunc: func(cfg config.Config) error {
-					got := run(cfg)
-					want := "RefreshPeriod: time: invalid duration dummy: Invalid config"
-					if len(got) != 1 {
-						return errors.New("len(got) != 1")
-					}
-					if got[0].Error() != want {
-						return errors.Errorf("got: %v, want: %v", got[0], want)
-					}
-					return nil
-				},
-			}
-		}(),
-		func() test {
-			return test{
-				name: "daemon init error",
-				args: args{
-					cfg: config.Config{
-						NToken: config.NToken{
-							RefreshPeriod: "dummy",
-						},
+			},
+			checkFunc: func(gotErrs []error) error {
+				wantExitingErr := "usecase returned error: invalid token refresh period invalid, time: invalid duration invalid"
+				if gotErrs == nil || gotErrs[0].Error() != wantExitingErr {
+					return errors.Errorf("Unexpected exit: %v", gotErrs)
+				}
+
+				g := glg.Get()
+				got := []glg.MODE{
+					g.GetCurrentMode(glg.FATAL),
+					g.GetCurrentMode(glg.ERR),
+					g.GetCurrentMode(glg.WARN),
+					g.GetCurrentMode(glg.INFO),
+					g.GetCurrentMode(glg.DEBG),
+				}
+				want := []glg.MODE{
+					glg.NONE,
+					glg.NONE,
+					glg.NONE,
+					glg.NONE,
+					glg.NONE,
+				}
+				if !reflect.DeepEqual(got, want) {
+					return errors.Errorf("got: %v, want: %v", got, want)
+				}
+				return nil
+			},
+		},
+		{
+			name: "run with log level, fatal",
+			args: args{
+				cfg: config.Config{
+					NToken: config.NToken{
+						RefreshPeriod: "invalid",
+					},
+					Log: config.Log{
+						Level: "fatal",
 					},
 				},
-				checkFunc: func(cfg config.Config) error {
-					got := run(cfg)
-					want := "invalid token refresh period dummy, time: invalid duration dummy"
-					if len(got) != 1 {
-						return errors.New("len(got) != 1")
-					}
-					if got[0].Error() != want {
-						return errors.Errorf("got: %v, want: %v", got[0], want)
-					}
-					return nil
+			},
+			checkFunc: func(gotErrs []error) error {
+				wantExitingErr := "usecase returned error: invalid token refresh period invalid, time: invalid duration invalid"
+				if gotErrs == nil || gotErrs[0].Error() != wantExitingErr {
+					return errors.Errorf("Unexpected exit: %v", gotErrs)
+				}
+
+				g := glg.Get()
+				got := []glg.MODE{
+					g.GetCurrentMode(glg.FATAL),
+					g.GetCurrentMode(glg.ERR),
+					g.GetCurrentMode(glg.WARN),
+					g.GetCurrentMode(glg.INFO),
+					g.GetCurrentMode(glg.DEBG),
+				}
+				want := []glg.MODE{
+					glg.STD,
+					glg.NONE,
+					glg.NONE,
+					glg.NONE,
+					glg.NONE,
+				}
+				if !reflect.DeepEqual(got, want) {
+					return errors.Errorf("got: %v, want: %v", got, want)
+				}
+				return nil
+			},
+		},
+		{
+			name: "run with log level, error",
+			args: args{
+				cfg: config.Config{
+					NToken: config.NToken{
+						RefreshPeriod: "invalid",
+					},
+					Log: config.Log{
+						Level: "error",
+					},
 				},
-			}
-		}(),
+			},
+			checkFunc: func(gotErrs []error) error {
+				wantExitingErr := "usecase returned error: invalid token refresh period invalid, time: invalid duration invalid"
+				if gotErrs == nil || gotErrs[0].Error() != wantExitingErr {
+					return errors.Errorf("Unexpected exit: %v", gotErrs)
+				}
+
+				g := glg.Get()
+				got := []glg.MODE{
+					g.GetCurrentMode(glg.FATAL),
+					g.GetCurrentMode(glg.ERR),
+					g.GetCurrentMode(glg.WARN),
+					g.GetCurrentMode(glg.INFO),
+					g.GetCurrentMode(glg.DEBG),
+				}
+				want := []glg.MODE{
+					glg.STD,
+					glg.STD,
+					glg.NONE,
+					glg.NONE,
+					glg.NONE,
+				}
+				if !reflect.DeepEqual(got, want) {
+					return errors.Errorf("got: %v, want: %v", got, want)
+				}
+				return nil
+			},
+		},
+		{
+			name: "run with log level, warn",
+			args: args{
+				cfg: config.Config{
+					NToken: config.NToken{
+						RefreshPeriod: "invalid",
+					},
+					Log: config.Log{
+						Level: "warn",
+					},
+				},
+			},
+			checkFunc: func(gotErrs []error) error {
+				wantExitingErr := "usecase returned error: invalid token refresh period invalid, time: invalid duration invalid"
+				if gotErrs == nil || gotErrs[0].Error() != wantExitingErr {
+					return errors.Errorf("Unexpected exit: %v", gotErrs)
+				}
+
+				g := glg.Get()
+				got := []glg.MODE{
+					g.GetCurrentMode(glg.FATAL),
+					g.GetCurrentMode(glg.ERR),
+					g.GetCurrentMode(glg.WARN),
+					g.GetCurrentMode(glg.INFO),
+					g.GetCurrentMode(glg.DEBG),
+				}
+				want := []glg.MODE{
+					glg.STD,
+					glg.STD,
+					glg.STD,
+					glg.NONE,
+					glg.NONE,
+				}
+				if !reflect.DeepEqual(got, want) {
+					return errors.Errorf("got: %v, want: %v", got, want)
+				}
+				return nil
+			},
+		},
+		{
+			name: "run with log level, info",
+			args: args{
+				cfg: config.Config{
+					NToken: config.NToken{
+						RefreshPeriod: "invalid",
+					},
+					Log: config.Log{
+						Level: "info",
+					},
+				},
+			},
+			checkFunc: func(gotErrs []error) error {
+				wantExitingErr := "usecase returned error: invalid token refresh period invalid, time: invalid duration invalid"
+				if gotErrs == nil || gotErrs[0].Error() != wantExitingErr {
+					return errors.Errorf("Unexpected exit: %v", gotErrs)
+				}
+
+				g := glg.Get()
+				got := []glg.MODE{
+					g.GetCurrentMode(glg.FATAL),
+					g.GetCurrentMode(glg.ERR),
+					g.GetCurrentMode(glg.WARN),
+					g.GetCurrentMode(glg.INFO),
+					g.GetCurrentMode(glg.DEBG),
+				}
+				want := []glg.MODE{
+					glg.STD,
+					glg.STD,
+					glg.STD,
+					glg.STD,
+					glg.NONE,
+				}
+				if !reflect.DeepEqual(got, want) {
+					return errors.Errorf("got: %v, want: %v", got, want)
+				}
+				return nil
+			},
+		},
+		{
+			name: "run with log level, debug",
+			args: args{
+				cfg: config.Config{
+					NToken: config.NToken{
+						RefreshPeriod: "invalid",
+					},
+					Log: config.Log{
+						Level: "debug",
+					},
+				},
+			},
+			checkFunc: func(gotErrs []error) error {
+				wantExitingErr := "usecase returned error: invalid token refresh period invalid, time: invalid duration invalid"
+				if gotErrs == nil || gotErrs[0].Error() != wantExitingErr {
+					return errors.Errorf("Unexpected exit: %v", gotErrs)
+				}
+
+				g := glg.Get()
+				got := []glg.MODE{
+					g.GetCurrentMode(glg.FATAL),
+					g.GetCurrentMode(glg.ERR),
+					g.GetCurrentMode(glg.WARN),
+					g.GetCurrentMode(glg.INFO),
+					g.GetCurrentMode(glg.DEBG),
+				}
+				want := []glg.MODE{
+					glg.STD,
+					glg.STD,
+					glg.STD,
+					glg.STD,
+					glg.STD,
+				}
+				if !reflect.DeepEqual(got, want) {
+					return errors.Errorf("got: %v, want: %v", got, want)
+				}
+				return nil
+			},
+		},
+		{
+			name: "run with log color",
+			args: args{
+				cfg: config.Config{
+					NToken: config.NToken{
+						RefreshPeriod: "invalid",
+					},
+					Log: config.Log{
+						Level: "info",
+						Color: true,
+					},
+				},
+			},
+			checkFunc: func(gotErrs []error) error {
+				wantExitingErr := "usecase returned error: invalid token refresh period invalid, time: invalid duration invalid"
+				if gotErrs == nil || gotErrs[0].Error() != wantExitingErr {
+					return errors.Errorf("Unexpected exit: %v", gotErrs)
+				}
+
+				// glg.logger.isColor is private, cannot test
+				return nil
+			},
+		},
+		{
+			name: "invalid log level",
+			args: args{
+				cfg: config.Config{
+					Log: config.Log{
+						Level: "invalid",
+					},
+				},
+			},
+			checkFunc: func(gotErrs []error) error {
+				want := "invalid log level"
+				if len(gotErrs) != 1 {
+					return errors.New("len(gotErrs) != 1")
+				}
+				if gotErrs[0].Error() != want {
+					return errors.Errorf("gotErrs: %v, want: %v", gotErrs[0], want)
+				}
+				return nil
+			},
+		},
+		{
+			name: "run error",
+			args: args{
+				cfg: config.Config{
+					NToken: config.NToken{
+						AthenzDomain:   "domain",
+						ServiceName:    "service",
+						RefreshPeriod:  "1h",
+						KeyVersion:     "keyId",
+						Expiry:         "1h",
+						PrivateKeyPath: "./test/data/dummyServer.key",
+					},
+					RoleToken: config.RoleToken{
+						RefreshPeriod: "dummy",
+					},
+				},
+			},
+			checkFunc: func(gotErrs []error) error {
+				want := "usecase returned error: RefreshPeriod: time: invalid duration dummy: Invalid config"
+				if len(gotErrs) != 1 {
+					return errors.New("len(gotErrs) != 1")
+				}
+				if gotErrs[0].Error() != want {
+					return errors.Errorf("gotErrs: %v, want: %v", gotErrs[0], want)
+				}
+				return nil
+			},
+		},
+		{
+			name: "daemon init error",
+			args: args{
+				cfg: config.Config{
+					NToken: config.NToken{
+						RefreshPeriod: "dummy",
+					},
+				},
+			},
+			checkFunc: func(gotErrs []error) error {
+				want := "usecase returned error: invalid token refresh period dummy, time: invalid duration dummy"
+				if len(gotErrs) != 1 {
+					return errors.New("len(gotErrs) != 1")
+				}
+				if gotErrs[0].Error() != want {
+					return errors.Errorf("gotErrs: %v, want: %v", gotErrs[0], want)
+				}
+				return nil
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.checkFunc(tt.args.cfg); err != nil {
-				t.Errorf("run() error = %v", err)
+			gotErrs := run(tt.args.cfg)
+			if err := tt.checkFunc(gotErrs); err != nil {
+				t.Errorf("run() fails: %v", err)
 			}
 		})
 	}

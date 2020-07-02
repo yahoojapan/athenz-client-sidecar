@@ -791,7 +791,12 @@ func Test_roleService_getRoleToken(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.afterFunc != nil {
-				defer tt.afterFunc()
+				defer func() {
+					err := tt.afterFunc()
+					if err != nil {
+						t.Errorf("roleService.getRoleToken() afterFunc error: %v", err)
+					}
+				}()
 			}
 
 			r := &roleService{
@@ -1131,8 +1136,14 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.afterFunc != nil {
-				defer tt.afterFunc()
+				defer func() {
+					err := tt.afterFunc()
+					if err != nil {
+						t.Errorf("roleService.RefreshRoleTokenCache() afterFunc error: %v", err)
+					}
+				}()
 			}
+
 			r := &roleService{
 				cfg:                   tt.fields.cfg,
 				token:                 tt.fields.token,
@@ -1362,7 +1373,15 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			defer tt.afterFunc()
+			if tt.afterFunc != nil {
+				defer func() {
+					err := tt.afterFunc()
+					if err != nil {
+						t.Errorf("roleService.updateRoleTokenWithRetry() afterFunc error: %v", err)
+					}
+				}()
+			}
+
 			r := &roleService{
 				cfg:                   tt.fields.cfg,
 				token:                 tt.fields.token,
@@ -1693,8 +1712,14 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 	}
 	for _, tt := range tests {
 		if tt.afterFunc != nil {
-			defer tt.afterFunc()
+			defer func() {
+				err := tt.afterFunc()
+				if err != nil {
+					t.Errorf("roleService.updateRoleToken() afterFunc error: %v", err)
+				}
+			}()
 		}
+
 		t.Run(tt.name, func(t *testing.T) {
 			r := &roleService{
 				cfg:                   tt.fields.cfg,

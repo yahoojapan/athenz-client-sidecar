@@ -501,11 +501,17 @@ func Test_server_ListenAndServe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.afterFunc != nil {
-				defer tt.afterFunc()
+				defer func() {
+					err := tt.afterFunc()
+					if err != nil {
+						t.Errorf("server.listenAndServe() afterFunc error: %v", err)
+					}
+				}()
 			}
 			if tt.beforeFunc != nil {
 				if err := tt.beforeFunc(); err != nil {
 					t.Errorf("before func error: %v", err)
+					return
 				}
 			}
 
@@ -693,7 +699,10 @@ func Test_server_listenAndServeAPI(t *testing.T) {
 					// listenAndServeAPI function is blocking, so we need to set timer to shutdown the process
 					go func() {
 						time.Sleep(time.Millisecond * 100)
-						s.srv.Shutdown(context.Background())
+						err := s.srv.Shutdown(context.Background())
+						if err != nil {
+							panic(err)
+						}
 					}()
 
 					got := s.listenAndServeAPI()

@@ -91,7 +91,7 @@ func NewServer(opts ...Option) Server {
 	}
 	s.srv.SetKeepAlivesEnabled(true)
 
-	if s.healthzSrvEnable() {
+	if s.hcSrvEnable() {
 		s.hcsrv = &http.Server{
 			Addr:    fmt.Sprintf(":%d", s.cfg.HealthCheck.Port),
 			Handler: createHealthCheckServiceMux(s.cfg.HealthCheck.Endpoint),
@@ -141,7 +141,7 @@ func (s *server) ListenAndServe(ctx context.Context) chan []error {
 		s.mu.Unlock()
 	}()
 
-	if s.healthzSrvEnable() {
+	if s.hcSrvEnable() {
 		wg.Add(1)
 		hech = make(chan error, 1)
 		go func() {
@@ -274,6 +274,6 @@ func (s *server) listenAndServeAPI() error {
 	return s.srv.ListenAndServeTLS("", "")
 }
 
-func (s *server) healthzSrvEnable() bool {
+func (s *server) hcSrvEnable() bool {
 	return s.cfg.HealthCheck.Port > 0
 }

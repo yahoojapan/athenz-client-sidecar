@@ -561,12 +561,11 @@ func Test_server_createHealthCheckServiceMux(t *testing.T) {
 			if tt.afterFunc != nil {
 				defer func() {
 					if err := tt.afterFunc(); err != nil {
-						t.Errorf("%v", err)
+						t.Errorf("afterFunc error, error: %v", err)
 						return
 					}
 				}()
 			}
-
 			if tt.beforeFunc != nil {
 				err := tt.beforeFunc()
 				if err != nil {
@@ -699,8 +698,7 @@ func Test_server_listenAndServeAPI(t *testing.T) {
 					// listenAndServeAPI function is blocking, so we need to set timer to shutdown the process
 					go func() {
 						time.Sleep(time.Millisecond * 100)
-						err := s.srv.Shutdown(context.Background())
-						if err != nil {
+						if err := s.srv.Shutdown(context.Background()); err != nil {
 							panic(err)
 						}
 					}()

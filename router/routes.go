@@ -19,8 +19,8 @@ package router
 import (
 	"net/http"
 
-	"github.com/yahoojapan/athenz-client-sidecar/config"
-	"github.com/yahoojapan/athenz-client-sidecar/handler"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/handler"
 )
 
 // Route manages the routing for sidecar.
@@ -68,13 +68,13 @@ func NewRoutes(cfg config.Config, h handler.Handler) []Route {
 		},
 	}
 
-	if cfg.Access.Enable {
+	if cfg.AccessToken.Enable {
 		r = append(r, Route{
 			"Access Token Handler",
 			[]string{
 				http.MethodPost,
 			},
-			"/access-token",
+			"/accesstoken",
 			h.AccessToken,
 		})
 	}

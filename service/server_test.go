@@ -26,7 +26,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yahoojapan/athenz-client-sidecar/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
 )
 
 func TestNewServer(t *testing.T) {
@@ -44,8 +44,10 @@ func TestNewServer(t *testing.T) {
 			args: args{
 				opts: []Option{
 					WithServerConfig(config.Server{
-						HealthzPath: "/healthz",
-						HealthzPort: 8080,
+						HealthCheck: config.HealthCheck{
+							Port:     8080,
+							Endpoint: "/healthz",
+						},
 					}),
 					WithServerHandler(func() http.Handler {
 						return nil
@@ -69,9 +71,11 @@ func TestNewServer(t *testing.T) {
 			args: args{
 				opts: []Option{
 					WithServerConfig(config.Server{
-						Port:        8081,
-						HealthzPath: "/healthz",
-						HealthzPort: 8080,
+						Port: 8081,
+						HealthCheck: config.HealthCheck{
+							Port:     8080,
+							Endpoint: "/healthz",
+						},
 					}),
 					WithServerHandler(func() http.Handler {
 						return nil
@@ -136,9 +140,9 @@ func Test_server_ListenAndServe(t *testing.T) {
 			ctx, cancelFunc := context.WithCancel(context.Background())
 
 			keyKey := "_dummy_key_"
-			key := "./assets/dummyServer.key"
+			key := "../test/data/dummyServer.key"
 			certKey := "_dummy_cert_"
-			cert := "./assets/dummyServer.crt"
+			cert := "../test/data/dummyServer.crt"
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(200)
@@ -170,12 +174,14 @@ func Test_server_ListenAndServe(t *testing.T) {
 						return s
 					}(),
 					cfg: config.Server{
-						Port:        apiSrvPort,
-						HealthzPort: hcSrvPort,
+						Port: apiSrvPort,
 						TLS: config.TLS{
-							Enabled: true,
-							Cert:    certKey,
-							Key:     keyKey,
+							Enable:   true,
+							CertPath: certKey,
+							KeyPath:  keyKey,
+						},
+						HealthCheck: config.HealthCheck{
+							Port: hcSrvPort,
 						},
 					},
 				},
@@ -227,9 +233,9 @@ func Test_server_ListenAndServe(t *testing.T) {
 		}(),
 		func() test {
 			keyKey := "_dummy_key_"
-			key := "./assets/dummyServer.key"
+			key := "../test/data/dummyServer.key"
 			certKey := "_dummy_cert_"
-			cert := "./assets/dummyServer.crt"
+			cert := "../test/data/dummyServer.crt"
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(200)
@@ -263,12 +269,14 @@ func Test_server_ListenAndServe(t *testing.T) {
 						return srv
 					}(),
 					cfg: config.Server{
-						Port:        apiSrvPort,
-						HealthzPort: hcSrvPort,
+						Port: apiSrvPort,
 						TLS: config.TLS{
-							Enabled: true,
-							Cert:    certKey,
-							Key:     keyKey,
+							Enable:   true,
+							CertPath: certKey,
+							KeyPath:  keyKey,
+						},
+						HealthCheck: config.HealthCheck{
+							Port: hcSrvPort,
 						},
 					},
 				},
@@ -320,9 +328,9 @@ func Test_server_ListenAndServe(t *testing.T) {
 
 		func() test {
 			keyKey := "_dummy_key_"
-			key := "./assets/dummyServer.key"
+			key := "../test/data/dummyServer.key"
 			certKey := "_dummy_cert_"
-			cert := "./assets/dummyServer.crt"
+			cert := "../test/data/dummyServer.crt"
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(200)
@@ -356,12 +364,14 @@ func Test_server_ListenAndServe(t *testing.T) {
 						return srv
 					}(),
 					cfg: config.Server{
-						Port:        apiSrvPort,
-						HealthzPort: hcSrvPort,
+						Port: apiSrvPort,
 						TLS: config.TLS{
-							Enabled: true,
-							Cert:    certKey,
-							Key:     keyKey,
+							Enable:   true,
+							CertPath: certKey,
+							KeyPath:  keyKey,
+						},
+						HealthCheck: config.HealthCheck{
+							Port: hcSrvPort,
 						},
 					},
 				},
@@ -412,8 +422,8 @@ func Test_server_ListenAndServe(t *testing.T) {
 		}(),
 		func() test {
 			ctx, cancelFunc := context.WithCancel(context.Background())
-			key := "./assets/dummyServer.key"
-			cert := "./assets/dummyServer.crt"
+			key := "../test/data/dummyServer.key"
+			cert := "../test/data/dummyServer.crt"
 
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(200)
@@ -448,11 +458,13 @@ func Test_server_ListenAndServe(t *testing.T) {
 					}(),
 					cfg: config.Server{
 						Port: apiSrvPort,
-						// HealthzPort: hcSrvPort,
 						TLS: config.TLS{
-							Enabled: true,
-							Cert:    cert,
-							Key:     key,
+							Enable:   true,
+							CertPath: cert,
+							KeyPath:  key,
+						},
+						HealthCheck: config.HealthCheck{
+							// Port: hcSrvPort,
 						},
 					},
 				},
@@ -489,11 +501,17 @@ func Test_server_ListenAndServe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.afterFunc != nil {
-				defer tt.afterFunc()
+				defer func() {
+					err := tt.afterFunc()
+					if err != nil {
+						t.Errorf("server.listenAndServe() afterFunc error: %v", err)
+					}
+				}()
 			}
 			if tt.beforeFunc != nil {
 				if err := tt.beforeFunc(); err != nil {
 					t.Errorf("before func error: %v", err)
+					return
 				}
 			}
 
@@ -543,12 +561,11 @@ func Test_server_createHealthCheckServiceMux(t *testing.T) {
 			if tt.afterFunc != nil {
 				defer func() {
 					if err := tt.afterFunc(); err != nil {
-						t.Errorf("%v", err)
+						t.Errorf("afterFunc error, error: %v", err)
 						return
 					}
 				}()
 			}
-
 			if tt.beforeFunc != nil {
 				err := tt.beforeFunc()
 				if err != nil {
@@ -644,9 +661,9 @@ func Test_server_listenAndServeAPI(t *testing.T) {
 	tests := []test{
 		func() test {
 			keyKey := "_dummy_key_"
-			key := "./assets/dummyServer.key"
+			key := "../test/data/dummyServer.key"
 			certKey := "_dummy_cert_"
-			cert := "./assets/dummyServer.crt"
+			cert := "../test/data/dummyServer.crt"
 
 			return test{
 				name: "Test server startup",
@@ -660,9 +677,9 @@ func Test_server_listenAndServeAPI(t *testing.T) {
 					cfg: config.Server{
 						Port: 9999,
 						TLS: config.TLS{
-							Enabled: true,
-							Cert:    certKey,
-							Key:     keyKey,
+							Enable:   true,
+							CertPath: certKey,
+							KeyPath:  keyKey,
 						},
 					},
 				},
@@ -681,7 +698,9 @@ func Test_server_listenAndServeAPI(t *testing.T) {
 					// listenAndServeAPI function is blocking, so we need to set timer to shutdown the process
 					go func() {
 						time.Sleep(time.Millisecond * 100)
-						s.srv.Shutdown(context.Background())
+						if err := s.srv.Shutdown(context.Background()); err != nil {
+							panic(err)
+						}
 					}()
 
 					got := s.listenAndServeAPI()

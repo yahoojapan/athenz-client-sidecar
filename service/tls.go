@@ -22,7 +22,7 @@ import (
 	"io/ioutil"
 
 	"github.com/pkg/errors"
-	"github.com/yahoojapan/athenz-client-sidecar/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
 )
 
 var (
@@ -47,9 +47,9 @@ func NewTLSConfig(cfg config.TLS) (*tls.Config, error) {
 		ClientAuth:             tls.NoClientCert,
 	}
 
-	cert := config.GetActualValue(cfg.Cert)
-	key := config.GetActualValue(cfg.Key)
-	ca := config.GetActualValue(cfg.CA)
+	cert := config.GetActualValue(cfg.CertPath)
+	key := config.GetActualValue(cfg.KeyPath)
+	ca := config.GetActualValue(cfg.CAPath)
 
 	if cert == "" || key == "" {
 		return nil, ErrTLSCertOrKeyNotFound
@@ -71,7 +71,6 @@ func NewTLSConfig(cfg config.TLS) (*tls.Config, error) {
 		t.ClientAuth = tls.RequireAndVerifyClientCert
 	}
 
-	t.BuildNameToCertificate()
 	return t, nil
 }
 

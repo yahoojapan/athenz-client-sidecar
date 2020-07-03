@@ -39,19 +39,19 @@ import (
 	"github.com/kpango/glg"
 	"github.com/kpango/ntokend"
 	"github.com/yahoo/athenz/clients/go/zts"
-	"github.com/yahoojapan/athenz-client-sidecar/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
 	"golang.org/x/sync/singleflight"
 )
 
 var (
-	// defaultSvcCertRefreshDuration represents the default time to refresh the goroutine.
-	defaultSvcCertRefreshDuration = time.Hour * 24
+	// defaultSvcCertRefreshPeriod represents the default time to refresh the goroutine.
+	defaultSvcCertRefreshPeriod = time.Hour * 24
 
-	// defaultSvcCertExpireMargin represents the default vaule of ExpireMargin.
-	defaultSvcCertExpireMargin = time.Hour * 24 * 10
+	// defaultSvcCertExpiryMargin represents the default value of ExpiryMargin.
+	defaultSvcCertExpiryMargin = time.Hour * 24 * 10
 
-	// defaultSvcCertExpiration represents the default vaule of Expiration
-	defaultSvcCertExpiration int32
+	// defaultSvcCertExpiry represents the default value of Expiry
+	defaultSvcCertExpiry int32
 
 	// domainReg is used to parse the Athenz domain which is contained in config
 	domainReg = regexp.MustCompile(`^([a-zA-Z0-9_][a-zA-Z0-9_-]*\.)*[a-zA-Z0-9_][a-zA-Z0-9_-]*$`)
@@ -112,26 +112,26 @@ type SvcCertProvider func() ([]byte, error)
 
 // NewSvcCertService returns a SvcCertService to update and get the svccert from Athenz.
 func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertService, error) {
-	dur, err := time.ParseDuration(cfg.ServiceCert.RefreshDuration)
+	dur, err := time.ParseDuration(cfg.ServiceCert.RefreshPeriod)
 	if err != nil {
-		glg.Warnf("Failed to parse configuration value of refresh_duration, err: %s. Using default value: %d", err.Error(), defaultSvcCertRefreshDuration)
-		dur = defaultSvcCertRefreshDuration
+		glg.Warnf("Failed to parse configuration value of refreshPeriod, err: %s. Using default value: %d", err.Error(), defaultSvcCertRefreshPeriod)
+		dur = defaultSvcCertRefreshPeriod
 	}
 
-	beforeDur, err := time.ParseDuration(cfg.ServiceCert.ExpireMargin)
+	beforeDur, err := time.ParseDuration(cfg.ServiceCert.ExpiryMargin)
 	if err != nil {
-		glg.Warnf("Failed to parse configuration value of expire_margin, err: %s. Using default value: %d", err.Error(), defaultSvcCertExpireMargin)
-		beforeDur = defaultSvcCertExpireMargin
+		glg.Warnf("Failed to parse configuration value of expiryMargin, err: %s. Using default value: %d", err.Error(), defaultSvcCertExpiryMargin)
+		beforeDur = defaultSvcCertExpiryMargin
 	}
 
-	// NOTE: The limitation for this expiration is not defined,
+	// NOTE: The limitation for this expiry is not defined,
 	// but it returns error if user sets the exceeded value by int64 (expect less than "1<<63 - 1").
-	// The maximum 'cfg.ServiceCert.Expiration' is approximately 290 years.
-	expireDur, err := time.ParseDuration(cfg.ServiceCert.Expiration)
+	// The maximum 'cfg.ServiceCert.Expiry' is approximately 290 years.
+	expireDur, err := time.ParseDuration(cfg.ServiceCert.Expiry)
 	var expireInt int32
 	if err != nil {
-		glg.Warnf("Failed to parse configuration value of expiration, err: %s. Using default value: %d", err.Error(), defaultSvcCertExpiration)
-		expireInt = defaultSvcCertExpiration
+		glg.Warnf("Failed to parse configuration value of expiry, err: %s. Using default value: %d", err.Error(), defaultSvcCertExpiry)
+		expireInt = defaultSvcCertExpiry
 	} else {
 		expireInt = int32(expireDur.Minutes())
 	}
@@ -164,9 +164,9 @@ func isValidDomain(domain string) bool {
 	return domainReg.MatchString(domain)
 }
 
-func setup(cfg config.Config, expiration int32) (*requestTemplate, *zts.ZTSClient, error) {
+func setup(cfg config.Config, expiry int32) (*requestTemplate, *zts.ZTSClient, error) {
 	// load private key
-	keyBytes, err := ioutil.ReadFile(cfg.Token.PrivateKeyPath)
+	keyBytes, err := ioutil.ReadFile(cfg.NToken.PrivateKeyPath)
 	if err != nil {
 		return nil, nil, ErrLoadPrivateKey
 	}
@@ -182,13 +182,13 @@ func setup(cfg config.Config, expiration int32) (*requestTemplate, *zts.ZTSClien
 	// it is used, not the CA. So, we will always put the Athenz name in the CN
 	// (it is *not* a DNS domain name), and put the host name into the SAN.
 
-	if !isValidDomain(cfg.Token.AthenzDomain) {
+	if !isValidDomain(cfg.NToken.AthenzDomain) {
 		return nil, nil, ErrInvalidParameter
 	}
 
-	hyphenDomain := strings.Replace(cfg.Token.AthenzDomain, ".", "-", -1)
-	host := fmt.Sprintf("%s.%s.%s", cfg.Token.ServiceName, hyphenDomain, cfg.ServiceCert.DNSSuffix)
-	commonName := fmt.Sprintf("%s.%s", cfg.Token.AthenzDomain, cfg.Token.ServiceName)
+	hyphenDomain := strings.Replace(cfg.NToken.AthenzDomain, ".", "-", -1)
+	host := fmt.Sprintf("%s.%s.%s", cfg.NToken.ServiceName, hyphenDomain, cfg.ServiceCert.DNSSuffix)
+	commonName := fmt.Sprintf("%s.%s", cfg.NToken.AthenzDomain, cfg.NToken.ServiceName)
 
 	subj := pkix.Name{
 		CommonName:         commonName,
@@ -200,7 +200,7 @@ func setup(cfg config.Config, expiration int32) (*requestTemplate, *zts.ZTSClien
 
 	uri := ""
 	if cfg.ServiceCert.Spiffe {
-		uri = fmt.Sprintf("spiffe://%s/sa/%s", cfg.Token.AthenzDomain, cfg.Token.ServiceName)
+		uri = fmt.Sprintf("spiffe://%s/sa/%s", cfg.NToken.AthenzDomain, cfg.NToken.ServiceName)
 	}
 
 	csrData, err := generateCSR(pkSigner, subj, host, uri)
@@ -209,7 +209,7 @@ func setup(cfg config.Config, expiration int32) (*requestTemplate, *zts.ZTSClien
 	}
 
 	// if we're given a certificate then we'll use that otherwise
-	// we're going to generate a ntoken for our request unless
+	// we're going to generate a N-token for our request unless
 	// we're using copper argos which only uses tls and the attestation
 	// data contains the authentication details
 
@@ -222,13 +222,13 @@ func setup(cfg config.Config, expiration int32) (*requestTemplate, *zts.ZTSClien
 	// copper argos model to request the certificate
 	req := &zts.InstanceRefreshRequest{
 		Csr:        csrData,
-		ExpiryTime: &expiration,
+		ExpiryTime: &expiry,
 	}
 
 	return &requestTemplate{
 		req:          req,
-		compoundName: zts.CompoundName(cfg.Token.AthenzDomain),
-		simpleName:   zts.SimpleName(cfg.Token.ServiceName),
+		compoundName: zts.CompoundName(cfg.NToken.AthenzDomain),
+		simpleName:   zts.SimpleName(cfg.NToken.ServiceName),
 	}, client, nil
 }
 
@@ -299,10 +299,11 @@ func ztsClient(cfg config.ServiceCert) (*zts.ZTSClient, error) {
 		ResponseHeaderTimeout: 30 * time.Second,
 	}
 
-	if cfg.AthenzRootCA != "" {
+	// TODO: refactor use NewX509CertPool() in tls.go
+	if cfg.AthenzCAPath != "" {
 		config := &tls.Config{}
 		certPool := x509.NewCertPool()
-		caCert, err := ioutil.ReadFile(cfg.AthenzRootCA)
+		caCert, err := ioutil.ReadFile(cfg.AthenzCAPath)
 		if err != nil {
 			return nil, err
 		}
@@ -375,12 +376,12 @@ func (s *svcCertService) getSvcCert() ([]byte, error) {
 
 func (s *svcCertService) RefreshSvcCert() ([]byte, error) {
 	svccert, err, _ := s.group.Do("", func() (interface{}, error) {
-		ntoken, err := s.token()
+		nToken, err := s.token()
 		if err != nil {
 			return nil, err
 		}
 
-		s.client.AddCredentials(s.cfg.PrincipalAuthHeaderName, ntoken)
+		s.client.AddCredentials(s.cfg.PrincipalAuthHeader, nToken)
 
 		// request a tls certificate for this service
 		identity, err := s.client.PostInstanceRefreshRequest(
@@ -409,7 +410,7 @@ func (s *svcCertService) RefreshSvcCert() ([]byte, error) {
 			cert = []byte(identity.Certificate)
 		}
 
-		// update cert cache and expiration
+		// update cert cache and expiry
 		cache := certCache{
 			cert: cert,
 			exp:  certificate.NotAfter.Add(-s.expireMargin),

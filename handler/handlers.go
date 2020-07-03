@@ -23,17 +23,17 @@ import (
 	"net/http"
 	"net/http/httputil"
 
-	ntokend "github.com/kpango/ntokend"
-	"github.com/yahoojapan/athenz-client-sidecar/config"
-	"github.com/yahoojapan/athenz-client-sidecar/model"
-	"github.com/yahoojapan/athenz-client-sidecar/service"
+	"github.com/kpango/ntokend"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/model"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/service"
 )
 
 // Handler for handling a set of HTTP requests.
 type Handler interface {
-	// NToken handles get n-token requests.
+	// NToken handles get N-token requests.
 	NToken(http.ResponseWriter, *http.Request) error
-	// NTokenProxy handles proxy requests that require a n-token.
+	// NTokenProxy handles proxy requests that require a N-token.
 	NTokenProxy(http.ResponseWriter, *http.Request) error
 	// AccessToken handles post access token requests.
 	AccessToken(http.ResponseWriter, *http.Request) error
@@ -72,7 +72,7 @@ func New(cfg config.Proxy, bp httputil.BufferPool, token ntokend.TokenProvider, 
 	}
 }
 
-// NToken handles n-token requests and responses the corresponding n-token. Depends on token service.
+// NToken handles N-token requests and responses the corresponding N-token. Depends on token service.
 func (h *handler) NToken(w http.ResponseWriter, r *http.Request) error {
 	defer flushAndClose(r.Body)
 
@@ -87,7 +87,7 @@ func (h *handler) NToken(w http.ResponseWriter, r *http.Request) error {
 	})
 }
 
-// NTokenProxy attaches n-token to HTTP requests and proxies it. Depends on token service.
+// NTokenProxy attaches N-token to HTTP requests and proxies it. Depends on token service.
 func (h *handler) NTokenProxy(w http.ResponseWriter, r *http.Request) error {
 	defer flushAndClose(r.Body)
 
@@ -95,7 +95,7 @@ func (h *handler) NTokenProxy(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	r.Header.Set(h.cfg.PrincipalAuthHeaderName, tok)
+	r.Header.Set(h.cfg.PrincipalAuthHeader, tok)
 	h.proxy.ServeHTTP(w, r)
 	return nil
 }
@@ -147,7 +147,7 @@ func (h *handler) RoleTokenProxy(w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return err
 	}
-	r.Header.Set(h.cfg.RoleAuthHeaderName, tok.Token)
+	r.Header.Set(h.cfg.RoleAuthHeader, tok.Token)
 	h.proxy.ServeHTTP(w, r)
 	return nil
 }

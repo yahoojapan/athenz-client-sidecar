@@ -35,22 +35,22 @@ import (
 	"github.com/kpango/fastime"
 	"github.com/kpango/gache"
 	"github.com/kpango/glg"
-	ntokend "github.com/kpango/ntokend"
+	"github.com/kpango/ntokend"
 	"github.com/pkg/errors"
-	"github.com/yahoojapan/athenz-client-sidecar/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
 	"golang.org/x/sync/singleflight"
 )
 
-// RoleService represent an interface to automatically refresh the role token, and a role token provider function pointer.
+// RoleService represents an interface to automatically refresh the role token, and a role token provider function pointer.
 type RoleService interface {
 	StartRoleUpdater(context.Context) <-chan error
 	RefreshRoleTokenCache(ctx context.Context) <-chan error
 	GetRoleProvider() RoleProvider
 }
 
-// roleService represent the implementation of Athenz RoleService
+// roleService represents the implementation of Athenz RoleService
 type roleService struct {
-	cfg                   config.Role
+	cfg                   config.RoleToken
 	token                 ntokend.TokenProvider
 	athenzURL             string
 	athenzPrincipleHeader string
@@ -59,7 +59,7 @@ type roleService struct {
 	expiry                time.Duration
 	httpClient            *http.Client
 
-	refreshInterval  time.Duration
+	refreshPeriod    time.Duration
 	errRetryMaxCount int
 	errRetryInterval time.Duration
 }
@@ -73,29 +73,29 @@ type cacheData struct {
 	maxExpiry         int64
 }
 
-// RoleToken represent the basic information of the role token.
+// RoleToken represents the basic information of the role token.
 type RoleToken struct {
 	Token      string `json:"token"`
 	ExpiryTime int64  `json:"expiryTime"`
 }
 
-// RoleProvider represent a function pointer to get the role token.
+// RoleProvider represents a function pointer to get the role token.
 type RoleProvider func(ctx context.Context, domain string, role string, proxyForPrincipal string, minExpiry int64, maxExpiry int64) (*RoleToken, error)
 
 var (
-	// ErrRoleTokenRequestFailed represent an error when failed to fetch the role token from RoleProvider.
+	// ErrRoleTokenRequestFailed represents an error when failed to fetch the role token from RoleProvider.
 	ErrRoleTokenRequestFailed = errors.New("Failed to fetch RoleToken")
 
-	// ErrInvalidSetting represent an error when the config file is invalid.
+	// ErrInvalidSetting represents an error when the config file is invalid.
 	ErrInvalidSetting = errors.New("Invalid config")
 )
 
 const (
-	// defaultTokenExpiry represents the default role token expiration. (0 implies unspecified.)
-	defaultTokenExpiry = time.Duration(0)
+	// defaultExpiry represents the default role token expiry. (0 implies unspecified.)
+	defaultExpiry = time.Duration(0)
 
-	// defaultRefreshInterval represents the default token refresh interval.
-	defaultRefreshInterval = time.Minute * 30
+	// defaultRefreshPeriod represents the default token refresh period.
+	defaultRefreshPeriod = time.Minute * 30
 
 	// defaultErrRetryMaxCount represents the default maximum error retry count.
 	defaultErrRetryMaxCount = 5
@@ -109,51 +109,51 @@ const (
 	// roleSeparator is the separator of the role names
 	roleSeparator = ","
 
-	// expiryCheckInterval represents default cache expiration check interval
-	expiryCheckInterval = time.Minute
+	// cachePurgePeriod represents default cache purge period
+	cachePurgePeriod = time.Minute
 )
 
 // NewRoleService returns a RoleService to update and get the role token from Athenz.
-func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, error) {
+func NewRoleService(cfg config.RoleToken, token ntokend.TokenProvider) (RoleService, error) {
 	var (
 		err              error
-		exp              = defaultTokenExpiry
-		refreshInterval  = defaultRefreshInterval
+		exp              = defaultExpiry
+		refreshPeriod    = defaultRefreshPeriod
 		errRetryInterval = defaultErrRetryInterval
 	)
 
-	if cfg.TokenExpiry != "" {
-		if exp, err = time.ParseDuration(cfg.TokenExpiry); err != nil {
-			return nil, errors.Wrap(ErrInvalidSetting, "TokenExpiry: "+err.Error())
+	if cfg.Expiry != "" {
+		if exp, err = time.ParseDuration(cfg.Expiry); err != nil {
+			return nil, errors.Wrap(ErrInvalidSetting, "Expiry: "+err.Error())
 		}
 	}
-	if cfg.RefreshInterval != "" {
-		if refreshInterval, err = time.ParseDuration(cfg.RefreshInterval); err != nil {
-			return nil, errors.Wrap(ErrInvalidSetting, "RefreshInterval: "+err.Error())
+	if cfg.RefreshPeriod != "" {
+		if refreshPeriod, err = time.ParseDuration(cfg.RefreshPeriod); err != nil {
+			return nil, errors.Wrap(ErrInvalidSetting, "RefreshPeriod: "+err.Error())
 		}
 	}
-	if cfg.ErrRetryInterval != "" {
-		if errRetryInterval, err = time.ParseDuration(cfg.ErrRetryInterval); err != nil {
+	if cfg.Retry.Delay != "" {
+		if errRetryInterval, err = time.ParseDuration(cfg.Retry.Delay); err != nil {
 			return nil, errors.Wrap(ErrInvalidSetting, "ErrRetryInterval: "+err.Error())
 		}
 	}
 
-	// if user set the expiry time and refresh duration > expiry time then return error
-	if exp != 0 && refreshInterval > exp {
-		return nil, errors.Wrap(ErrInvalidSetting, "refresh interval > token expiry time")
+	// if user set the expiry time and refresh period > expiry time then return error
+	if exp != 0 && refreshPeriod > exp {
+		return nil, errors.Wrap(ErrInvalidSetting, "refresh period > token expiry time")
 	}
 
 	errRetryMaxCount := defaultErrRetryMaxCount
-	if cfg.ErrRetryMaxCount > 0 {
-		errRetryMaxCount = cfg.ErrRetryMaxCount
-	} else if cfg.ErrRetryMaxCount != 0 {
+	if cfg.Retry.Attempts > 0 {
+		errRetryMaxCount = cfg.Retry.Attempts
+	} else if cfg.Retry.Attempts != 0 {
 		return nil, errors.Wrap(ErrInvalidSetting, "ErrRetryMaxCount < 0")
 	}
 
 	var cp *x509.CertPool
 	var httpClient *http.Client
-	if len(cfg.AthenzRootCA) > 0 {
-		certPath := config.GetActualValue(cfg.AthenzRootCA)
+	if len(cfg.AthenzCAPath) > 0 {
+		certPath := config.GetActualValue(cfg.AthenzCAPath)
 		_, err := os.Stat(certPath)
 		if !os.IsNotExist(err) {
 			cp, err = NewX509CertPool(certPath)
@@ -178,11 +178,11 @@ func NewRoleService(cfg config.Role, token ntokend.TokenProvider) (RoleService, 
 		cfg:                   cfg,
 		token:                 token,
 		athenzURL:             cfg.AthenzURL,
-		athenzPrincipleHeader: cfg.PrincipalAuthHeaderName,
+		athenzPrincipleHeader: cfg.PrincipalAuthHeader,
 		domainRoleCache:       gache.New(),
 		expiry:                exp,
 		httpClient:            httpClient,
-		refreshInterval:       refreshInterval,
+		refreshPeriod:         refreshPeriod,
 		errRetryMaxCount:      errRetryMaxCount,
 		errRetryInterval:      errRetryInterval,
 	}, nil
@@ -197,7 +197,7 @@ func (r *roleService) StartRoleUpdater(ctx context.Context) <-chan error {
 	go func() {
 		defer close(ech)
 
-		ticker := time.NewTicker(r.refreshInterval)
+		ticker := time.NewTicker(r.refreshPeriod)
 		for {
 			select {
 			case <-ctx.Done():
@@ -213,7 +213,7 @@ func (r *roleService) StartRoleUpdater(ctx context.Context) <-chan error {
 		}
 	}()
 
-	r.domainRoleCache.StartExpired(ctx, expiryCheckInterval)
+	r.domainRoleCache.StartExpired(ctx, cachePurgePeriod)
 	r.domainRoleCache.EnableExpiredHook().SetExpiredHook(func(ctx context.Context, k string) {
 		glg.Warnf("the following cache is expired, key: %v", k)
 	})
@@ -314,7 +314,7 @@ func (r *roleService) updateRoleToken(ctx context.Context, domain, role, proxyFo
 func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) (*RoleToken, error) {
 	glg.Debugf("get role token, domain: %s, role: %s, proxyForPrincipal: %s, minExpiry: %d, maxExpiry: %d", domain, role, proxyForPrincipal, minExpiry, maxExpiry)
 
-	// get the n-token
+	// get the N-token
 	tok, err := r.token()
 	if err != nil {
 		return nil, err
@@ -387,7 +387,7 @@ func (r *roleService) createGetRoleTokenRequest(domain, role string, minExpiry, 
 		q.Add("minExpiryTime", getParamValue(minExp))
 	}
 
-	// set max expiry only if user specifiy it
+	// set max expiry only if user specifies it
 	if maxExpiry > 0 {
 		q.Add("maxExpiryTime", getParamValue(maxExpiry))
 	}
@@ -398,7 +398,7 @@ func (r *roleService) createGetRoleTokenRequest(domain, role string, minExpiry, 
 
 	req.URL.RawQuery = q.Encode()
 
-	// set authenication token
+	// set authentication token
 	req.Header.Set(r.athenzPrincipleHeader, token)
 
 	return req, nil

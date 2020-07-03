@@ -28,16 +28,16 @@ import (
 	"time"
 
 	"github.com/kpango/glg"
-	"github.com/yahoojapan/athenz-client-sidecar/config"
-	"github.com/yahoojapan/athenz-client-sidecar/handler"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/handler"
 )
 
 func TestNew(t *testing.T) {
 	// prepare handler.Handler for calling New()
 	proxyConfig := config.Proxy{
-		PrincipalAuthHeaderName: "X-test-auth-header",
-		RoleAuthHeaderName:      "X-test-role-header",
-		BufferSize:              1024,
+		PrincipalAuthHeader: "X-test-auth-header",
+		RoleAuthHeader:      "X-test-role-header",
+		BufferSize:          1024,
 	}
 	h := handler.New(proxyConfig, nil, nil, nil, nil, nil)
 
@@ -102,7 +102,7 @@ func Test_routing(t *testing.T) {
 	}
 	tests := []test{
 		func() test {
-			testStr := "testhoge"
+			testStr := "test string"
 			want := testStr
 			wantStatusCode := http.StatusOK
 
@@ -114,8 +114,8 @@ func Test_routing(t *testing.T) {
 					},
 					t: time.Second * 10,
 					h: func(rw http.ResponseWriter, r *http.Request) error {
-						rw.Write([]byte(testStr))
-						return nil
+						_, err := rw.Write([]byte(testStr))
+						return err
 					},
 				},
 				checkFunc: func(server http.Handler) error {
@@ -139,7 +139,7 @@ func Test_routing(t *testing.T) {
 			}
 		}(),
 		func() test {
-			testStr := "testhoge"
+			testStr := "test string"
 			want := testStr
 			wantStatusCode := http.StatusOK
 
@@ -152,8 +152,8 @@ func Test_routing(t *testing.T) {
 					},
 					t: time.Second * 10,
 					h: func(rw http.ResponseWriter, r *http.Request) error {
-						rw.Write([]byte(testStr))
-						return nil
+						_, err := rw.Write([]byte(testStr))
+						return err
 					},
 				},
 				checkFunc: func(server http.Handler) error {
@@ -182,7 +182,7 @@ func Test_routing(t *testing.T) {
 			}
 		}(),
 		func() test {
-			testStr := "testhoge"
+			testStr := "test string"
 			want := "Error: " + testStr + "\t" + http.StatusText(http.StatusInternalServerError) + "\n"
 			wantStatusCode := http.StatusInternalServerError
 
@@ -219,7 +219,7 @@ func Test_routing(t *testing.T) {
 			}
 		}(),
 		func() test {
-			testStr := "testhoge"
+			testStr := "test string"
 			want := "Method: GET" + "\t" + http.StatusText(http.StatusMethodNotAllowed) + "\n"
 			wantStatusCode := http.StatusMethodNotAllowed
 
@@ -256,7 +256,7 @@ func Test_routing(t *testing.T) {
 			}
 		}(),
 		func() test {
-			testStr := "testhoge"
+			testStr := "test string"
 			want := "Method: GET" + "\t" + http.StatusText(http.StatusMethodNotAllowed) + "\n"
 			wantStatusCode := http.StatusMethodNotAllowed
 
@@ -290,7 +290,7 @@ func Test_routing(t *testing.T) {
 			}
 		}(),
 		func() test {
-			testStr := "testhoge"
+			testStr := "test string"
 			want := "Handler Time Out:"
 
 			timeoutSec := time.Second * 1
@@ -305,8 +305,8 @@ func Test_routing(t *testing.T) {
 					t: timeoutSec,
 					h: func(rw http.ResponseWriter, r *http.Request) error {
 						time.Sleep(waitSec)
-						rw.Write([]byte(testStr))
-						return nil
+						_, err := rw.Write([]byte(testStr))
+						return err
 					},
 				},
 				checkFunc: func(server http.Handler) error {
@@ -332,7 +332,7 @@ func Test_routing(t *testing.T) {
 			}
 		}(),
 		func() test {
-			testStr := "testhoge"
+			testStr := "test string"
 			want := "Handler Time Out:"
 
 			timeoutSec := time.Second * 1
@@ -347,8 +347,8 @@ func Test_routing(t *testing.T) {
 					t: waitSec,
 					h: func(rw http.ResponseWriter, r *http.Request) error {
 						time.Sleep(waitSec)
-						rw.Write([]byte(testStr))
-						return nil
+						_, err := rw.Write([]byte(testStr))
+						return err
 					},
 				},
 				checkFunc: func(server http.Handler) error {

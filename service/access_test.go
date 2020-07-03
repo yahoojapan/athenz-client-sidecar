@@ -29,14 +29,14 @@ import (
 
 	"github.com/kpango/fastime"
 	"github.com/kpango/gache"
-	ntokend "github.com/kpango/ntokend"
+	"github.com/kpango/ntokend"
 	"github.com/pkg/errors"
-	"github.com/yahoojapan/athenz-client-sidecar/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
 )
 
 func TestNewAccessService(t *testing.T) {
 	type args struct {
-		cfg   config.Access
+		cfg   config.AccessToken
 		token ntokend.TokenProvider
 	}
 	type test struct {
@@ -49,12 +49,12 @@ func TestNewAccessService(t *testing.T) {
 	tests := []test{
 		func() test {
 			args := args{
-				cfg: config.Access{
-					Enable:                  true,
-					TokenExpiry:             "5s",
-					AthenzURL:               "dummy",
-					PrincipalAuthHeaderName: "dummyAuthHeader",
-					RefreshInterval:         "1s",
+				cfg: config.AccessToken{
+					Enable:              true,
+					Expiry:              "5s",
+					AthenzURL:           "dummy",
+					PrincipalAuthHeader: "dummyAuthHeader",
+					RefreshPeriod:       "1s",
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -81,10 +81,10 @@ func TestNewAccessService(t *testing.T) {
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
-					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
+					athenzPrincipleHeader: args.cfg.PrincipalAuthHeader,
 					tokenCache:            gache.New(),
 					expiry: func() time.Duration {
-						dur, _ := time.ParseDuration(args.cfg.TokenExpiry)
+						dur, _ := time.ParseDuration(args.cfg.Expiry)
 						return dur
 					}(),
 				},
@@ -92,9 +92,9 @@ func TestNewAccessService(t *testing.T) {
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Access{
-					AthenzURL:               "dummy",
-					PrincipalAuthHeaderName: "dummyAuthHeader",
+				cfg: config.AccessToken{
+					AthenzURL:           "dummy",
+					PrincipalAuthHeader: "dummyAuthHeader",
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -112,7 +112,7 @@ func TestNewAccessService(t *testing.T) {
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
 						//!reflect.DeepEqual(gotS.tokenCache, wantS.tokenCache) ||
 						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
-						!reflect.DeepEqual(gotS.refreshInterval, wantS.refreshInterval) ||
+						!reflect.DeepEqual(gotS.refreshPeriod, wantS.refreshPeriod) ||
 						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
 						!reflect.DeepEqual(gotS.errRetryInterval, wantS.errRetryInterval) {
 
@@ -124,43 +124,45 @@ func TestNewAccessService(t *testing.T) {
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
-					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
+					athenzPrincipleHeader: args.cfg.PrincipalAuthHeader,
 					tokenCache:            gache.New(),
 					expiry:                0,
 					errRetryInterval:      defaultErrRetryInterval,
 					errRetryMaxCount:      defaultErrRetryMaxCount,
-					refreshInterval:       defaultRefreshInterval,
+					refreshPeriod:         defaultRefreshPeriod,
 				},
 			}
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Access{
-					TokenExpiry: "1x",
-				},
-			}
-			return test{
-				name:    "NewAccessService return error with TokenExpiry of invalid format",
-				args:    args,
-				wantErr: errors.Wrap(ErrInvalidSetting, "TokenExpiry: time: unknown unit x in duration 1x"),
-			}
-		}(),
-		func() test {
-			args := args{
-				cfg: config.Access{
-					RefreshInterval: "1x",
+				cfg: config.AccessToken{
+					Expiry: "1x",
 				},
 			}
 			return test{
-				name:    "NewAccessService return error with RefreshInterval of invalid format",
+				name:    "NewAccessService return error with Expiry of invalid format",
 				args:    args,
-				wantErr: errors.Wrap(ErrInvalidSetting, "RefreshInterval: time: unknown unit x in duration 1x"),
+				wantErr: errors.Wrap(ErrInvalidSetting, "Expiry: time: unknown unit x in duration 1x"),
 			}
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Access{
-					ErrRetryInterval: "1x",
+				cfg: config.AccessToken{
+					RefreshPeriod: "1x",
+				},
+			}
+			return test{
+				name:    "NewAccessService return error with RefreshPeriod of invalid format",
+				args:    args,
+				wantErr: errors.Wrap(ErrInvalidSetting, "RefreshPeriod: time: unknown unit x in duration 1x"),
+			}
+		}(),
+		func() test {
+			args := args{
+				cfg: config.AccessToken{
+					Retry: config.Retry{
+						Delay: "1x",
+					},
 				},
 			}
 			return test{
@@ -171,8 +173,10 @@ func TestNewAccessService(t *testing.T) {
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Access{
-					ErrRetryMaxCount: -1,
+				cfg: config.AccessToken{
+					Retry: config.Retry{
+						Attempts: -1,
+					},
 				},
 			}
 			return test{
@@ -183,29 +187,31 @@ func TestNewAccessService(t *testing.T) {
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Access{
-					AthenzURL:               "dummy",
-					PrincipalAuthHeaderName: "dummyAuthHeader",
-					RefreshInterval:         "60s",
-					TokenExpiry:             "1s",
+				cfg: config.AccessToken{
+					AthenzURL:           "dummy",
+					PrincipalAuthHeader: "dummyAuthHeader",
+					RefreshPeriod:       "60s",
+					Expiry:              "1s",
 				},
 				token: func() (string, error) {
 					return "", nil
 				},
 			}
 			return test{
-				name:    "NewAccessService return error when refresh interval > token expiry",
+				name:    "NewAccessService return error when refresh period > token expiry",
 				args:    args,
-				wantErr: errors.Wrap(ErrInvalidSetting, "refresh interval > token expiry time"),
+				wantErr: errors.Wrap(ErrInvalidSetting, "refresh period > token expiry time"),
 			}
 		}(),
 		func() test {
 			cnt := 10
 			args := args{
-				cfg: config.Access{
-					AthenzURL:               "dummy",
-					PrincipalAuthHeaderName: "dummyAuthHeader",
-					ErrRetryMaxCount:        cnt,
+				cfg: config.AccessToken{
+					AthenzURL:           "dummy",
+					PrincipalAuthHeader: "dummyAuthHeader",
+					Retry: config.Retry{
+						Attempts: cnt,
+					},
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -223,7 +229,7 @@ func TestNewAccessService(t *testing.T) {
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
 						//!reflect.DeepEqual(gotS.tokenCache, wantS.tokenCache) ||
 						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
-						!reflect.DeepEqual(gotS.refreshInterval, wantS.refreshInterval) ||
+						!reflect.DeepEqual(gotS.refreshPeriod, wantS.refreshPeriod) ||
 						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
 						!reflect.DeepEqual(gotS.errRetryInterval, wantS.errRetryInterval) {
 
@@ -235,21 +241,21 @@ func TestNewAccessService(t *testing.T) {
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
-					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
+					athenzPrincipleHeader: args.cfg.PrincipalAuthHeader,
 					tokenCache:            gache.New(),
 					expiry:                0,
 					errRetryInterval:      defaultErrRetryInterval,
 					errRetryMaxCount:      cnt,
-					refreshInterval:       defaultRefreshInterval,
+					refreshPeriod:         defaultRefreshPeriod,
 				},
 			}
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Access{
-					AthenzURL:               "dummy",
-					PrincipalAuthHeaderName: "dummyAuthHeader",
-					AthenzRootCA:            "assets/dummyCa.pem",
+				cfg: config.AccessToken{
+					AthenzURL:           "dummy",
+					PrincipalAuthHeader: "dummyAuthHeader",
+					AthenzCAPath:        "../test/data/dummyCa.pem",
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -267,13 +273,13 @@ func TestNewAccessService(t *testing.T) {
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
 						//!reflect.DeepEqual(gotS.tokenCache, wantS.tokenCache) ||
 						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
-						!reflect.DeepEqual(gotS.refreshInterval, wantS.refreshInterval) ||
+						!reflect.DeepEqual(gotS.refreshPeriod, wantS.refreshPeriod) ||
 						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
 						!reflect.DeepEqual(gotS.errRetryInterval, wantS.errRetryInterval) {
 
 						return fmt.Errorf("got: %+v, want: %+v", got, want)
 					}
-					cp, _ := NewX509CertPool(args.cfg.AthenzRootCA)
+					cp, _ := NewX509CertPool(args.cfg.AthenzCAPath)
 					t := gotS.httpClient.Transport.(*http.Transport)
 					if !reflect.DeepEqual(t.TLSClientConfig.RootCAs, cp) {
 						return fmt.Errorf("cert not match, got: %+v, want: %+v", t, cp)
@@ -285,21 +291,21 @@ func TestNewAccessService(t *testing.T) {
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
-					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
+					athenzPrincipleHeader: args.cfg.PrincipalAuthHeader,
 					tokenCache:            gache.New(),
 					expiry:                0,
 					errRetryInterval:      defaultErrRetryInterval,
 					errRetryMaxCount:      defaultErrRetryMaxCount,
-					refreshInterval:       defaultRefreshInterval,
+					refreshPeriod:         defaultRefreshPeriod,
 				},
 			}
 		}(),
 		func() test {
 			args := args{
-				cfg: config.Access{
-					AthenzURL:               "dummy",
-					PrincipalAuthHeaderName: "dummyAuthHeader",
-					AthenzRootCA:            "assets/invalid_dummyCa.pem",
+				cfg: config.AccessToken{
+					AthenzURL:           "dummy",
+					PrincipalAuthHeader: "dummyAuthHeader",
+					AthenzCAPath:        "../test/data/invalid_dummyCa.pem",
 				},
 				token: func() (string, error) {
 					return "", nil
@@ -317,7 +323,7 @@ func TestNewAccessService(t *testing.T) {
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
 						//!reflect.DeepEqual(gotS.tokenCache, wantS.tokenCache) ||
 						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
-						!reflect.DeepEqual(gotS.refreshInterval, wantS.refreshInterval) ||
+						!reflect.DeepEqual(gotS.refreshPeriod, wantS.refreshPeriod) ||
 						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
 						!reflect.DeepEqual(gotS.errRetryInterval, wantS.errRetryInterval) {
 
@@ -333,12 +339,12 @@ func TestNewAccessService(t *testing.T) {
 					cfg:                   args.cfg,
 					token:                 args.token,
 					athenzURL:             args.cfg.AthenzURL,
-					athenzPrincipleHeader: args.cfg.PrincipalAuthHeaderName,
+					athenzPrincipleHeader: args.cfg.PrincipalAuthHeader,
 					tokenCache:            gache.New(),
 					expiry:                0,
 					errRetryInterval:      defaultErrRetryInterval,
 					errRetryMaxCount:      defaultErrRetryMaxCount,
-					refreshInterval:       defaultRefreshInterval,
+					refreshPeriod:         defaultRefreshPeriod,
 				},
 			}
 		}(),
@@ -367,14 +373,14 @@ func TestNewAccessService(t *testing.T) {
 
 func Test_accessService_StartAccessUpdater(t *testing.T) {
 	type fields struct {
-		cfg                   config.Access
+		cfg                   config.AccessToken
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
 		tokenCache            gache.Gache
 		expiry                time.Duration
 		httpClient            *http.Client
-		refreshInterval       time.Duration
+		refreshPeriod         time.Duration
 		errRetryMaxCount      int
 		errRetryInterval      time.Duration
 	}
@@ -419,9 +425,9 @@ func Test_accessService_StartAccessUpdater(t *testing.T) {
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "Athenz-Principal",
 					token: func() (string, error) {
-						return "dummy ntoken", nil
+						return "dummy N-token", nil
 					},
-					refreshInterval:  time.Second,
+					refreshPeriod:    time.Second,
 					errRetryMaxCount: 5,
 					errRetryInterval: time.Second,
 				},
@@ -491,7 +497,7 @@ func Test_accessService_StartAccessUpdater(t *testing.T) {
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "Athenz-Principal",
 					errRetryMaxCount:      9,
-					refreshInterval:       time.Millisecond * 100,
+					refreshPeriod:         time.Millisecond * 100,
 					errRetryInterval:      time.Millisecond,
 					expiry:                time.Millisecond * 200,
 				},
@@ -567,7 +573,7 @@ func Test_accessService_StartAccessUpdater(t *testing.T) {
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "Athenz-Principal",
 					errRetryMaxCount:      9,
-					refreshInterval:       time.Millisecond * 700,
+					refreshPeriod:         time.Millisecond * 700,
 					errRetryInterval:      time.Millisecond,
 					expiry:                time.Millisecond * 700,
 				},
@@ -630,7 +636,7 @@ func Test_accessService_StartAccessUpdater(t *testing.T) {
 				tokenCache:            tt.fields.tokenCache,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
-				refreshInterval:       tt.fields.refreshInterval,
+				refreshPeriod:         tt.fields.refreshPeriod,
 				errRetryMaxCount:      tt.fields.errRetryMaxCount,
 				errRetryInterval:      tt.fields.errRetryInterval,
 			}
@@ -652,7 +658,7 @@ func Test_accessService_GetAccessProvider(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r, _ := NewAccessService(config.Access{}, nil)
+			r, _ := NewAccessService(config.AccessToken{}, nil)
 			if got := r.GetAccessProvider(); got == nil {
 				t.Error("provier is nil")
 			}
@@ -662,7 +668,7 @@ func Test_accessService_GetAccessProvider(t *testing.T) {
 
 func Test_accessService_getAccessToken(t *testing.T) {
 	type fields struct {
-		cfg                   config.Access
+		cfg                   config.AccessToken
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
@@ -825,14 +831,14 @@ func Test_accessService_getAccessToken(t *testing.T) {
 
 func Test_accessService_RefreshAccessTokenCache(t *testing.T) {
 	type fields struct {
-		cfg                   config.Access
+		cfg                   config.AccessToken
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
 		tokenCache            gache.Gache
 		expiry                time.Duration
 		httpClient            *http.Client
-		refreshInterval       time.Duration
+		refreshPeriod         time.Duration
 		errRetryMaxCount      int
 		errRetryInterval      time.Duration
 	}
@@ -875,7 +881,7 @@ func Test_accessService_RefreshAccessTokenCache(t *testing.T) {
 					tokenCache:            tokenCache,
 					expiry:                time.Minute,
 					httpClient:            dummyServer.Client(),
-					refreshInterval:       time.Second,
+					refreshPeriod:         time.Second,
 					errRetryMaxCount:      5,
 					errRetryInterval:      time.Second,
 				},
@@ -941,7 +947,7 @@ func Test_accessService_RefreshAccessTokenCache(t *testing.T) {
 					tokenCache:            tokenCache,
 					expiry:                time.Minute,
 					httpClient:            dummyServer.Client(),
-					refreshInterval:       time.Second,
+					refreshPeriod:         time.Second,
 					errRetryMaxCount:      5,
 					errRetryInterval:      time.Second,
 				},
@@ -1146,7 +1152,7 @@ func Test_accessService_RefreshAccessTokenCache(t *testing.T) {
 				tokenCache:            tt.fields.tokenCache,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
-				refreshInterval:       tt.fields.refreshInterval,
+				refreshPeriod:         tt.fields.refreshPeriod,
 				errRetryMaxCount:      tt.fields.errRetryMaxCount,
 				errRetryInterval:      tt.fields.errRetryInterval,
 			}
@@ -1160,14 +1166,14 @@ func Test_accessService_RefreshAccessTokenCache(t *testing.T) {
 
 func Test_accessService_updateAccessTokenWithRetry(t *testing.T) {
 	type fields struct {
-		cfg                   config.Access
+		cfg                   config.AccessToken
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
 		tokenCache            gache.Gache
 		expiry                time.Duration
 		httpClient            *http.Client
-		refreshInterval       time.Duration
+		refreshPeriod         time.Duration
 		errRetryMaxCount      int
 		errRetryInterval      time.Duration
 	}
@@ -1223,7 +1229,7 @@ func Test_accessService_updateAccessTokenWithRetry(t *testing.T) {
 
 					tok, ok := tokenCache.Get("dummyDomain;dummyRole;dummyProxy")
 					if !ok {
-						return errors.New("token donot set to the cache")
+						return errors.New("token is not set to the cache")
 					}
 
 					if tok.(*accessCacheData).token.AccessToken != dummyTok {
@@ -1294,7 +1300,7 @@ func Test_accessService_updateAccessTokenWithRetry(t *testing.T) {
 
 					tok, ok := tokenCache.Get("dummyDomain;dummyRole;dummyProxy")
 					if !ok {
-						return errors.New("token donot set to the cache")
+						return errors.New("token is not set to the cache")
 					}
 
 					if tok.(*accessCacheData).token.AccessToken != dummyTok {
@@ -1380,7 +1386,7 @@ func Test_accessService_updateAccessTokenWithRetry(t *testing.T) {
 				tokenCache:            tt.fields.tokenCache,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
-				refreshInterval:       tt.fields.refreshInterval,
+				refreshPeriod:         tt.fields.refreshPeriod,
 				errRetryMaxCount:      tt.fields.errRetryMaxCount,
 				errRetryInterval:      tt.fields.errRetryInterval,
 			}
@@ -1394,7 +1400,7 @@ func Test_accessService_updateAccessTokenWithRetry(t *testing.T) {
 
 func Test_accessService_updateAccessToken(t *testing.T) {
 	type fields struct {
-		cfg                   config.Access
+		cfg                   config.AccessToken
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
@@ -1741,14 +1747,14 @@ func Test_accessService_updateAccessToken(t *testing.T) {
 
 func Test_accessService_fetchAccessToken(t *testing.T) {
 	type fields struct {
-		cfg                   config.Access
+		cfg                   config.AccessToken
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
 		tokenCache            gache.Gache
 		expiry                time.Duration
 		httpClient            *http.Client
-		refreshInterval       time.Duration
+		refreshPeriod         time.Duration
 		errRetryMaxCount      int
 		errRetryInterval      time.Duration
 	}
@@ -1816,7 +1822,7 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 
 			dummyErr := errors.New("dummy error")
 			return test{
-				name: "ntoken provider return error",
+				name: "N-token provider return error",
 				fields: fields{
 					token: func() (string, error) {
 						return "", dummyErr
@@ -1901,7 +1907,7 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 				tokenCache:            tt.fields.tokenCache,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
-				refreshInterval:       tt.fields.refreshInterval,
+				refreshPeriod:         tt.fields.refreshPeriod,
 				errRetryMaxCount:      tt.fields.errRetryMaxCount,
 				errRetryInterval:      tt.fields.errRetryInterval,
 			}
@@ -1979,7 +1985,7 @@ func Test_createScope(t *testing.T) {
 
 func Test_accessService_getCache(t *testing.T) {
 	type fields struct {
-		cfg                   config.Access
+		cfg                   config.AccessToken
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
@@ -2069,7 +2075,7 @@ func Test_accessService_getCache(t *testing.T) {
 
 func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 	type fields struct {
-		cfg                   config.Access
+		cfg                   config.AccessToken
 		token                 ntokend.TokenProvider
 		athenzURL             string
 		athenzPrincipleHeader string
@@ -2098,11 +2104,11 @@ func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 				token:             "dummyToken",
 			},
 			fields: fields{
-				athenzURL:             "dummyUURL",
+				athenzURL:             "dummyAthenzURL",
 				athenzPrincipleHeader: "dummyHeader",
 			},
 			want: func() *http.Request {
-				r, _ := http.NewRequest(http.MethodPost, "https://dummyUURL/oauth2/token", strings.NewReader(url.Values{}.Encode()))
+				r, _ := http.NewRequest(http.MethodPost, "https://dummyAthenzURL/oauth2/token", strings.NewReader(url.Values{}.Encode()))
 				r.Form = url.Values{}
 				r.Form.Add("grant_type", "client_credentials")
 				r.Form.Add("scope", "dummyDomain:dummyRole")
@@ -2121,12 +2127,12 @@ func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 				token:             "dummyToken",
 			},
 			fields: fields{
-				athenzURL:             "dummyUURL",
+				athenzURL:             "dummyAthenzURL",
 				athenzPrincipleHeader: "dummyHeader",
 				expiry:                time.Minute,
 			},
 			want: func() *http.Request {
-				r, _ := http.NewRequest(http.MethodPost, "https://dummyUURL/oauth2/token", strings.NewReader(url.Values{}.Encode()))
+				r, _ := http.NewRequest(http.MethodPost, "https://dummyAthenzURL/oauth2/token", strings.NewReader(url.Values{}.Encode()))
 				r.Form = url.Values{}
 				r.Form.Add("grant_type", "client_credentials")
 				r.Form.Add("scope", "dummyDomain:dummyRole")
@@ -2145,11 +2151,11 @@ func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 				token:  "dummyToken",
 			},
 			fields: fields{
-				athenzURL:             "dummyUURL",
+				athenzURL:             "dummyAthenzURL",
 				athenzPrincipleHeader: "dummyHeader",
 			},
 			want: func() *http.Request {
-				r, _ := http.NewRequest(http.MethodPost, "https://dummyUURL/oauth2/token", strings.NewReader(url.Values{}.Encode()))
+				r, _ := http.NewRequest(http.MethodPost, "https://dummyAthenzURL/oauth2/token", strings.NewReader(url.Values{}.Encode()))
 				r.Form = url.Values{}
 				r.Form.Add("grant_type", "client_credentials")
 				r.Form.Add("scope", "dummyDomain:dummyRole")

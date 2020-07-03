@@ -23,15 +23,15 @@ import (
 	"time"
 
 	"github.com/kpango/glg"
-	ntokend "github.com/kpango/ntokend"
-	"github.com/yahoojapan/athenz-client-sidecar/config"
-	"github.com/yahoojapan/athenz-client-sidecar/handler"
-	"github.com/yahoojapan/athenz-client-sidecar/infra"
-	"github.com/yahoojapan/athenz-client-sidecar/router"
-	"github.com/yahoojapan/athenz-client-sidecar/service"
+	"github.com/kpango/ntokend"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/handler"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/infra"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/router"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/service"
 )
 
-// Tenant represent a client sidecar behavior
+// Tenant represents a client sidecar behavior
 type Tenant interface {
 	Start(ctx context.Context) chan []error
 }
@@ -49,13 +49,13 @@ type clientd struct {
 // Client sidecar daemon contains token service, role token service, host certificate service, user database client and client sidecar service.
 func New(cfg config.Config) (Tenant, error) {
 	// create token service
-	token, err := createNtokend(cfg.Token)
+	token, err := createNtokend(cfg.NToken)
 	if err != nil {
 		return nil, err
 	}
 
 	// create role service
-	role, err := service.NewRoleService(cfg.Role, token.GetTokenProvider())
+	role, err := service.NewRoleService(cfg.RoleToken, token.GetTokenProvider())
 	if err != nil {
 		return nil, err
 	}
@@ -77,8 +77,8 @@ func New(cfg config.Config) (Tenant, error) {
 	}
 
 	var accessProvider service.AccessProvider
-	if cfg.Access.Enable {
-		access, err = service.NewAccessService(cfg.Access, token.GetTokenProvider())
+	if cfg.AccessToken.Enable {
+		access, err = service.NewAccessService(cfg.AccessToken, token.GetTokenProvider())
 		if err != nil {
 			return nil, err
 		}
@@ -138,20 +138,20 @@ func (t *clientd) Start(ctx context.Context) chan []error {
 }
 
 // createNtokend returns a TokenService object or any error
-func createNtokend(cfg config.Token) (ntokend.TokenService, error) {
-	dur, err := time.ParseDuration(cfg.RefreshDuration)
+func createNtokend(cfg config.NToken) (ntokend.TokenService, error) {
+	dur, err := time.ParseDuration(cfg.RefreshPeriod)
 	if err != nil {
-		return nil, fmt.Errorf("invalid token refresh duration %s, %v", cfg.RefreshDuration, err)
+		return nil, fmt.Errorf("invalid token refresh period %s, %v", cfg.RefreshPeriod, err)
 	}
 
-	exp, err := time.ParseDuration(cfg.Expiration)
+	exp, err := time.ParseDuration(cfg.Expiry)
 	if err != nil {
-		return nil, fmt.Errorf("invalid token expiration %s, %v", cfg.Expiration, err)
+		return nil, fmt.Errorf("invalid token expiry %s, %v", cfg.Expiry, err)
 	}
 
 	keyData, err := ioutil.ReadFile(config.GetActualValue(cfg.PrivateKeyPath))
 	if err != nil && keyData == nil {
-		if cfg.NTokenPath == "" {
+		if cfg.ExistingTokenPath == "" {
 			return nil, fmt.Errorf("invalid token private key %v", err)
 		}
 	}
@@ -159,8 +159,15 @@ func createNtokend(cfg config.Token) (ntokend.TokenService, error) {
 	domain := config.GetActualValue(cfg.AthenzDomain)
 	service := config.GetActualValue(cfg.ServiceName)
 
-	ntok, err := ntokend.New(ntokend.RefreshDuration(dur), ntokend.TokenExpiration(exp), ntokend.KeyVersion(cfg.KeyVersion), ntokend.KeyData(keyData), ntokend.TokenFilePath(cfg.NTokenPath),
-		ntokend.AthenzDomain(domain), ntokend.ServiceName(service))
+	ntok, err := ntokend.New(
+		ntokend.RefreshDuration(dur),
+		ntokend.TokenExpiration(exp),
+		ntokend.KeyVersion(cfg.KeyVersion),
+		ntokend.KeyData(keyData),
+		ntokend.TokenFilePath(cfg.ExistingTokenPath),
+		ntokend.AthenzDomain(domain),
+		ntokend.ServiceName(service),
+	)
 
 	if err != nil {
 		return nil, err

@@ -30,7 +30,7 @@ import (
 	"github.com/kpango/glg"
 	"github.com/kpango/ntokend"
 	"github.com/yahoo/athenz/clients/go/zts"
-	"github.com/yahoojapan/athenz-client-sidecar/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
 )
 
 func init() {
@@ -76,7 +76,7 @@ func TestIsValidDomain(t *testing.T) {
 }
 
 func TestNewSvcCertService(t *testing.T) {
-	var defaultExpiration int32
+	var defaultExpiry int32
 
 	type args struct {
 		cfg   config.Config
@@ -99,25 +99,25 @@ func TestNewSvcCertService(t *testing.T) {
 				name: "Success to initialize SvcCertService",
 				args: args{
 					cfg: config.Config{
-						Token: config.Token{
+						NToken: config.NToken{
 							AthenzDomain:   "test.domain",
-							PrivateKeyPath: "./assets/dummyServer.key",
+							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzRootCA:    "./assets/dummyCa.pem",
-							RefreshDuration: "30m",
+							AthenzCAPath:  "../test/data/dummyCa.pem",
+							RefreshPeriod: "30m",
 						},
 					},
 					token: token,
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
-						AthenzRootCA:    "./assets/dummyCa.pem",
-						RefreshDuration: "30m",
+						AthenzCAPath:  "../test/data/dummyCa.pem",
+						RefreshPeriod: "30m",
 					},
 					refreshRequest: &requestTemplate{
 						req: &zts.InstanceRefreshRequest{
-							ExpiryTime: &defaultExpiration,
+							ExpiryTime: &defaultExpiry,
 						},
 					},
 					token:           token,
@@ -133,34 +133,34 @@ func TestNewSvcCertService(t *testing.T) {
 			dur, _ := time.ParseDuration("30m")
 			token := func() (string, error) { return "", nil }
 
-			var largeExpiration int64 = 2557920      // possible max expiration hour value (292y * 365d * 24h = 2557920h)
-			var expectedExpiration int32 = 153475200 // possible max expiration minutes value (largeExpirationh * 60m = 153475200m)
+			var largeExpiry int64 = 2557920      // possible max expiry hour value (292y * 365d * 24h = 2557920h)
+			var expectedExpiry int32 = 153475200 // possible max expiry minutes value (largeExpiry hour * 60m = 153475200m)
 
 			return test{
-				name: "Success to initialize SvcCertService when it is max expiration of certificate",
+				name: "Success to initialize SvcCertService when it is max expiry of certificate",
 				args: args{
 					cfg: config.Config{
-						Token: config.Token{
+						NToken: config.NToken{
 							AthenzDomain:   "test.domain",
-							PrivateKeyPath: "./assets/dummyServer.key",
+							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzRootCA:    "./assets/dummyCa.pem",
-							RefreshDuration: "30m",
-							Expiration:      fmt.Sprintf("%dh", largeExpiration),
+							AthenzCAPath:  "../test/data/dummyCa.pem",
+							RefreshPeriod: "30m",
+							Expiry:        fmt.Sprintf("%dh", largeExpiry),
 						},
 					},
 					token: token,
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
-						AthenzRootCA:    "./assets/dummyCa.pem",
-						RefreshDuration: "30m",
-						Expiration:      fmt.Sprintf("%dh", largeExpiration),
+						AthenzCAPath:  "../test/data/dummyCa.pem",
+						RefreshPeriod: "30m",
+						Expiry:        fmt.Sprintf("%dh", largeExpiry),
 					},
 					refreshRequest: &requestTemplate{
 						req: &zts.InstanceRefreshRequest{
-							ExpiryTime: &expectedExpiration,
+							ExpiryTime: &expectedExpiry,
 						},
 					},
 					token:           token,
@@ -176,34 +176,34 @@ func TestNewSvcCertService(t *testing.T) {
 			dur, _ := time.ParseDuration("30m")
 			token := func() (string, error) { return "", nil }
 
-			var exceedExpiration int64 = 2566680 // exceed max expiration hour value (293y * 365d * 24h = 2557920h)
-			var expectedExpiration int32         // when expiration parse error, defaultSvcCertExpiration is 0
+			var exceedExpiry int64 = 2566680 // exceed max expiry hour value (293y * 365d * 24h = 2557920h)
+			var expectedExpiry int32         // when expiry parse error, defaultSvcCertExpiry is 0
 
 			return test{
-				name: "Success to initialize SvcCertService using default when the maximum expiration value is exceeded",
+				name: "Success to initialize SvcCertService using default when the maximum expiry value is exceeded",
 				args: args{
 					cfg: config.Config{
-						Token: config.Token{
+						NToken: config.NToken{
 							AthenzDomain:   "test.domain",
-							PrivateKeyPath: "./assets/dummyServer.key",
+							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzRootCA:    "./assets/dummyCa.pem",
-							RefreshDuration: "30m",
-							Expiration:      fmt.Sprintf("%dh", exceedExpiration),
+							AthenzCAPath:  "../test/data/dummyCa.pem",
+							RefreshPeriod: "30m",
+							Expiry:        fmt.Sprintf("%dh", exceedExpiry),
 						},
 					},
 					token: token,
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
-						AthenzRootCA:    "./assets/dummyCa.pem",
-						RefreshDuration: "30m",
-						Expiration:      fmt.Sprintf("%dh", exceedExpiration),
+						AthenzCAPath:  "../test/data/dummyCa.pem",
+						RefreshPeriod: "30m",
+						Expiry:        fmt.Sprintf("%dh", exceedExpiry),
 					},
 					refreshRequest: &requestTemplate{
 						req: &zts.InstanceRefreshRequest{
-							ExpiryTime: &expectedExpiration,
+							ExpiryTime: &expectedExpiry,
 						},
 					},
 					token:           token,
@@ -221,30 +221,30 @@ func TestNewSvcCertService(t *testing.T) {
 			token := func() (string, error) { return "", nil }
 
 			return test{
-				name: "Success to initialize SvcCertService with before_expiration",
+				name: "Success to initialize SvcCertService with expiry margin",
 				args: args{
 					cfg: config.Config{
-						Token: config.Token{
+						NToken: config.NToken{
 							AthenzDomain:   "test.domain",
-							PrivateKeyPath: "./assets/dummyServer.key",
+							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzRootCA:    "./assets/dummyCa.pem",
-							RefreshDuration: "30m",
-							ExpireMargin:    "1h",
+							AthenzCAPath:  "../test/data/dummyCa.pem",
+							RefreshPeriod: "30m",
+							ExpiryMargin:  "1h",
 						},
 					},
 					token: token,
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
-						AthenzRootCA:    "./assets/dummyCa.pem",
-						RefreshDuration: "30m",
-						ExpireMargin:    "1h",
+						AthenzCAPath:  "../test/data/dummyCa.pem",
+						RefreshPeriod: "30m",
+						ExpiryMargin:  "1h",
 					},
 					refreshRequest: &requestTemplate{
 						req: &zts.InstanceRefreshRequest{
-							ExpiryTime: &defaultExpiration,
+							ExpiryTime: &defaultExpiry,
 						},
 					},
 					token:           token,
@@ -260,33 +260,33 @@ func TestNewSvcCertService(t *testing.T) {
 		func() test {
 			dur, _ := time.ParseDuration("30m")
 			token := func() (string, error) { return "", nil }
-			var expiration int32 = 117
+			var expiry int32 = 117
 
 			return test{
-				name: "Success to initialize SvcCertService with expiration",
+				name: "Success to initialize SvcCertService with expiry",
 				args: args{
 					cfg: config.Config{
-						Token: config.Token{
+						NToken: config.NToken{
 							AthenzDomain:   "test.domain",
-							PrivateKeyPath: "./assets/dummyServer.key",
+							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzRootCA:    "./assets/dummyCa.pem",
-							RefreshDuration: "30m",
-							Expiration:      fmt.Sprintf("%dm", expiration),
+							AthenzCAPath:  "../test/data/dummyCa.pem",
+							RefreshPeriod: "30m",
+							Expiry:        fmt.Sprintf("%dm", expiry),
 						},
 					},
 					token: token,
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
-						AthenzRootCA:    "./assets/dummyCa.pem",
-						RefreshDuration: "30m",
-						Expiration:      fmt.Sprintf("%dm", expiration),
+						AthenzCAPath:  "../test/data/dummyCa.pem",
+						RefreshPeriod: "30m",
+						Expiry:        fmt.Sprintf("%dm", expiry),
 					},
 					refreshRequest: &requestTemplate{
 						req: &zts.InstanceRefreshRequest{
-							ExpiryTime: &expiration,
+							ExpiryTime: &expiry,
 						},
 					},
 					token:           token,
@@ -306,25 +306,25 @@ func TestNewSvcCertService(t *testing.T) {
 				name: "Success to initialize SvcCertService using EC PRIVATE KEY",
 				args: args{
 					cfg: config.Config{
-						Token: config.Token{
+						NToken: config.NToken{
 							AthenzDomain:   "test.domain",
-							PrivateKeyPath: "./assets/dummyECServer.key",
+							PrivateKeyPath: "../test/data/dummyECServer.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzRootCA:    "./assets/dummyCa.pem",
-							RefreshDuration: "30m",
+							AthenzCAPath:  "../test/data/dummyCa.pem",
+							RefreshPeriod: "30m",
 						},
 					},
 					token: token,
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
-						AthenzRootCA:    "./assets/dummyCa.pem",
-						RefreshDuration: "30m",
+						AthenzCAPath:  "../test/data/dummyCa.pem",
+						RefreshPeriod: "30m",
 					},
 					refreshRequest: &requestTemplate{
 						req: &zts.InstanceRefreshRequest{
-							ExpiryTime: &defaultExpiration,
+							ExpiryTime: &defaultExpiry,
 						},
 					},
 					token:           token,
@@ -344,27 +344,27 @@ func TestNewSvcCertService(t *testing.T) {
 				name: "Success to initialize SvcCertService when spiffe is true",
 				args: args{
 					cfg: config.Config{
-						Token: config.Token{
+						NToken: config.NToken{
 							AthenzDomain:   "test.domain",
-							PrivateKeyPath: "./assets/dummyServer.key",
+							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzRootCA:    "./assets/dummyCa.pem",
-							RefreshDuration: "30m",
-							Spiffe:          true,
+							AthenzCAPath:  "../test/data/dummyCa.pem",
+							RefreshPeriod: "30m",
+							Spiffe:        true,
 						},
 					},
 					token: token,
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
-						AthenzRootCA:    "./assets/dummyCa.pem",
-						RefreshDuration: "30m",
-						Spiffe:          true,
+						AthenzCAPath:  "../test/data/dummyCa.pem",
+						RefreshPeriod: "30m",
+						Spiffe:        true,
 					},
 					refreshRequest: &requestTemplate{
 						req: &zts.InstanceRefreshRequest{
-							ExpiryTime: &defaultExpiration,
+							ExpiryTime: &defaultExpiry,
 						},
 					},
 					token:           token,
@@ -380,32 +380,32 @@ func TestNewSvcCertService(t *testing.T) {
 			token := func() (string, error) { return "", nil }
 
 			return test{
-				name: "Fail to parse RefreshDuration",
+				name: "Fail to parse RefreshPeriod",
 				args: args{
 					cfg: config.Config{
-						Token: config.Token{
+						NToken: config.NToken{
 							AthenzDomain:   "test.domain",
-							PrivateKeyPath: "./assets/dummyServer.key",
+							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzRootCA:    "./assets/dummyCa.pem",
-							RefreshDuration: "",
+							AthenzCAPath:  "../test/data/dummyCa.pem",
+							RefreshPeriod: "",
 						},
 					},
 					token: token,
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
-						AthenzRootCA:    "./assets/dummyCa.pem",
-						RefreshDuration: "",
+						AthenzCAPath:  "../test/data/dummyCa.pem",
+						RefreshPeriod: "",
 					},
 					refreshRequest: &requestTemplate{
 						req: &zts.InstanceRefreshRequest{
-							ExpiryTime: &defaultExpiration,
+							ExpiryTime: &defaultExpiry,
 						},
 					},
 					token:           token,
-					refreshDuration: defaultSvcCertRefreshDuration,
+					refreshDuration: defaultSvcCertRefreshPeriod,
 				},
 				checkfunc: func(actual, expected *svcCertService) bool {
 					return true
@@ -418,17 +418,17 @@ func TestNewSvcCertService(t *testing.T) {
 			token := func() (string, error) { return "", nil }
 
 			return test{
-				name: "Fail to parse before_expiration",
+				name: "Fail to parse expiry margin",
 				args: args{
 					cfg: config.Config{
-						Token: config.Token{
+						NToken: config.NToken{
 							AthenzDomain:   "test.domain",
-							PrivateKeyPath: "./assets/dummyServer.key",
+							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzRootCA:    "./assets/dummyCa.pem",
-							RefreshDuration: "30m",
-							ExpireMargin:    "error",
+							AthenzCAPath:  "../test/data/dummyCa.pem",
+							RefreshPeriod: "30m",
+							ExpiryMargin:  "error",
 						},
 					},
 					token: token,
@@ -436,18 +436,18 @@ func TestNewSvcCertService(t *testing.T) {
 
 				want: &svcCertService{
 					cfg: config.ServiceCert{
-						AthenzRootCA:    "./assets/dummyCa.pem",
-						RefreshDuration: "30m",
-						ExpireMargin:    "error",
+						AthenzCAPath:  "../test/data/dummyCa.pem",
+						RefreshPeriod: "30m",
+						ExpiryMargin:  "error",
 					},
 					refreshRequest: &requestTemplate{
 						req: &zts.InstanceRefreshRequest{
-							ExpiryTime: &defaultExpiration,
+							ExpiryTime: &defaultExpiry,
 						},
 					},
 					token:           token,
 					refreshDuration: dur,
-					expireMargin:    defaultSvcCertExpireMargin,
+					expireMargin:    defaultSvcCertExpiryMargin,
 				},
 				checkfunc: func(actual, expected *svcCertService) bool {
 					return actual.expireMargin == expected.expireMargin
@@ -462,13 +462,13 @@ func TestNewSvcCertService(t *testing.T) {
 				name: "Private key file does not exist",
 				args: args{
 					cfg: config.Config{
-						Token: config.Token{
+						NToken: config.NToken{
 							AthenzDomain:   "test.domain",
 							PrivateKeyPath: "/not/exist.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzRootCA:    "./assets/dummyCa.pem",
-							RefreshDuration: "30m",
+							AthenzCAPath:  "../test/data/dummyCa.pem",
+							RefreshPeriod: "30m",
 						},
 					},
 					token: token,
@@ -487,13 +487,13 @@ func TestNewSvcCertService(t *testing.T) {
 				name: "Private key is invalid",
 				args: args{
 					cfg: config.Config{
-						Token: config.Token{
+						NToken: config.NToken{
 							AthenzDomain:   "test.domain",
-							PrivateKeyPath: "./assets/invalid_dummyServer.key",
+							PrivateKeyPath: "../test/data/invalid_dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzRootCA:    "./assets/dummyCa.pem",
-							RefreshDuration: "30m",
+							AthenzCAPath:  "../test/data/dummyCa.pem",
+							RefreshPeriod: "30m",
 						},
 					},
 					token: token,
@@ -509,16 +509,16 @@ func TestNewSvcCertService(t *testing.T) {
 			token := func() (string, error) { return "", nil }
 
 			return test{
-				name: "AthenzRootCA file does not exist",
+				name: "AthenzCAPath file does not exist",
 				args: args{
 					cfg: config.Config{
-						Token: config.Token{
+						NToken: config.NToken{
 							AthenzDomain:   "test.domain",
-							PrivateKeyPath: "./assets/dummyServer.key",
+							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzRootCA:    "/not/exist.pem",
-							RefreshDuration: "30m",
+							AthenzCAPath:  "/not/exist.pem",
+							RefreshPeriod: "30m",
 						},
 					},
 					token: token,
@@ -537,14 +537,14 @@ func TestNewSvcCertService(t *testing.T) {
 				name: "Invalid Athenz URL",
 				args: args{
 					cfg: config.Config{
-						Token: config.Token{
+						NToken: config.NToken{
 							AthenzDomain:   "test.domain",
-							PrivateKeyPath: "./assets/dummyServer.key",
+							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzRootCA:    "./assets/dummyCa.pem",
-							AthenzURL:       "%2This is not URL",
-							RefreshDuration: "30m",
+							AthenzCAPath:  "../test/data/dummyCa.pem",
+							AthenzURL:     "%2This is not URL",
+							RefreshPeriod: "30m",
 						},
 					},
 					token: token,
@@ -563,13 +563,13 @@ func TestNewSvcCertService(t *testing.T) {
 				name: "Invalid Athenz Domain",
 				args: args{
 					cfg: config.Config{
-						Token: config.Token{
+						NToken: config.NToken{
 							AthenzDomain:   "+_invalid.domain",
-							PrivateKeyPath: "./assets/dummyServer.key",
+							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzRootCA:    "./assets/dummyCa.pem",
-							RefreshDuration: "30m",
+							AthenzCAPath:  "../test/data/dummyCa.pem",
+							RefreshPeriod: "30m",
 						},
 					},
 					token: token,
@@ -605,7 +605,7 @@ func TestNewSvcCertService(t *testing.T) {
 				actualValue := actualSvcCertService.refreshDuration
 				expectedValue := expectedSvcCertService.refreshDuration
 				if actualValue != expectedValue {
-					t.Errorf("RefreshDuration is not matched: expected: %+v, actual: %+v", expectedValue, actualValue)
+					t.Errorf("RefreshPeriod is not matched: expected: %+v, actual: %+v", expectedValue, actualValue)
 				}
 			}
 
@@ -627,16 +627,16 @@ func TestNewSvcCertService(t *testing.T) {
 func TestSvcCertService_GetSvcCertProvider(t *testing.T) {
 	svcCertService, _ := NewSvcCertService(
 		config.Config{
-			Token: config.Token{
+			NToken: config.NToken{
 				AthenzDomain:   "test.domain",
-				PrivateKeyPath: "./assets/dummyServer.key",
+				PrivateKeyPath: "../test/data/dummyServer.key",
 			},
 			ServiceCert: config.ServiceCert{
-				AthenzRootCA:    "./assets/dummyCa.pem",
-				RefreshDuration: "30m",
+				AthenzCAPath:  "../test/data/dummyCa.pem",
+				RefreshPeriod: "30m",
 			},
 		},
-		func() (string, error) { return "ntoken", nil },
+		func() (string, error) { return "N-token", nil },
 	)
 
 	if svcCertService.GetSvcCertProvider() == nil {
@@ -678,8 +678,8 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 
 	tests := []test{
 		func() test {
-			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
-			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
+			dummyCertBytes, _ := ioutil.ReadFile("../test/data/dummyServer.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("../test/data/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
 			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
 
@@ -696,18 +696,18 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 			}
 
 			cfg := config.Config{
-				Token: config.Token{
-					PrivateKeyPath: "./assets/dummyServer.key",
+				NToken: config.NToken{
+					PrivateKeyPath: "../test/data/dummyServer.key",
 					AthenzDomain:   "dummyDomain",
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
-					Enable:                  true,
-					AthenzRootCA:            "./assets/dummyCa.pem",
-					AthenzURL:               "http://dummy",
-					RefreshDuration:         "30m",
-					PrincipalAuthHeaderName: "Athenz-Principal",
-					IntermediateCert:        true,
+					Enable:              true,
+					AthenzCAPath:        "../test/data/dummyCa.pem",
+					AthenzURL:           "http://dummy",
+					RefreshPeriod:       "30m",
+					PrincipalAuthHeader: "Athenz-Principal",
+					IntermediateCert:    true,
 				},
 			}
 
@@ -729,8 +729,8 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 			}
 		}(),
 		func() test {
-			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
-			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
+			dummyCertBytes, _ := ioutil.ReadFile("../test/data/dummyServer.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("../test/data/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
 			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
 
@@ -747,18 +747,18 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 			}
 
 			cfg := config.Config{
-				Token: config.Token{
-					PrivateKeyPath: "./assets/dummyServer.key",
+				NToken: config.NToken{
+					PrivateKeyPath: "../test/data/dummyServer.key",
 					AthenzDomain:   "dummyDomain",
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
-					Enable:                  true,
-					AthenzRootCA:            "./assets/dummyCa.pem",
-					AthenzURL:               "http://dummy",
-					RefreshDuration:         "30m",
-					PrincipalAuthHeaderName: "Athenz-Principal",
-					IntermediateCert:        true,
+					Enable:              true,
+					AthenzCAPath:        "../test/data/dummyCa.pem",
+					AthenzURL:           "http://dummy",
+					RefreshPeriod:       "30m",
+					PrincipalAuthHeader: "Athenz-Principal",
+					IntermediateCert:    true,
 				},
 			}
 
@@ -775,8 +775,8 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 			}
 		}(),
 		func() test {
-			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
-			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
+			dummyCertBytes, _ := ioutil.ReadFile("../test/data/dummyServer.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("../test/data/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
 			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
 
@@ -793,19 +793,19 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 			}
 
 			cfg := config.Config{
-				Token: config.Token{
-					PrivateKeyPath: "./assets/dummyServer.key",
+				NToken: config.NToken{
+					PrivateKeyPath: "../test/data/dummyServer.key",
 					AthenzDomain:   "dummyDomain",
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
-					Enable:                  true,
-					AthenzRootCA:            "./assets/dummyCa.pem",
-					AthenzURL:               "http://dummy",
-					RefreshDuration:         "30m",
-					PrincipalAuthHeaderName: "Athenz-Principal",
-					IntermediateCert:        true,
-					ExpireMargin:            "1000h",
+					Enable:              true,
+					AthenzCAPath:        "../test/data/dummyCa.pem",
+					AthenzURL:           "http://dummy",
+					RefreshPeriod:       "30m",
+					PrincipalAuthHeader: "Athenz-Principal",
+					IntermediateCert:    true,
+					ExpiryMargin:        "1000h",
 				},
 			}
 
@@ -821,37 +821,37 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 			svcCertService.client.Transport = transpoter
 
 			return test{
-				name:           "getSvcCert returns value from RefreshSvcCert when expiration is before now.",
+				name:           "getSvcCert returns value from RefreshSvcCert when expiry is before now.",
 				svcCertService: svcCertService,
 				want:           append(dummyCertBytes, dummyCaCertBytes...),
 				wantErr:        nil,
 			}
 		}(),
 		func() test {
-			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
+			dummyCertBytes, _ := ioutil.ReadFile("../test/data/dummyServer.crt")
 			token := func() (string, error) { return "dummyToken", nil }
 
 			transpoter := &mockTransporter{
 				StatusCode: 500,
-				Body:       [][]byte{[]byte{}},
+				Body:       [][]byte{{}},
 				Method:     "GET",
 				Error:      fmt.Errorf("request error"),
 			}
 
 			cfg := config.Config{
-				Token: config.Token{
-					PrivateKeyPath: "./assets/dummyServer.key",
+				NToken: config.NToken{
+					PrivateKeyPath: "../test/data/dummyServer.key",
 					AthenzDomain:   "dummyDomain",
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
-					Enable:                  true,
-					AthenzRootCA:            "./assets/dummyCa.pem",
-					AthenzURL:               "http://dummy",
-					RefreshDuration:         "30m",
-					PrincipalAuthHeaderName: "Athenz-Principal",
-					IntermediateCert:        true,
-					ExpireMargin:            "10d",
+					Enable:              true,
+					AthenzCAPath:        "../test/data/dummyCa.pem",
+					AthenzURL:           "http://dummy",
+					RefreshPeriod:       "30m",
+					PrincipalAuthHeader: "Athenz-Principal",
+					IntermediateCert:    true,
+					ExpiryMargin:        "10d",
 				},
 			}
 
@@ -874,31 +874,31 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 			}
 		}(),
 		func() test {
-			dummyCertBytes, _ := ioutil.ReadFile("./assets/expired_dummyServer.crt")
+			dummyCertBytes, _ := ioutil.ReadFile("../test/data/expired_dummyServer.crt")
 
 			token := func() (string, error) { return "dummyToken", nil }
 
 			transpoter := &mockTransporter{
 				StatusCode: 500,
-				Body:       [][]byte{[]byte{}},
+				Body:       [][]byte{{}},
 				Method:     "GET",
 				Error:      fmt.Errorf("request error"),
 			}
 
 			cfg := config.Config{
-				Token: config.Token{
-					PrivateKeyPath: "./assets/dummyServer.key",
+				NToken: config.NToken{
+					PrivateKeyPath: "../test/data/dummyServer.key",
 					AthenzDomain:   "dummyDomain",
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
-					Enable:                  true,
-					AthenzRootCA:            "./assets/dummyCa.pem",
-					AthenzURL:               "http://dummy",
-					RefreshDuration:         "30m",
-					PrincipalAuthHeaderName: "Athenz-Principal",
-					IntermediateCert:        true,
-					ExpireMargin:            "1s",
+					Enable:              true,
+					AthenzCAPath:        "../test/data/dummyCa.pem",
+					AthenzURL:           "http://dummy",
+					RefreshPeriod:       "30m",
+					PrincipalAuthHeader: "Athenz-Principal",
+					IntermediateCert:    true,
+					ExpiryMargin:        "1s",
 				},
 			}
 
@@ -916,8 +916,8 @@ func TestSvcCertService_GetSvcCert(t *testing.T) {
 			wantErr := fmt.Errorf(
 				`Post "%s/instance/%s/%s/refresh": request error`,
 				cfg.ServiceCert.AthenzURL,
-				cfg.Token.AthenzDomain,
-				cfg.Token.ServiceName,
+				cfg.NToken.AthenzDomain,
+				cfg.NToken.ServiceName,
 			)
 
 			return test{
@@ -958,8 +958,8 @@ func TestSvcCertService_StartSvcCertUpdater(t *testing.T) {
 		func() test {
 			ctx, cancel := context.WithCancel(context.Background())
 
-			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
-			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
+			dummyCertBytes, _ := ioutil.ReadFile("../test/data/dummyServer.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("../test/data/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
 			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
 
@@ -978,18 +978,18 @@ func TestSvcCertService_StartSvcCertUpdater(t *testing.T) {
 			}
 
 			cfg := config.Config{
-				Token: config.Token{
-					PrivateKeyPath: "./assets/dummyServer.key",
+				NToken: config.NToken{
+					PrivateKeyPath: "../test/data/dummyServer.key",
 					AthenzDomain:   "dummyDomain",
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
-					Enable:                  true,
-					AthenzRootCA:            "./assets/dummyCa.pem",
-					AthenzURL:               "http://dummy",
-					RefreshDuration:         "100ms",
-					PrincipalAuthHeaderName: "Athenz-Principal",
-					IntermediateCert:        true,
+					Enable:              true,
+					AthenzCAPath:        "../test/data/dummyCa.pem",
+					AthenzURL:           "http://dummy",
+					RefreshPeriod:       "100ms",
+					PrincipalAuthHeader: "Athenz-Principal",
+					IntermediateCert:    true,
 				},
 			}
 
@@ -1018,8 +1018,8 @@ func TestSvcCertService_StartSvcCertUpdater(t *testing.T) {
 		func() test {
 			ctx, cancel := context.WithCancel(context.Background())
 
-			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
-			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
+			dummyCertBytes, _ := ioutil.ReadFile("../test/data/dummyServer.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("../test/data/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
 			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
 
@@ -1038,18 +1038,18 @@ func TestSvcCertService_StartSvcCertUpdater(t *testing.T) {
 			}
 
 			cfg := config.Config{
-				Token: config.Token{
-					PrivateKeyPath: "./assets/dummyServer.key",
+				NToken: config.NToken{
+					PrivateKeyPath: "../test/data/dummyServer.key",
 					AthenzDomain:   "dummyDomain",
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
-					Enable:                  true,
-					AthenzRootCA:            "./assets/dummyCa.pem",
-					AthenzURL:               "http://dummy",
-					RefreshDuration:         "100ms",
-					PrincipalAuthHeaderName: "Athenz-Principal",
-					IntermediateCert:        true,
+					Enable:              true,
+					AthenzCAPath:        "../test/data/dummyCa.pem",
+					AthenzURL:           "http://dummy",
+					RefreshPeriod:       "100ms",
+					PrincipalAuthHeader: "Athenz-Principal",
+					IntermediateCert:    true,
 				},
 			}
 
@@ -1103,8 +1103,8 @@ func TestSvcCertService_RefreshSvcCert(t *testing.T) {
 
 	tests := []test{
 		func() test {
-			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
-			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
+			dummyCertBytes, _ := ioutil.ReadFile("../test/data/dummyServer.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("../test/data/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
 			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
 
@@ -1121,18 +1121,18 @@ func TestSvcCertService_RefreshSvcCert(t *testing.T) {
 			}
 
 			cfg := config.Config{
-				Token: config.Token{
-					PrivateKeyPath: "./assets/dummyServer.key",
+				NToken: config.NToken{
+					PrivateKeyPath: "../test/data/dummyServer.key",
 					AthenzDomain:   "dummyDomain",
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
-					Enable:                  true,
-					AthenzRootCA:            "./assets/dummyCa.pem",
-					AthenzURL:               "http://dummy",
-					RefreshDuration:         "30m",
-					PrincipalAuthHeaderName: "Athenz-Principal",
-					IntermediateCert:        true,
+					Enable:              true,
+					AthenzCAPath:        "../test/data/dummyCa.pem",
+					AthenzURL:           "http://dummy",
+					RefreshPeriod:       "30m",
+					PrincipalAuthHeader: "Athenz-Principal",
+					IntermediateCert:    true,
 				},
 			}
 
@@ -1149,8 +1149,8 @@ func TestSvcCertService_RefreshSvcCert(t *testing.T) {
 			}
 		}(),
 		func() test {
-			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
-			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
+			dummyCertBytes, _ := ioutil.ReadFile("../test/data/dummyServer.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("../test/data/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
 			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
 
@@ -1167,18 +1167,18 @@ func TestSvcCertService_RefreshSvcCert(t *testing.T) {
 			}
 
 			cfg := config.Config{
-				Token: config.Token{
-					PrivateKeyPath: "./assets/dummyServer.key",
+				NToken: config.NToken{
+					PrivateKeyPath: "../test/data/dummyServer.key",
 					AthenzDomain:   "dummyDomain",
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
-					Enable:                  true,
-					AthenzRootCA:            "./assets/dummyCa.pem",
-					AthenzURL:               "http://dummy",
-					RefreshDuration:         "30m",
-					PrincipalAuthHeaderName: "Athenz-Principal",
-					IntermediateCert:        false,
+					Enable:              true,
+					AthenzCAPath:        "../test/data/dummyCa.pem",
+					AthenzURL:           "http://dummy",
+					RefreshPeriod:       "30m",
+					PrincipalAuthHeader: "Athenz-Principal",
+					IntermediateCert:    false,
 				},
 			}
 
@@ -1195,15 +1195,15 @@ func TestSvcCertService_RefreshSvcCert(t *testing.T) {
 			}
 		}(),
 		func() test {
-			dummyCertBytes, _ := ioutil.ReadFile("./assets/dummyServer.crt")
-			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
+			dummyCertBytes, _ := ioutil.ReadFile("../test/data/dummyServer.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("../test/data/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
 			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
 
 			dummyResponce := fmt.Sprintf(
 				`{"name": "dummy", "certificate":"%s", "caCertBundle": "%s"}`, dummyCert, dummyCaCert,
 			)
-			token := func() (string, error) { return "", fmt.Errorf("ntoken error") }
+			token := func() (string, error) { return "", fmt.Errorf("N-token error") }
 
 			transpoter := &mockTransporter{
 				StatusCode: 200,
@@ -1213,18 +1213,18 @@ func TestSvcCertService_RefreshSvcCert(t *testing.T) {
 			}
 
 			cfg := config.Config{
-				Token: config.Token{
-					PrivateKeyPath: "./assets/dummyServer.key",
+				NToken: config.NToken{
+					PrivateKeyPath: "../test/data/dummyServer.key",
 					AthenzDomain:   "dummyDomain",
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
-					Enable:                  true,
-					AthenzRootCA:            "./assets/dummyCa.pem",
-					AthenzURL:               "http://dummy",
-					RefreshDuration:         "30m",
-					PrincipalAuthHeaderName: "Athenz-Principal",
-					IntermediateCert:        false,
+					Enable:              true,
+					AthenzCAPath:        "../test/data/dummyCa.pem",
+					AthenzURL:           "http://dummy",
+					RefreshPeriod:       "30m",
+					PrincipalAuthHeader: "Athenz-Principal",
+					IntermediateCert:    false,
 				},
 			}
 
@@ -1237,7 +1237,7 @@ func TestSvcCertService_RefreshSvcCert(t *testing.T) {
 				name:           "RefreshSvcCert fail when ntokend returns error",
 				svcCertService: svcCertService,
 				want:           nil,
-				wantErr:        fmt.Errorf("ntoken error"),
+				wantErr:        fmt.Errorf("N-token error"),
 			}
 		}(),
 		func() test {
@@ -1251,18 +1251,18 @@ func TestSvcCertService_RefreshSvcCert(t *testing.T) {
 			}
 
 			cfg := config.Config{
-				Token: config.Token{
-					PrivateKeyPath: "./assets/dummyServer.key",
+				NToken: config.NToken{
+					PrivateKeyPath: "../test/data/dummyServer.key",
 					AthenzDomain:   "dummyDomain",
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
-					Enable:                  true,
-					AthenzRootCA:            "./assets/dummyCa.pem",
-					AthenzURL:               "http://dummy",
-					RefreshDuration:         "30m",
-					PrincipalAuthHeaderName: "Athenz-Principal",
-					IntermediateCert:        false,
+					Enable:              true,
+					AthenzCAPath:        "../test/data/dummyCa.pem",
+					AthenzURL:           "http://dummy",
+					RefreshPeriod:       "30m",
+					PrincipalAuthHeader: "Athenz-Principal",
+					IntermediateCert:    false,
 				},
 			}
 
@@ -1274,8 +1274,8 @@ func TestSvcCertService_RefreshSvcCert(t *testing.T) {
 			wantErr := fmt.Errorf(
 				`Post "%s/instance/%s/%s/refresh": request error`,
 				cfg.ServiceCert.AthenzURL,
-				cfg.Token.AthenzDomain,
-				cfg.Token.ServiceName,
+				cfg.NToken.AthenzDomain,
+				cfg.NToken.ServiceName,
 			)
 
 			return test{
@@ -1286,8 +1286,8 @@ func TestSvcCertService_RefreshSvcCert(t *testing.T) {
 			}
 		}(),
 		func() test {
-			dummyCertBytes, _ := ioutil.ReadFile("./assets/invalid_dummyServer.crt")
-			dummyCaCertBytes, _ := ioutil.ReadFile("./assets/dummyCa.pem")
+			dummyCertBytes, _ := ioutil.ReadFile("../test/data/invalid_dummyServer.crt")
+			dummyCaCertBytes, _ := ioutil.ReadFile("../test/data/dummyCa.pem")
 			dummyCert := strings.ReplaceAll(string(dummyCertBytes), "\n", "\\n")
 			dummyCaCert := strings.ReplaceAll(string(dummyCaCertBytes), "\n", "\\n")
 
@@ -1304,18 +1304,18 @@ func TestSvcCertService_RefreshSvcCert(t *testing.T) {
 			}
 
 			cfg := config.Config{
-				Token: config.Token{
-					PrivateKeyPath: "./assets/dummyServer.key",
+				NToken: config.NToken{
+					PrivateKeyPath: "../test/data/dummyServer.key",
 					AthenzDomain:   "dummyDomain",
 					ServiceName:    "dummyService",
 				},
 				ServiceCert: config.ServiceCert{
-					Enable:                  true,
-					AthenzRootCA:            "./assets/dummyCa.pem",
-					AthenzURL:               "http://dummy",
-					RefreshDuration:         "30m",
-					PrincipalAuthHeaderName: "Athenz-Principal",
-					IntermediateCert:        false,
+					Enable:              true,
+					AthenzCAPath:        "../test/data/dummyCa.pem",
+					AthenzURL:           "http://dummy",
+					RefreshPeriod:       "30m",
+					PrincipalAuthHeader: "Athenz-Principal",
+					IntermediateCert:    false,
 				},
 			}
 

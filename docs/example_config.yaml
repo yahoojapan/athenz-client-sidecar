@@ -1,0 +1,69 @@
+---
+version: v2.0.0
+server:
+  port: 8080
+  timeout: 10s
+  shutdownTimeout: 10s
+  shutdownDelay: 9s
+  tls:
+    enable: true
+    certPath: "test/data/dummyServer.crt"
+    keyPath: "test/data/dummyServer.key"
+    caPath: "test/data/dummyCa.pem"
+  healthCheck:
+    port: 6080
+    endpoint: /healthz
+nToken:
+  athenzDomain: _athenz_domain_
+  serviceName: _service_name_
+  privateKeyPath: "test/data/dummyECServer.key"
+  keyVersion: v1
+  expiry: 30m
+  refreshPeriod: 25m
+  existingTokenPath: ""
+  validate: false
+accessToken:
+  enable: true
+  principalAuthHeader: Athenz-Principal-Auth
+  athenzURL: https://athenz.io:4443/zts/v1
+  athenzCAPath: _athenz_root_ca_
+  # athenzCAPath: /etc/ssl/cert.pem
+  expiry: ""
+  refreshPeriod: ""
+  retry:
+    attempts: 0
+    delay: ""
+roleToken:
+  principalAuthHeader: Athenz-Principal-Auth
+  athenzURL: https://athenz.io:4443/zts/v1
+  athenzCAPath: _athenz_root_ca_
+  # athenzCAPath: /etc/ssl/cert.pem
+  expiry: ""
+  refreshPeriod: ""
+  retry:
+    attempts: 0
+    delay: ""
+serviceCert:
+  enable: false
+  principalAuthHeader: Athenz-Principal-Auth
+  athenzURL: https://athenz.io:4443/zts/v1
+  athenzCAPath: _athenz_root_ca_
+  # athenzCAPath: /etc/ssl/cert.pem
+  expiry: 720h
+  refreshPeriod: 30m
+  expiryMargin: 30h
+  dnsSuffix: athenz.cloud
+  intermediateCert: true
+  spiffe: false
+  subject:
+    country: US
+    province: California
+    organization: "Oath Inc."
+    organizationalUnit: Athenz
+proxy:
+  principalAuthHeader: Yahoo-Principal-Auth
+  roleAuthHeader: Yahoo-Role-Auth
+  bufferSize: 1024
+log:
+  level: debug
+  color: true

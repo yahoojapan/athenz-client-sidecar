@@ -20,8 +20,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/yahoojapan/athenz-client-sidecar/config"
-	"github.com/yahoojapan/athenz-client-sidecar/handler"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/handler"
 )
 
 func TestNewRoutes(t *testing.T) {
@@ -39,9 +39,9 @@ func TestNewRoutes(t *testing.T) {
 		func() test {
 			// prepare handler.Handler for calling NewRoutes()
 			proxyConfig := config.Proxy{
-				PrincipalAuthHeaderName: "X-test-auth-header",
-				RoleAuthHeaderName:      "X-test-role-header",
-				BufferSize:              1024,
+				PrincipalAuthHeader: "X-test-auth-header",
+				RoleAuthHeader:      "X-test-role-header",
+				BufferSize:          1024,
 			}
 			h := handler.New(proxyConfig, nil, nil, nil, nil, nil)
 
@@ -52,7 +52,7 @@ func TestNewRoutes(t *testing.T) {
 						ServiceCert: config.ServiceCert{
 							Enable: true,
 						},
-						Access: config.Access{
+						AccessToken: config.AccessToken{
 							Enable: true,
 						},
 					},
@@ -96,7 +96,7 @@ func TestNewRoutes(t *testing.T) {
 						[]string{
 							http.MethodPost,
 						},
-						"/access-token",
+						"/accesstoken",
 						h.AccessToken,
 					},
 					{
@@ -113,9 +113,9 @@ func TestNewRoutes(t *testing.T) {
 		func() test {
 			// prepare handler.Handler for calling NewRoutes()
 			proxyConfig := config.Proxy{
-				PrincipalAuthHeaderName: "X-test-auth-header",
-				RoleAuthHeaderName:      "X-test-role-header",
-				BufferSize:              1024,
+				PrincipalAuthHeader: "X-test-auth-header",
+				RoleAuthHeader:      "X-test-role-header",
+				BufferSize:          1024,
 			}
 			h := handler.New(proxyConfig, nil, nil, nil, nil, nil)
 
@@ -126,7 +126,7 @@ func TestNewRoutes(t *testing.T) {
 						ServiceCert: config.ServiceCert{
 							Enable: false,
 						},
-						Access: config.Access{
+						AccessToken: config.AccessToken{
 							Enable: false,
 						},
 					},

@@ -26,7 +26,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/yahoojapan/athenz-client-sidecar/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
 )
 
 func TestNewServer(t *testing.T) {

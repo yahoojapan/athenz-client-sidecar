@@ -30,9 +30,9 @@ import (
 	"time"
 
 	"github.com/kpango/ntokend"
-	"github.com/yahoojapan/athenz-client-sidecar/config"
-	"github.com/yahoojapan/athenz-client-sidecar/infra"
-	"github.com/yahoojapan/athenz-client-sidecar/service"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/infra"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/service"
 )
 
 // NotEqualError reports the name of the field having different value and their values.

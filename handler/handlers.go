@@ -24,9 +24,9 @@ import (
 	"net/http/httputil"
 
 	"github.com/kpango/ntokend"
-	"github.com/yahoojapan/athenz-client-sidecar/config"
-	"github.com/yahoojapan/athenz-client-sidecar/model"
-	"github.com/yahoojapan/athenz-client-sidecar/service"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/model"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/service"
 )
 
 // Handler for handling a set of HTTP requests.

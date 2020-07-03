@@ -259,7 +259,7 @@ import (
     "fmt"
     "net/http"
 
-    "github.com/yahoojapan/athenz-client-sidecar/model"
+    "github.com/yahoojapan/athenz-client-sidecar/v2/model"
 )
 
 const scURL = "127.0.0.1" // sidecar URL
@@ -303,7 +303,7 @@ import (
     "fmt"
     "net/http"
 
-    "github.com/yahoojapan/athenz-client-sidecar/model"
+    "github.com/yahoojapan/athenz-client-sidecar/v2/model"
 )
 
 const scURL = "127.0.0.1" // sidecar URL
@@ -363,7 +363,7 @@ import (
     "fmt"
     "net/http"
 
-    "github.com/yahoojapan/athenz-client-sidecar/model"
+    "github.com/yahoojapan/athenz-client-sidecar/v2/model"
 )
 
 const scURL = "127.0.0.1" // sidecar URL
@@ -423,7 +423,7 @@ import (
     "fmt"
     "net/http"
 
-    "github.com/yahoojapan/athenz-client-sidecar/model"
+    "github.com/yahoojapan/athenz-client-sidecar/v2/model"
 )
 
 const scURL = "127.0.0.1" // sidecar URL

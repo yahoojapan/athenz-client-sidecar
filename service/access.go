@@ -35,7 +35,7 @@ import (
 	"github.com/kpango/glg"
 	"github.com/kpango/ntokend"
 	"github.com/pkg/errors"
-	"github.com/yahoojapan/athenz-client-sidecar/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
 	"golang.org/x/sync/singleflight"
 )
 

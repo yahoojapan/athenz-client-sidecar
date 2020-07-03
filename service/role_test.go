@@ -30,7 +30,7 @@ import (
 	"github.com/kpango/gache"
 	"github.com/kpango/ntokend"
 	"github.com/pkg/errors"
-	"github.com/yahoojapan/athenz-client-sidecar/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
 )
 
 func TestNewRoleService(t *testing.T) {

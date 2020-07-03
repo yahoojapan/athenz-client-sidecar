@@ -54,6 +54,8 @@ github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5
 github.com/yahoo/athenz v1.9.4/go.mod h1:LyE/c1Pe3bEsMB/ZavwGOH+D3MIS6GS7fLtdEbzJfaI=
 github.com/yahoo/athenz v1.9.9 h1:O/deSn34pEFz6L0jWznJ4JGoxyCiTPoNKwAFVVLQJTk=
 github.com/yahoo/athenz v1.9.9/go.mod h1:LyE/c1Pe3bEsMB/ZavwGOH+D3MIS6GS7fLtdEbzJfaI=
+github.com/yahoo/athenz v1.9.10 h1:knKGFb/8FxPW1ZnlVNq/b4mPRj0WFTFk6DVNKS8gtLI=
+github.com/yahoo/athenz v1.9.10/go.mod h1:LyE/c1Pe3bEsMB/ZavwGOH+D3MIS6GS7fLtdEbzJfaI=
 github.com/zeebo/xxh3 v0.0.0-20191227220208-65f423c10688 h1:C5YYdD+oJh6KoLMePMeA/+PPy2vgsEb6UBBMIy4ug+s=
 github.com/zeebo/xxh3 v0.0.0-20191227220208-65f423c10688/go.mod h1:e/zZObEJWtkq6f+bAzme0xQJSGI75oxoeqS+f2I7YVI=
 go.uber.org/atomic v1.5.0 h1:OI5t8sDa1Or+q8AeE+yKeB/SDYioSHAgcVljj9JIETY=

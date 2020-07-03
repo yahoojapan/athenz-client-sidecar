@@ -23,7 +23,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/yahoojapan/athenz-client-sidecar/config"
+	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
 )
 
 func TestNewTLSConfig(t *testing.T) {

@@ -102,6 +102,9 @@ type HealthCheck struct {
 
 // NToken represents the configuration to generate N-token for connecting to the Athenz server.
 type NToken struct {
+	// Enable represents whether to enable retrieving endpoint. (currently, hard-coded to always true)
+	Enable bool `yaml:"enable"`
+
 	// AthenzDomain represents the Athenz domain.
 	AthenzDomain string `yaml:"athenzDomain"`
 
@@ -141,6 +144,12 @@ type AccessToken struct {
 	// AthenzCAPath represents the Athenz CA certificate chain file path.
 	AthenzCAPath string `yaml:"athenzCAPath"`
 
+	// CertPath represents the client certificate file path.
+	CertPath string `yaml:"certPath"`
+
+	// CertKeyPath represents the client certificate's private key file path.
+	CertKeyPath string `yaml:"certKeyPath"`
+
 	// Expiry represents the duration before expires.
 	Expiry string `yaml:"expiry"`
 
@@ -153,6 +162,9 @@ type AccessToken struct {
 
 // RoleToken represents the configuration to retrieve role token from the Athenz server.
 type RoleToken struct {
+	// Enable represents whether to enable retrieving endpoint. (currently, hard-coded to always true)
+	Enable bool `yaml:"enable"`
+
 	// PrincipalAuthHeader represents the HTTP header for injecting N-token.
 	PrincipalAuthHeader string `yaml:"principalAuthHeader"`
 
@@ -161,6 +173,12 @@ type RoleToken struct {
 
 	// AthenzCAPath represents the Athenz CA certificate chain file path.
 	AthenzCAPath string `yaml:"athenzCAPath"`
+
+	// CertPath represents the client certificate file path.
+	CertPath string `yaml:"certPath"`
+
+	// CertKeyPath represents the client certificate's private key file path.
+	CertKeyPath string `yaml:"certKeyPath"`
 
 	// Expiry represents the duration before expires.
 	Expiry string `yaml:"expiry"`
@@ -225,6 +243,9 @@ type Subject struct {
 
 // Proxy represents the configuration of the forward proxy that automatically injects N-token or role token to the requests.
 type Proxy struct {
+	// Enable represents whether to enable retrieving endpoint. (currently, hard-coded to always true)
+	Enable bool `yaml:"enable"`
+
 	// PrincipalAuthHeader represents the HTTP header for injecting N-token.
 	PrincipalAuthHeader string `yaml:"principalAuthHeader"`
 

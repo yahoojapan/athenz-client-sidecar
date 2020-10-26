@@ -14,6 +14,7 @@ server:
     port: 6080
     endpoint: /healthz
 nToken:
+  enable: true
   athenzDomain: _athenz_domain_
   serviceName: _service_name_
   privateKeyPath: "test/data/dummyECServer.key"
@@ -28,16 +29,21 @@ accessToken:
   athenzURL: https://athenz.io:4443/zts/v1
   athenzCAPath: _athenz_root_ca_
   # athenzCAPath: /etc/ssl/cert.pem
+  certPath: _client_cert_path_
+  certKeyPath: _client_cert_key_path_
   expiry: ""
   refreshPeriod: ""
   retry:
     attempts: 0
     delay: ""
 roleToken:
+  enable: true
   principalAuthHeader: Athenz-Principal-Auth
   athenzURL: https://athenz.io:4443/zts/v1
   athenzCAPath: _athenz_root_ca_
   # athenzCAPath: /etc/ssl/cert.pem
+  certPath: _client_cert_path_
+  certKeyPath: _client_cert_key_path_
   expiry: ""
   refreshPeriod: ""
   retry:
@@ -61,6 +67,7 @@ serviceCert:
     organization: "Oath Inc."
     organizationalUnit: Athenz
 proxy:
+  enable: true
   principalAuthHeader: Yahoo-Principal-Auth
   roleAuthHeader: Yahoo-Role-Auth
   bufferSize: 1024

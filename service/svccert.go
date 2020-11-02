@@ -25,7 +25,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -38,6 +37,7 @@ import (
 	"github.com/kpango/fastime"
 	"github.com/kpango/glg"
 	"github.com/kpango/ntokend"
+	"github.com/pkg/errors"
 	"github.com/yahoo/athenz/clients/go/zts"
 	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
 	"golang.org/x/sync/singleflight"
@@ -112,6 +112,11 @@ type SvcCertProvider func() ([]byte, error)
 
 // NewSvcCertService returns a SvcCertService to update and get the svccert from Athenz.
 func NewSvcCertService(cfg config.Config, token ntokend.TokenProvider) (SvcCertService, error) {
+
+	if !cfg.ServiceCert.Enable {
+		return nil, ErrDisabled
+	}
+
 	dur, err := time.ParseDuration(cfg.ServiceCert.RefreshPeriod)
 	if err != nil {
 		glg.Warnf("Failed to parse configuration value of refreshPeriod, err: %s. Using default value: %d", err.Error(), defaultSvcCertRefreshPeriod)

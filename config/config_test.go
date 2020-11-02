@@ -143,6 +143,13 @@ func TestNew(t *testing.T) {
 			},
 			wantErr: fmt.Errorf("yaml: line "),
 		},
+		{
+			name: "Read non-existing config file",
+			args: args{
+				path: "../test/data/non_exist.yaml",
+			},
+			wantErr: fmt.Errorf("open ../test/data/non_exist.yaml: no such file or directory"),
+		},
 	}
 
 	for _, tt := range tests {

@@ -276,7 +276,7 @@ type Retry struct {
 
 // New returns *Config or error when decode the configuration file to actually *Config struct.
 func New(path string) (*Config, error) {
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDONLY, 0600)
+	f, err := os.OpenFile(path, os.O_RDONLY, 0600)
 	if err != nil {
 		return nil, err
 	}

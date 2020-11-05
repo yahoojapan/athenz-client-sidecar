@@ -286,6 +286,7 @@ func Test_clientd_Start(t *testing.T) {
 		cfg     config.Config
 		token   ntokend.TokenService
 		server  service.Server
+		access  service.AccessService
 		role    service.RoleService
 		svccert service.SvcCertService
 	}
@@ -381,6 +382,7 @@ func Test_clientd_Start(t *testing.T) {
 						cfg:     cfg,
 						token:   token,
 						server:  server,
+						access:  access,
 						role:    role,
 						svccert: nil,
 					}
@@ -422,6 +424,7 @@ func Test_clientd_Start(t *testing.T) {
 				cfg:     tt.fields.cfg,
 				token:   tt.fields.token,
 				server:  tt.fields.server,
+				access:  tt.fields.access,
 				role:    tt.fields.role,
 				svccert: tt.fields.svccert,
 			}

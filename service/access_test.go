@@ -17,6 +17,7 @@ package service
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"math"
 	"net/http"
@@ -46,6 +47,7 @@ func TestNewAccessService(t *testing.T) {
 		want      AccessService
 		wantErr   error
 	}
+	dummyTokenProvider := func() (string, error) { return "", nil }
 	tests := []test{
 		func() test {
 			args := args{
@@ -56,9 +58,7 @@ func TestNewAccessService(t *testing.T) {
 					PrincipalAuthHeader: "dummyAuthHeader",
 					RefreshPeriod:       "1s",
 				},
-				token: func() (string, error) {
-					return "", nil
-				},
+				token: dummyTokenProvider,
 			}
 			return test{
 				name: "NewAccessService return correct",
@@ -93,12 +93,11 @@ func TestNewAccessService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.AccessToken{
+					Enable:              true,
 					AthenzURL:           "dummy",
 					PrincipalAuthHeader: "dummyAuthHeader",
 				},
-				token: func() (string, error) {
-					return "", nil
-				},
+				token: dummyTokenProvider,
 			}
 			return test{
 				name: "NewAccessService default values",
@@ -136,6 +135,7 @@ func TestNewAccessService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.AccessToken{
+					Enable: true,
 					Expiry: "1x",
 				},
 			}
@@ -148,6 +148,7 @@ func TestNewAccessService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.AccessToken{
+					Enable:        true,
 					RefreshPeriod: "1x",
 				},
 			}
@@ -160,6 +161,7 @@ func TestNewAccessService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.AccessToken{
+					Enable: true,
 					Retry: config.Retry{
 						Delay: "1x",
 					},
@@ -174,6 +176,7 @@ func TestNewAccessService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.AccessToken{
+					Enable: true,
 					Retry: config.Retry{
 						Attempts: -1,
 					},
@@ -188,14 +191,13 @@ func TestNewAccessService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.AccessToken{
+					Enable:              true,
 					AthenzURL:           "dummy",
 					PrincipalAuthHeader: "dummyAuthHeader",
 					RefreshPeriod:       "60s",
 					Expiry:              "1s",
 				},
-				token: func() (string, error) {
-					return "", nil
-				},
+				token: dummyTokenProvider,
 			}
 			return test{
 				name:    "NewAccessService return error when refresh period > token expiry",
@@ -207,15 +209,14 @@ func TestNewAccessService(t *testing.T) {
 			cnt := 10
 			args := args{
 				cfg: config.AccessToken{
+					Enable:              true,
 					AthenzURL:           "dummy",
 					PrincipalAuthHeader: "dummyAuthHeader",
 					Retry: config.Retry{
 						Attempts: cnt,
 					},
 				},
-				token: func() (string, error) {
-					return "", nil
-				},
+				token: dummyTokenProvider,
 			}
 			return test{
 				name: "NewAccessService specific ErrRetryMaxCount",
@@ -253,13 +254,12 @@ func TestNewAccessService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.AccessToken{
+					Enable:              true,
 					AthenzURL:           "dummy",
 					PrincipalAuthHeader: "dummyAuthHeader",
 					AthenzCAPath:        "../test/data/dummyCa.pem",
 				},
-				token: func() (string, error) {
-					return "", nil
-				},
+				token: dummyTokenProvider,
 			}
 			return test{
 				name: "NewAccessService contains valid Athenz rootCA",
@@ -279,10 +279,13 @@ func TestNewAccessService(t *testing.T) {
 
 						return fmt.Errorf("got: %+v, want: %+v", got, want)
 					}
-					cp, _ := NewX509CertPool(args.cfg.AthenzCAPath)
+					cp, err := NewX509CertPool(args.cfg.AthenzCAPath)
+					if err != nil {
+						return err
+					}
 					t := gotS.httpClient.Transport.(*http.Transport)
 					if !reflect.DeepEqual(t.TLSClientConfig.RootCAs, cp) {
-						return fmt.Errorf("cert not match, got: %+v, want: %+v", t, cp)
+						return fmt.Errorf("CA cert not match, got: %+v, want: %+v", t.TLSClientConfig, cp)
 					}
 
 					return nil
@@ -303,22 +306,22 @@ func TestNewAccessService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.AccessToken{
+					Enable:              true,
 					AthenzURL:           "dummy",
 					PrincipalAuthHeader: "dummyAuthHeader",
-					AthenzCAPath:        "../test/data/invalid_dummyCa.pem",
+					CertPath:            "../test/data/dummyClient.crt",
+					CertKeyPath:         "../test/data/dummyClient.key",
 				},
-				token: func() (string, error) {
-					return "", nil
-				},
+				token: dummyTokenProvider,
 			}
 			return test{
-				name: "NewAccessService contains invalid Athenz rootCA",
+				name: "NewAccessService contains valid client certificate",
 				args: args,
 				checkFunc: func(got, want AccessService) error {
 					gotS := got.(*accessService)
 					wantS := want.(*accessService)
 					if !reflect.DeepEqual(gotS.cfg, wantS.cfg) ||
-						reflect.ValueOf(gotS.token).Pointer() != reflect.ValueOf(wantS.token).Pointer() ||
+						// reflect.ValueOf(gotS.token).Pointer() != reflect.ValueOf(wantS.token).Pointer() ||
 						!reflect.DeepEqual(gotS.athenzURL, wantS.athenzURL) ||
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
 						//!reflect.DeepEqual(gotS.tokenCache, wantS.tokenCache) ||
@@ -329,8 +332,16 @@ func TestNewAccessService(t *testing.T) {
 
 						return fmt.Errorf("got: %+v, want: %+v", got, want)
 					}
-					if gotS.httpClient != http.DefaultClient {
-						return fmt.Errorf("http client not match, got: %+v, want: %+v", gotS.httpClient, http.DefaultClient)
+					cert, err := tls.LoadX509KeyPair(args.cfg.CertPath, args.cfg.CertKeyPath)
+					if err != nil {
+						return err
+					}
+					t := gotS.httpClient.Transport.(*http.Transport)
+					if !reflect.DeepEqual(t.TLSClientConfig.Certificates[0], cert) {
+						return fmt.Errorf("client cert not match, got: %+v, want: %+v", t.TLSClientConfig, cert)
+					}
+					if gotS.token != nil {
+						return errors.New("ntoken is not overwrite by client cert")
 					}
 
 					return nil
@@ -348,6 +359,80 @@ func TestNewAccessService(t *testing.T) {
 				},
 			}
 		}(),
+		{
+			name: "NewAccessService disabled",
+			args: args{
+				cfg: config.AccessToken{},
+			},
+			wantErr: ErrDisabled,
+		},
+		{
+			name: "NewAccessService no credentials",
+			args: args{
+				cfg: config.AccessToken{
+					Enable:   true,
+					CertPath: "",
+				},
+			},
+			wantErr: errors.Wrap(ErrInvalidSetting, "Neither NToken nor client certificate is set."),
+		},
+		{
+			name: "NewAccessService with non-existing Athenz rootCA",
+			args: args{
+				cfg: config.AccessToken{
+					Enable:       true,
+					AthenzCAPath: "../test/data/non_exist.pem",
+				},
+				token: dummyTokenProvider,
+			},
+			wantErr: errors.Wrap(ErrInvalidSetting, "Athenz CA not exist"),
+		},
+		{
+			name: "NewAccessService with invalid Athenz rootCA",
+			args: args{
+				cfg: config.AccessToken{
+					Enable:       true,
+					AthenzCAPath: "../test/data/invalid_dummyCa.pem",
+				},
+				token: dummyTokenProvider,
+			},
+			wantErr: errors.Wrap(ErrInvalidSetting, "Certification Failed"),
+		},
+		{
+			name: "NewAccessService with non-existing client certificate",
+			args: args{
+				cfg: config.AccessToken{
+					Enable:   true,
+					CertPath: "../test/data/non_exist.pem",
+				},
+				token: dummyTokenProvider,
+			},
+			wantErr: errors.Wrap(ErrInvalidSetting, "client certificate not exist"),
+		},
+		{
+			name: "NewAccessService with non-existing client certificate key",
+			args: args{
+				cfg: config.AccessToken{
+					Enable:      true,
+					CertPath:    "../test/data/dummyClient.crt",
+					CertKeyPath: "../test/data/non_exist.key",
+				},
+				token: dummyTokenProvider,
+			},
+			wantErr: errors.Wrap(ErrInvalidSetting, "client certificate key not exist"),
+		},
+		{
+			name: "NewAccessService with invalid client certificate",
+			args: args{
+				cfg: config.AccessToken{
+					Enable:      true,
+					CertPath:    "../test/data/invalid_dummyServer.crt",
+					CertKeyPath: "../test/data/invalid_dummyServer.key",
+				},
+				token: dummyTokenProvider,
+			},
+			wantErr: errors.Wrap(ErrInvalidSetting, "tls: failed to find any PEM data in certificate input"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -658,9 +743,17 @@ func Test_accessService_GetAccessProvider(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r, _ := NewAccessService(config.AccessToken{}, nil)
+			token := func() (string, error) { return "", nil }
+			r, err := NewAccessService(config.AccessToken{
+				Enable: true,
+			}, token)
+			if err != nil {
+				t.Error(err.Error())
+				return
+			}
 			if got := r.GetAccessProvider(); got == nil {
-				t.Error("provier is nil")
+				t.Error("provider is nil")
+				return
 			}
 		})
 	}

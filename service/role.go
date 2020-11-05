@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
-	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -88,6 +87,9 @@ var (
 
 	// ErrInvalidSetting represents an error when the config file is invalid.
 	ErrInvalidSetting = errors.New("Invalid config")
+
+	// ErrDisabled represents an error when the service is disabled
+	ErrDisabled = errors.New("Disabled")
 )
 
 const (
@@ -122,6 +124,10 @@ func NewRoleService(cfg config.RoleToken, token ntokend.TokenProvider) (RoleServ
 		errRetryInterval = defaultErrRetryInterval
 	)
 
+	if !cfg.Enable {
+		return nil, ErrDisabled
+	}
+
 	if cfg.Expiry != "" {
 		if exp, err = time.ParseDuration(cfg.Expiry); err != nil {
 			return nil, errors.Wrap(ErrInvalidSetting, "Expiry: "+err.Error())
@@ -150,28 +156,57 @@ func NewRoleService(cfg config.RoleToken, token ntokend.TokenProvider) (RoleServ
 		return nil, errors.Wrap(ErrInvalidSetting, "ErrRetryMaxCount < 0")
 	}
 
-	var cp *x509.CertPool
-	var httpClient *http.Client
-	if len(cfg.AthenzCAPath) > 0 {
-		certPath := config.GetActualValue(cfg.AthenzCAPath)
+	if token == nil && cfg.CertPath == "" {
+		return nil, errors.Wrap(ErrInvalidSetting, "Neither NToken nor client certificate is set.")
+	}
+
+	httpClient := http.DefaultClient
+	tlsConfig := &tls.Config{}
+	setTLSConfig := false
+
+	if cfg.AthenzCAPath != "" {
+		caPath := config.GetActualValue(cfg.AthenzCAPath)
+		_, err := os.Stat(caPath)
+		if os.IsNotExist(err) {
+			return nil, errors.Wrap(ErrInvalidSetting, "Athenz CA not exist")
+		}
+		cp, err := NewX509CertPool(caPath)
+		if err != nil {
+			return nil, errors.Wrap(ErrInvalidSetting, err.Error())
+		}
+		tlsConfig.RootCAs = cp
+		setTLSConfig = true
+	}
+	if cfg.CertPath != "" {
+		certPath := config.GetActualValue(cfg.CertPath)
 		_, err := os.Stat(certPath)
-		if !os.IsNotExist(err) {
-			cp, err = NewX509CertPool(certPath)
-			if err != nil {
-				cp = nil
-			}
+		if os.IsNotExist(err) {
+			return nil, errors.Wrap(ErrInvalidSetting, "client certificate not exist")
+		}
+		keyPath := config.GetActualValue(cfg.CertKeyPath)
+		_, err = os.Stat(keyPath)
+		if os.IsNotExist(err) {
+			return nil, errors.Wrap(ErrInvalidSetting, "client certificate key not exist")
+		}
+		cert, err := tls.LoadX509KeyPair(certPath, keyPath)
+		if err != nil {
+			return nil, errors.Wrap(ErrInvalidSetting, err.Error())
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
+		setTLSConfig = true
+
+		// take priority over N-token
+		if token != nil {
+			glg.Warn("Both token provider and client certificate is set. Will only request with client certificate.")
+			token = nil
 		}
 	}
-	if cp != nil {
+	if setTLSConfig {
 		httpClient = &http.Client{
 			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					RootCAs: cp,
-				},
+				TLSClientConfig: tlsConfig,
 			},
 		}
-	} else {
-		httpClient = http.DefaultClient
 	}
 
 	return &roleService{
@@ -315,13 +350,17 @@ func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyFor
 	glg.Debugf("get role token, domain: %s, role: %s, proxyForPrincipal: %s, minExpiry: %d, maxExpiry: %d", domain, role, proxyForPrincipal, minExpiry, maxExpiry)
 
 	// get the N-token
-	tok, err := r.token()
-	if err != nil {
-		return nil, err
+	var cred string
+	if r.token != nil {
+		var err error
+		cred, err = r.token()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// prepare request object
-	req, err := r.createGetRoleTokenRequest(domain, role, minExpiry, maxExpiry, proxyForPrincipal, tok)
+	req, err := r.createGetRoleTokenRequest(domain, role, minExpiry, maxExpiry, proxyForPrincipal, cred)
 	if err != nil {
 		glg.Debugf("fail to create request object, error: %s", err)
 		return nil, err

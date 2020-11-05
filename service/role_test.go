@@ -17,6 +17,7 @@ package service
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"math"
@@ -45,18 +46,18 @@ func TestNewRoleService(t *testing.T) {
 		want      RoleService
 		wantErr   error
 	}
+	dummyTokenProvider := func() (string, error) { return "", nil }
 	tests := []test{
 		func() test {
 			args := args{
 				cfg: config.RoleToken{
+					Enable:              true,
 					Expiry:              "5s",
 					AthenzURL:           "dummy",
 					PrincipalAuthHeader: "dummyAuthHeader",
 					RefreshPeriod:       "1s",
 				},
-				token: func() (string, error) {
-					return "", nil
-				},
+				token: dummyTokenProvider,
 			}
 			return test{
 				name: "NewRoleService return correct",
@@ -91,12 +92,11 @@ func TestNewRoleService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.RoleToken{
+					Enable:              true,
 					AthenzURL:           "dummy",
 					PrincipalAuthHeader: "dummyAuthHeader",
 				},
-				token: func() (string, error) {
-					return "", nil
-				},
+				token: dummyTokenProvider,
 			}
 			return test{
 				name: "NewRoleService default values",
@@ -134,6 +134,7 @@ func TestNewRoleService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.RoleToken{
+					Enable: true,
 					Expiry: "1x",
 				},
 			}
@@ -146,6 +147,7 @@ func TestNewRoleService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.RoleToken{
+					Enable:        true,
 					RefreshPeriod: "1x",
 				},
 			}
@@ -158,6 +160,7 @@ func TestNewRoleService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.RoleToken{
+					Enable: true,
 					Retry: config.Retry{
 						Delay: "1x",
 					},
@@ -172,6 +175,7 @@ func TestNewRoleService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.RoleToken{
+					Enable: true,
 					Retry: config.Retry{
 						Attempts: -1,
 					},
@@ -186,14 +190,13 @@ func TestNewRoleService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.RoleToken{
+					Enable:              true,
 					AthenzURL:           "dummy",
 					PrincipalAuthHeader: "dummyAuthHeader",
 					RefreshPeriod:       "60s",
 					Expiry:              "1s",
 				},
-				token: func() (string, error) {
-					return "", nil
-				},
+				token: dummyTokenProvider,
 			}
 			return test{
 				name:    "NewRoleService return error when refresh period > token expiry",
@@ -205,15 +208,14 @@ func TestNewRoleService(t *testing.T) {
 			cnt := 10
 			args := args{
 				cfg: config.RoleToken{
+					Enable:              true,
 					AthenzURL:           "dummy",
 					PrincipalAuthHeader: "dummyAuthHeader",
 					Retry: config.Retry{
 						Attempts: cnt,
 					},
 				},
-				token: func() (string, error) {
-					return "", nil
-				},
+				token: dummyTokenProvider,
 			}
 			return test{
 				name: "NewRoleService specific ErrRetryMaxCount",
@@ -251,13 +253,12 @@ func TestNewRoleService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.RoleToken{
+					Enable:              true,
 					AthenzURL:           "dummy",
 					PrincipalAuthHeader: "dummyAuthHeader",
 					AthenzCAPath:        "../test/data/dummyCa.pem",
 				},
-				token: func() (string, error) {
-					return "", nil
-				},
+				token: dummyTokenProvider,
 			}
 			return test{
 				name: "NewRoleService contains valid Athenz rootCA",
@@ -301,22 +302,22 @@ func TestNewRoleService(t *testing.T) {
 		func() test {
 			args := args{
 				cfg: config.RoleToken{
+					Enable:              true,
 					AthenzURL:           "dummy",
 					PrincipalAuthHeader: "dummyAuthHeader",
-					AthenzCAPath:        "../test/data/invalid_dummyCa.pem",
+					CertPath:            "../test/data/dummyClient.crt",
+					CertKeyPath:         "../test/data/dummyClient.key",
 				},
-				token: func() (string, error) {
-					return "", nil
-				},
+				token: dummyTokenProvider,
 			}
 			return test{
-				name: "NewRoleService contains invalid Athenz rootCA",
+				name: "NewRoleService contains valid client certificate",
 				args: args,
 				checkFunc: func(got, want RoleService) error {
 					gotS := got.(*roleService)
 					wantS := want.(*roleService)
 					if !reflect.DeepEqual(gotS.cfg, wantS.cfg) ||
-						reflect.ValueOf(gotS.token).Pointer() != reflect.ValueOf(wantS.token).Pointer() ||
+						// reflect.ValueOf(gotS.token).Pointer() != reflect.ValueOf(wantS.token).Pointer() ||
 						!reflect.DeepEqual(gotS.athenzURL, wantS.athenzURL) ||
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
 						//!reflect.DeepEqual(gotS.domainRoleCache, wantS.domainRoleCache) ||
@@ -327,8 +328,16 @@ func TestNewRoleService(t *testing.T) {
 
 						return fmt.Errorf("got: %+v, want: %+v", got, want)
 					}
-					if gotS.httpClient != http.DefaultClient {
-						return fmt.Errorf("http client not match, got: %+v, want: %+v", gotS.httpClient, http.DefaultClient)
+					cert, err := tls.LoadX509KeyPair(args.cfg.CertPath, args.cfg.CertKeyPath)
+					if err != nil {
+						return err
+					}
+					t := gotS.httpClient.Transport.(*http.Transport)
+					if !reflect.DeepEqual(t.TLSClientConfig.Certificates[0], cert) {
+						return fmt.Errorf("client cert not match, got: %+v, want: %+v", t.TLSClientConfig, cert)
+					}
+					if gotS.token != nil {
+						return errors.New("ntoken is not overwrite by client cert")
 					}
 
 					return nil
@@ -346,6 +355,80 @@ func TestNewRoleService(t *testing.T) {
 				},
 			}
 		}(),
+		{
+			name: "NewRoleService disabled",
+			args: args{
+				cfg: config.RoleToken{},
+			},
+			wantErr: ErrDisabled,
+		},
+		{
+			name: "NewRoleService no credentials",
+			args: args{
+				cfg: config.RoleToken{
+					Enable:   true,
+					CertPath: "",
+				},
+			},
+			wantErr: errors.Wrap(ErrInvalidSetting, "Neither NToken nor client certificate is set."),
+		},
+		{
+			name: "NewRoleService with non-existing Athenz rootCA",
+			args: args{
+				cfg: config.RoleToken{
+					Enable:       true,
+					AthenzCAPath: "../test/data/non_exist.pem",
+				},
+				token: dummyTokenProvider,
+			},
+			wantErr: errors.Wrap(ErrInvalidSetting, "Athenz CA not exist"),
+		},
+		{
+			name: "NewRoleService with invalid Athenz rootCA",
+			args: args{
+				cfg: config.RoleToken{
+					Enable:       true,
+					AthenzCAPath: "../test/data/invalid_dummyCa.pem",
+				},
+				token: dummyTokenProvider,
+			},
+			wantErr: errors.Wrap(ErrInvalidSetting, "Certification Failed"),
+		},
+		{
+			name: "NewRoleService with non-existing client certificate",
+			args: args{
+				cfg: config.RoleToken{
+					Enable:   true,
+					CertPath: "../test/data/non_exist.pem",
+				},
+				token: dummyTokenProvider,
+			},
+			wantErr: errors.Wrap(ErrInvalidSetting, "client certificate not exist"),
+		},
+		{
+			name: "NewRoleService with non-existing client certificate key",
+			args: args{
+				cfg: config.RoleToken{
+					Enable:      true,
+					CertPath:    "../test/data/dummyClient.crt",
+					CertKeyPath: "../test/data/non_exist.key",
+				},
+				token: dummyTokenProvider,
+			},
+			wantErr: errors.Wrap(ErrInvalidSetting, "client certificate key not exist"),
+		},
+		{
+			name: "NewRoleService with invalid client certificate",
+			args: args{
+				cfg: config.RoleToken{
+					Enable:      true,
+					CertPath:    "../test/data/invalid_dummyServer.crt",
+					CertKeyPath: "../test/data/invalid_dummyServer.key",
+				},
+				token: dummyTokenProvider,
+			},
+			wantErr: errors.Wrap(ErrInvalidSetting, "tls: failed to find any PEM data in certificate input"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -655,9 +738,17 @@ func Test_roleService_GetRoleProvider(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			r, _ := NewRoleService(config.RoleToken{}, nil)
+			token := func() (string, error) { return "", nil }
+			r, err := NewRoleService(config.RoleToken{
+				Enable: true,
+			}, token)
+			if err != nil {
+				t.Error(err.Error())
+				return
+			}
 			if got := r.GetRoleProvider(); got == nil {
-				t.Error("provier is nil")
+				t.Error("provider is nil")
+				return
 			}
 		})
 	}

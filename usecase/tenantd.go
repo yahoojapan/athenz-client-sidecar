@@ -24,6 +24,7 @@ import (
 
 	"github.com/kpango/glg"
 	"github.com/kpango/ntokend"
+	"github.com/pkg/errors"
 	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
 	"github.com/yahoojapan/athenz-client-sidecar/v2/handler"
 	"github.com/yahoojapan/athenz-client-sidecar/v2/infra"
@@ -47,52 +48,65 @@ type clientd struct {
 
 // New returns a client sidecar daemon, or any error occurred.
 // Client sidecar daemon contains token service, role token service, host certificate service, user database client and client sidecar service.
-func New(cfg config.Config) (Tenant, error) {
-	// create token service
-	token, err := createNtokend(cfg.NToken)
-	if err != nil {
-		return nil, err
-	}
+func New(cfg config.Config) (t Tenant, err error) {
 
-	// create role service
-	role, err := service.NewRoleService(cfg.RoleToken, token.GetTokenProvider())
-	if err != nil {
-		return nil, err
+	// hard-coded for backward compatibility
+	cfg.NToken.Enable = true
+	cfg.RoleToken.Enable = true
+	cfg.Proxy.Enable = true
+
+	// create token service
+	var token ntokend.TokenService
+	var tokenProvider ntokend.TokenProvider
+	if requireNtokend(cfg) {
+		token, err = createNtokend(cfg.NToken)
+		if err != nil {
+			return nil, err
+		}
+		tokenProvider = token.GetTokenProvider()
 	}
 
 	// create access service
 	var access service.AccessService
-	// create svccert service
-	var svccert service.SvcCertService
-
-	// Assign the svccert service. If a user does not set enable, sidecar does not handle the request to get the certificate.
-	// And it is disabled by default.
-	var svcCertProvider service.SvcCertProvider
-	if cfg.ServiceCert.Enable {
-		svccert, err = service.NewSvcCertService(cfg, token.GetTokenProvider())
-		if err != nil {
-			return nil, err
-		}
-		svcCertProvider = svccert.GetSvcCertProvider()
-	}
-
 	var accessProvider service.AccessProvider
 	if cfg.AccessToken.Enable {
-		access, err = service.NewAccessService(cfg.AccessToken, token.GetTokenProvider())
+		access, err = service.NewAccessService(cfg.AccessToken, tokenProvider)
 		if err != nil {
 			return nil, err
 		}
 		accessProvider = access.GetAccessProvider()
 	}
 
+	// create role service
+	var role service.RoleService
+	var roleProvider service.RoleProvider
+	if cfg.RoleToken.Enable {
+		role, err = service.NewRoleService(cfg.RoleToken, tokenProvider)
+		if err != nil {
+			return nil, err
+		}
+		roleProvider = role.GetRoleProvider()
+	}
+
+	// create svccert service
+	var svccert service.SvcCertService
+	var svccertProvider service.SvcCertProvider
+	if cfg.ServiceCert.Enable {
+		svccert, err = service.NewSvcCertService(cfg, tokenProvider)
+		if err != nil {
+			return nil, err
+		}
+		svccertProvider = svccert.GetSvcCertProvider()
+	}
+
 	// create handler
 	h := handler.New(
 		cfg.Proxy,
 		infra.NewBuffer(cfg.Proxy.BufferSize),
-		token.GetTokenProvider(),
+		tokenProvider,
 		accessProvider,
-		role.GetRoleProvider(),
-		svcCertProvider,
+		roleProvider,
+		svccertProvider,
 	)
 
 	serveMux := router.New(cfg, h)
@@ -113,7 +127,9 @@ func New(cfg config.Config) (Tenant, error) {
 
 // Start returns a error slice channel. This error channel contains the error returned by client sidecar daemon.
 func (t *clientd) Start(ctx context.Context) chan []error {
-	t.token.StartTokenUpdater(ctx)
+	if t.token != nil {
+		t.token.StartTokenUpdater(ctx)
+	}
 
 	// t.svccert only is null when the configuration of ServiceCert is disabled
 	if t.svccert != nil {
@@ -139,6 +155,11 @@ func (t *clientd) Start(ctx context.Context) chan []error {
 
 // createNtokend returns a TokenService object or any error
 func createNtokend(cfg config.NToken) (ntokend.TokenService, error) {
+
+	if !cfg.Enable {
+		return nil, errors.New("ntokend disabled")
+	}
+
 	dur, err := time.ParseDuration(cfg.RefreshPeriod)
 	if err != nil {
 		return nil, fmt.Errorf("invalid token refresh period %s, %v", cfg.RefreshPeriod, err)
@@ -159,7 +180,7 @@ func createNtokend(cfg config.NToken) (ntokend.TokenService, error) {
 	domain := config.GetActualValue(cfg.AthenzDomain)
 	service := config.GetActualValue(cfg.ServiceName)
 
-	ntok, err := ntokend.New(
+	ntd, err := ntokend.New(
 		ntokend.RefreshDuration(dur),
 		ntokend.TokenExpiration(exp),
 		ntokend.KeyVersion(cfg.KeyVersion),
@@ -173,5 +194,13 @@ func createNtokend(cfg config.NToken) (ntokend.TokenService, error) {
 		return nil, err
 	}
 
-	return ntok, nil
+	return ntd, nil
+}
+
+func requireNtokend(cfg config.Config) bool {
+	return cfg.NToken.Enable ||
+		(cfg.AccessToken.Enable && cfg.AccessToken.CertPath == "") ||
+		(cfg.RoleToken.Enable && cfg.RoleToken.CertPath == "") ||
+		cfg.ServiceCert.Enable ||
+		cfg.Proxy.Enable
 }

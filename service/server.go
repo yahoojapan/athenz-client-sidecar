@@ -101,12 +101,12 @@ func NewServer(opts ...Option) Server {
 
 	s.sdt, err = time.ParseDuration(s.cfg.ShutdownTimeout)
 	if err != nil {
-		glg.Warn(err)
+		glg.Warn("ShutdownTimeout: " + err.Error())
 	}
 
 	s.sdd, err = time.ParseDuration(s.cfg.ShutdownDelay)
 	if err != nil {
-		glg.Warn(err)
+		glg.Warn("ShutdownDelay: " + err.Error())
 	}
 
 	return s

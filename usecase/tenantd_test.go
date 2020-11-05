@@ -45,33 +45,121 @@ func TestNew(t *testing.T) {
 		afterFunc  func()
 		wantErr    error
 	}
+	keyKey := "_dummyKey_"
+	key := "../test/data/dummyServer.key"
+	dummyNTokenConfig := config.NToken{
+		Enable:            true,
+		AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+		ServiceName:       strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
+		PrivateKeyPath:    key,
+		Validate:          false,
+		RefreshPeriod:     "1m",
+		KeyVersion:        "1",
+		Expiry:            "1m",
+		ExistingTokenPath: "",
+	}
+	dummyServerConfig := config.Server{
+		ShutdownTimeout: "10s",
+		ShutdownDelay:   "10s",
+	}
 	tests := []test{
 		{
-			name: "Check error when new token service",
+			name: "Check error when new ntoken service",
 			args: args{
 				cfg: config.Config{
-					NToken: config.NToken{},
+					NToken: config.NToken{
+						Enable: true,
+					},
 				},
 			},
 			wantErr: fmt.Errorf("invalid token refresh period , time: invalid duration "),
 		},
-		func() test {
-			keyKey := "_dummyKey_"
-			key := "../test/data/dummyServer.key"
-			cfg := config.Config{
-				NToken: config.NToken{
-					AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					ServiceName:       strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					PrivateKeyPath:    key,
-					Validate:          false,
-					RefreshPeriod:     "1m",
-					KeyVersion:        "1",
-					Expiry:            "1m",
-					ExistingTokenPath: "",
+		{
+			name: "Check error when new access token service",
+			args: args{
+				cfg: config.Config{
+					NToken: dummyNTokenConfig,
+					AccessToken: config.AccessToken{
+						Enable: true,
+						Expiry: "invalid_at_exp",
+					},
 				},
+			},
+			wantErr: fmt.Errorf("Expiry: time: invalid duration invalid_at_exp: Invalid config"),
+		},
+		{
+			name: "Check error when new role token service",
+			args: args{
+				cfg: config.Config{
+					NToken: dummyNTokenConfig,
+					RoleToken: config.RoleToken{
+						Enable: true,
+						Expiry: "invalid_rt_exp",
+					},
+				},
+			},
+			wantErr: fmt.Errorf("Expiry: time: invalid duration invalid_rt_exp: Invalid config"),
+		},
+		func() test {
+			cfg := config.Config{
+				NToken: dummyNTokenConfig,
+				Server: dummyServerConfig,
+				AccessToken: config.AccessToken{
+					Enable: true,
+				},
+			}
+
+			return test{
+				name: "Check success when access token is enabled",
+				args: args{
+					cfg: cfg,
+				},
+				checkFunc: func(got Tenant) error {
+					if got.(*clientd).server == nil ||
+						got.(*clientd).access == nil ||
+						got.(*clientd).token == nil {
+
+						return fmt.Errorf("Got: %v", got)
+					}
+					return nil
+				},
+			}
+		}(),
+		func() test {
+			cfg := config.Config{
+				NToken: dummyNTokenConfig,
+				Server: dummyServerConfig,
+				RoleToken: config.RoleToken{
+					Enable: false,
+				},
+			}
+
+			return test{
+				name: "Check success when role token is disable (force-enable)",
+				args: args{
+					cfg: cfg,
+				},
+				checkFunc: func(got Tenant) error {
+					if got.(*clientd).role == nil ||
+						got.(*clientd).server == nil ||
+						got.(*clientd).token == nil {
+
+						return fmt.Errorf("Got: %v", got)
+					}
+					return nil
+				},
+			}
+		}(),
+		func() test {
+			cfg := config.Config{
+				NToken: dummyNTokenConfig,
+				Server: dummyServerConfig,
 				ServiceCert: config.ServiceCert{
-					Enable:       true,
-					AthenzCAPath: "ca.pem",
+					Enable:        true,
+					AthenzCAPath:  "../test/data/non_exist.pem",
+					RefreshPeriod: "1h",
+					ExpiryMargin:  "1m",
+					Expiry:        "24h",
 				},
 			}
 
@@ -84,21 +172,15 @@ func TestNew(t *testing.T) {
 			}
 		}(),
 		func() test {
-			keyKey := "_dummyKey_"
-			key := "../test/data/dummyServer.key"
 			cfg := config.Config{
-				NToken: config.NToken{
-					AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					ServiceName:       strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					PrivateKeyPath:    key,
-					Validate:          false,
-					RefreshPeriod:     "1m",
-					KeyVersion:        "1",
-					Expiry:            "1m",
-					ExistingTokenPath: "",
-				},
+				NToken: dummyNTokenConfig,
+				Server: dummyServerConfig,
 				ServiceCert: config.ServiceCert{
-					Enable: true,
+					Enable:        true,
+					AthenzCAPath:  "../test/data/dummyCa.pem",
+					RefreshPeriod: "1h",
+					ExpiryMargin:  "1m",
+					Expiry:        "24h",
 				},
 			}
 
@@ -108,8 +190,7 @@ func TestNew(t *testing.T) {
 					cfg: cfg,
 				},
 				checkFunc: func(got Tenant) error {
-					if got.(*clientd).role == nil ||
-						got.(*clientd).server == nil ||
+					if got.(*clientd).server == nil ||
 						got.(*clientd).svccert == nil ||
 						got.(*clientd).token == nil {
 
@@ -120,19 +201,9 @@ func TestNew(t *testing.T) {
 			}
 		}(),
 		func() test {
-			keyKey := "_dummyKey_"
-			key := "../test/data/dummyServer.key"
 			cfg := config.Config{
-				NToken: config.NToken{
-					AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					ServiceName:       strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					PrivateKeyPath:    key,
-					Validate:          false,
-					RefreshPeriod:     "1m",
-					KeyVersion:        "1",
-					Expiry:            "1m",
-					ExistingTokenPath: "",
-				},
+				NToken: dummyNTokenConfig,
+				Server: dummyServerConfig,
 				ServiceCert: config.ServiceCert{
 					Enable: false,
 				},
@@ -144,8 +215,7 @@ func TestNew(t *testing.T) {
 					cfg: cfg,
 				},
 				checkFunc: func(got Tenant) error {
-					if got.(*clientd).role == nil ||
-						got.(*clientd).server == nil ||
+					if got.(*clientd).server == nil ||
 						got.(*clientd).token == nil {
 
 						return fmt.Errorf("Got: %v", got)
@@ -155,19 +225,9 @@ func TestNew(t *testing.T) {
 			}
 		}(),
 		func() test {
-			keyKey := "_dummyKey_"
-			key := "../test/data/dummyServer.key"
 			cfg := config.Config{
-				NToken: config.NToken{
-					AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					ServiceName:       strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
-					PrivateKeyPath:    key,
-					Validate:          false,
-					RefreshPeriod:     "1m",
-					KeyVersion:        "1",
-					Expiry:            "1m",
-					ExistingTokenPath: "",
-				},
+				NToken: dummyNTokenConfig,
+				Server: dummyServerConfig,
 			}
 
 			return test{
@@ -176,8 +236,7 @@ func TestNew(t *testing.T) {
 					cfg: cfg,
 				},
 				checkFunc: func(got Tenant) error {
-					if got.(*clientd).role == nil ||
-						got.(*clientd).server == nil ||
+					if got.(*clientd).server == nil ||
 						got.(*clientd).token == nil {
 
 						return fmt.Errorf("Got: %v", got)
@@ -197,13 +256,18 @@ func TestNew(t *testing.T) {
 			}
 
 			got, err := New(tt.args.cfg)
-			if tt.wantErr == nil && err != nil {
-				t.Errorf("failed to instantiate, err: %v", err)
-				return
-			} else if tt.wantErr != nil {
-				if tt.wantErr.Error() != err.Error() {
-					t.Errorf("error not the same, want: %v, got: %v", tt.wantErr, err)
+			if err != nil {
+				if tt.wantErr == nil {
+					t.Errorf("failed to instantiate, err: %v", err)
+					return
 				}
+				if tt.wantErr != nil && tt.wantErr.Error() != err.Error() {
+					t.Errorf("error not the same, want: %v, got: %v", tt.wantErr, err)
+					return
+				}
+			} else if tt.wantErr != nil {
+				t.Errorf("error want: %v, got: nil", tt.wantErr)
+				return
 			}
 
 			if tt.checkFunc != nil {
@@ -247,6 +311,7 @@ func Test_clientd_Start(t *testing.T) {
 
 			cfg := config.Config{
 				NToken: config.NToken{
+					Enable:            true,
 					AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
 					ServiceName:       strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
 					PrivateKeyPath:    key,
@@ -256,6 +321,12 @@ func Test_clientd_Start(t *testing.T) {
 					Expiry:            "1m",
 					ExistingTokenPath: "",
 				},
+				AccessToken: config.AccessToken{
+					Enable: true,
+				},
+				RoleToken: config.RoleToken{
+					Enable: true,
+				},
 				Server: config.Server{
 					TLS: config.TLS{
 						Enable:   true,
@@ -264,6 +335,7 @@ func Test_clientd_Start(t *testing.T) {
 					},
 				},
 				ServiceCert: config.ServiceCert{
+					Enable:        true,
 					AthenzCAPath:  "../test/data/dummyCa.pem",
 					RefreshPeriod: "",
 				},
@@ -376,9 +448,19 @@ func Test_createNtokend(t *testing.T) {
 	}
 	tests := []test{
 		{
+			name: "disabled",
+			args: args{
+				cfg: config.NToken{
+					Enable: false,
+				},
+			},
+			wantErr: fmt.Errorf("ntokend disabled"),
+		},
+		{
 			name: "refresh period invalid",
 			args: args{
 				cfg: config.NToken{
+					Enable:        true,
 					RefreshPeriod: "dummy",
 				},
 			},
@@ -388,6 +470,7 @@ func Test_createNtokend(t *testing.T) {
 			name: "token expiry invalid",
 			args: args{
 				cfg: config.NToken{
+					Enable:        true,
 					RefreshPeriod: "1s",
 					Expiry:        "dummy",
 				},
@@ -396,13 +479,14 @@ func Test_createNtokend(t *testing.T) {
 		},
 		func() test {
 			keyKey := "_dummyKey_"
-			key := "notexists"
+			key := "../test/data/non_exist.key"
 
 			return test{
 				name: "Test error private key not exist",
 				args: func() args {
 					return args{
 						cfg: config.NToken{
+							Enable:         true,
 							RefreshPeriod:  "1m",
 							Expiry:         "1m",
 							PrivateKeyPath: keyKey,
@@ -415,7 +499,7 @@ func Test_createNtokend(t *testing.T) {
 				afterFunc: func() {
 					os.Unsetenv(strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"))
 				},
-				wantErr: fmt.Errorf("invalid token private key open %v", "notexists: no such file or directory"),
+				wantErr: fmt.Errorf("invalid token private key open %v", "../test/data/non_exist.key: no such file or directory"),
 			}
 		}(),
 		func() test {
@@ -428,6 +512,7 @@ func Test_createNtokend(t *testing.T) {
 
 					return args{
 						cfg: config.NToken{
+							Enable:            true,
 							RefreshPeriod:     "1m",
 							Expiry:            "1m",
 							PrivateKeyPath:    keyKey,
@@ -448,6 +533,7 @@ func Test_createNtokend(t *testing.T) {
 			keyKey := "_dummyKey_"
 			key := "../test/data/dummyServer.key"
 			cfg := config.NToken{
+				Enable:            true,
 				AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
 				ServiceName:       strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
 				ExistingTokenPath: "",
@@ -552,6 +638,128 @@ func Test_createNtokend(t *testing.T) {
 					t.Errorf("compare check failed, err: %v", err)
 					return
 				}
+			}
+		})
+	}
+}
+
+func Test_requireNtokend(t *testing.T) {
+	type args struct {
+		cfg config.Config
+	}
+	tests := []struct {
+		name string
+		args args
+		want bool
+	}{
+		{
+			name: "ntoken enable",
+			args: args{
+				cfg: config.Config{
+					NToken: config.NToken{
+						Enable: true,
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "access token enable with client cert not set",
+			args: args{
+				cfg: config.Config{
+					AccessToken: config.AccessToken{
+						Enable: true,
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "role token enable with client cert not set",
+			args: args{
+				cfg: config.Config{
+					RoleToken: config.RoleToken{
+						Enable: true,
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "service cert enable",
+			args: args{
+				cfg: config.Config{
+					ServiceCert: config.ServiceCert{
+						Enable: true,
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "proxy enable",
+			args: args{
+				cfg: config.Config{
+					Proxy: config.Proxy{
+						Enable: true,
+					},
+				},
+			},
+			want: true,
+		},
+		{
+			name: "all disable",
+			args: args{
+				cfg: config.Config{
+					NToken: config.NToken{
+						Enable: false,
+					},
+					AccessToken: config.AccessToken{
+						Enable: false,
+					},
+					RoleToken: config.RoleToken{
+						Enable: false,
+					},
+					ServiceCert: config.ServiceCert{
+						Enable: false,
+					},
+					Proxy: config.Proxy{
+						Enable: false,
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "enable but using client cert",
+			args: args{
+				cfg: config.Config{
+					NToken: config.NToken{
+						Enable: false,
+					},
+					AccessToken: config.AccessToken{
+						Enable:   true,
+						CertPath: "any",
+					},
+					RoleToken: config.RoleToken{
+						Enable:   true,
+						CertPath: "any",
+					},
+					ServiceCert: config.ServiceCert{
+						Enable: false,
+					},
+					Proxy: config.Proxy{
+						Enable: false,
+					},
+				},
+			},
+			want: false,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := requireNtokend(tt.args.cfg); got != tt.want {
+				t.Errorf("requireNtokend() = %v, want %v", got, tt.want)
 			}
 		})
 	}

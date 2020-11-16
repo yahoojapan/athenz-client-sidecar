@@ -19,7 +19,7 @@ package service
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -55,6 +55,9 @@ type accessService struct {
 	group                 singleflight.Group
 	expiry                time.Duration
 	httpClient            *http.Client
+	rootCAs               *x509.CertPool
+	certPath              string
+	certKeyPath           string
 
 	refreshPeriod    time.Duration
 	errRetryMaxCount int
@@ -148,52 +151,31 @@ func NewAccessService(cfg config.AccessToken, token ntokend.TokenProvider) (Acce
 		return nil, errors.Wrap(ErrInvalidSetting, "Neither NToken nor client certificate is set.")
 	}
 
-	httpClient := http.DefaultClient
-	tlsConfig := &tls.Config{}
-	setTLSConfig := false
-
+	var cp *x509.CertPool
 	if cfg.AthenzCAPath != "" {
+		var err error
 		caPath := config.GetActualValue(cfg.AthenzCAPath)
-		_, err := os.Stat(caPath)
+		_, err = os.Stat(caPath)
 		if os.IsNotExist(err) {
 			return nil, errors.Wrap(ErrInvalidSetting, "Athenz CA not exist")
 		}
-		cp, err := NewX509CertPool(caPath)
+		cp, err = NewX509CertPool(caPath)
 		if err != nil {
 			return nil, errors.Wrap(ErrInvalidSetting, err.Error())
 		}
-		tlsConfig.RootCAs = cp
-		setTLSConfig = true
 	}
+
+	// verify client certificate config
 	if cfg.CertPath != "" {
-		certPath := config.GetActualValue(cfg.CertPath)
-		_, err := os.Stat(certPath)
+		cp := config.GetActualValue(cfg.CertPath)
+		_, err := os.Stat(cp)
 		if os.IsNotExist(err) {
 			return nil, errors.Wrap(ErrInvalidSetting, "client certificate not exist")
 		}
-		keyPath := config.GetActualValue(cfg.CertKeyPath)
-		_, err = os.Stat(keyPath)
+		ckp := config.GetActualValue(cfg.CertKeyPath)
+		_, err = os.Stat(ckp)
 		if os.IsNotExist(err) {
 			return nil, errors.Wrap(ErrInvalidSetting, "client certificate key not exist")
-		}
-		cert, err := tls.LoadX509KeyPair(certPath, keyPath)
-		if err != nil {
-			return nil, errors.Wrap(ErrInvalidSetting, err.Error())
-		}
-		tlsConfig.Certificates = []tls.Certificate{cert}
-		setTLSConfig = true
-
-		// take priority over N-token
-		if token != nil {
-			glg.Warn("Both token provider and client certificate is set. Will only request with client certificate.")
-			token = nil
-		}
-	}
-	if setTLSConfig {
-		httpClient = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: tlsConfig,
-			},
 		}
 	}
 
@@ -204,7 +186,10 @@ func NewAccessService(cfg config.AccessToken, token ntokend.TokenProvider) (Acce
 		athenzPrincipleHeader: cfg.PrincipalAuthHeader,
 		tokenCache:            gache.New(),
 		expiry:                exp,
-		httpClient:            httpClient,
+		httpClient:            http.DefaultClient,
+		rootCAs:               cp,
+		certPath:              config.GetActualValue(cfg.CertPath),
+		certKeyPath:           config.GetActualValue(cfg.CertKeyPath),
 		refreshPeriod:         refreshPeriod,
 		errRetryMaxCount:      errRetryMaxCount,
 		errRetryInterval:      errRetryInterval,
@@ -336,27 +321,37 @@ func (a *accessService) updateAccessToken(ctx context.Context, domain, role, pro
 func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, proxyForPrincipal string, expiry int64) (*AccessTokenResponse, error) {
 	glg.Debugf("get access token, domain: %s, role: %s, proxyForPrincipal: %s, expiry: %d", domain, role, proxyForPrincipal, expiry)
 
-	// get the N-token
-	var cred string
-	if a.token != nil {
-		var err error
-		cred, err = a.token()
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	scope := createScope(domain, role)
 	glg.Debugf("request access token scope: %v", scope)
 
 	// prepare request object
-	req, err := a.createPostAccessTokenRequest(scope, proxyForPrincipal, expiry, cred)
+	req, err := a.createPostAccessTokenRequest(scope, proxyForPrincipal, expiry)
 	if err != nil {
 		glg.Debugf("fail to create request object, error: %s", err)
 		return nil, err
 	}
 	glg.Debugf("request url: %v", req.URL)
 
+	// prepare Athenz credentials
+	if a.token != nil {
+		token, err := a.token()
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set(a.athenzPrincipleHeader, token)
+	} else if a.certPath != "" {
+		tcc, err := NewTLSClientConfig(a.rootCAs, a.certPath, a.certKeyPath)
+		if err != nil {
+			return nil, err
+		}
+		a.httpClient.Transport = &http.Transport{
+			TLSClientConfig: tcc,
+		}
+	} else {
+		return nil, errors.New("No credentials")
+	}
+
+	// send request
 	res, err := a.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
@@ -405,7 +400,7 @@ func (a *accessService) getCache(domain, role, principal string) (*AccessTokenRe
 }
 
 // createGetAccessTokenRequest creates Athenz's postAccessTokenRequest.
-func (a *accessService) createPostAccessTokenRequest(scope, proxyForPrincipal string, expiry int64, token string) (*http.Request, error) {
+func (a *accessService) createPostAccessTokenRequest(scope, proxyForPrincipal string, expiry int64) (*http.Request, error) {
 	u := fmt.Sprintf("https://%s/oauth2/token", strings.TrimPrefix(strings.TrimPrefix(a.athenzURL, "https://"), "http://"))
 
 	// create URL query
@@ -428,9 +423,6 @@ func (a *accessService) createPostAccessTokenRequest(scope, proxyForPrincipal st
 		glg.Debugf("fail to create request object, error: %s", err)
 		return nil, err
 	}
-
-	// set authentication token
-	req.Header.Set(a.athenzPrincipleHeader, token)
 
 	return req, nil
 }

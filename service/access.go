@@ -5,7 +5,7 @@ Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
 
-    http://www.apache.org/licenses/LICENSE-2.0
+	http://www.apache.org/licenses/LICENSE-2.0
 
 Unless required by applicable law or agreed to in writing, software
 distributed under the License is distributed on an "AS IS" BASIS,
@@ -332,6 +332,12 @@ func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, prox
 	}
 	glg.Debugf("request url: %v", req.URL)
 
+	// prepare TLS config (certificate file may refresh)
+	tcc, err := NewTLSClientConfig(a.rootCAs, a.certPath, a.certKeyPath)
+	if err != nil {
+		return nil, err
+	}
+
 	// prepare Athenz credentials
 	if a.token != nil {
 		token, err := a.token()
@@ -339,16 +345,14 @@ func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, prox
 			return nil, err
 		}
 		req.Header.Set(a.athenzPrincipleHeader, token)
-	} else if a.certPath != "" {
-		tcc, err := NewTLSClientConfig(a.rootCAs, a.certPath, a.certKeyPath)
-		if err != nil {
-			return nil, err
-		}
-		a.httpClient.Transport = &http.Transport{
-			TLSClientConfig: tcc,
-		}
-	} else {
+		// prevent using client certificate (ntoken has priority)
+		tcc.Certificates = nil
+	} else if a.certPath == "" {
 		return nil, errors.New("No credentials")
+	}
+
+	a.httpClient.Transport = &http.Transport{
+		TLSClientConfig: tcc,
 	}
 
 	// send request

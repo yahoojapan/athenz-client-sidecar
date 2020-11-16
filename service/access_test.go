@@ -2269,7 +2269,7 @@ func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 				tokenCache:            tt.fields.tokenCache,
 				expiry:                tt.fields.expiry,
 			}
-			got, err := a.createPostAccessTokenRequest(tt.args.scope, tt.args.proxyForPrincipal, tt.args.expiry, tt.args.token)
+			got, err := a.createPostAccessTokenRequest(tt.args.scope, tt.args.proxyForPrincipal, tt.args.expiry)
 			if got.URL.String() != tt.want.URL.String() &&
 				reflect.DeepEqual(got.PostForm, tt.want.PostForm) &&
 				reflect.DeepEqual(got.Header, tt.want.Header) {

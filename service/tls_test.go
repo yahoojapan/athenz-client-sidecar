@@ -17,6 +17,8 @@ package service
 
 import (
 	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	"fmt"
 	"os"
 	"reflect"
@@ -451,6 +453,68 @@ func TestNewX509CertPool(t *testing.T) {
 					t.Errorf("CertPool should not be empty: got: %v", got)
 					return
 				}
+			}
+		})
+	}
+}
+
+func TestNewTLSClientConfig(t *testing.T) {
+	type args struct {
+		rootCAs     *x509.CertPool
+		certPath    string
+		certKeyPath string
+	}
+	type test struct {
+		name    string
+		args    args
+		want    *tls.Config
+		wantErr error
+	}
+	tests := []test{
+		func() test {
+			rootCAs, err := x509.SystemCertPool()
+			if err != nil {
+				panic(err)
+			}
+			rootCAs.AddCert(&x509.Certificate{
+				Subject: pkix.Name{
+					CommonName: "dummyCA",
+				},
+			})
+			return test{
+				name: "Root CA set success",
+				args: args{
+					rootCAs: rootCAs,
+				},
+				want: &tls.Config{
+					MinVersion: tls.VersionTLS12,
+					RootCAs:    rootCAs,
+				},
+			}
+		}(),
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewTLSClientConfig(tt.args.rootCAs, tt.args.certPath, tt.args.certKeyPath)
+
+			if tt.wantErr == nil && err != nil {
+				t.Errorf("NewTLSClientConfig() error: %v  wantErr: %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr != nil {
+				if err == nil {
+					t.Errorf("Error should occur: want error: %v  want: %v", err, tt.wantErr)
+					return
+				}
+				// Here is comparing error message with expected
+				if err.Error() != tt.wantErr.Error() {
+					t.Errorf("Assertion failed: got: %v  want: %v", err, tt.wantErr)
+					return
+				}
+			}
+
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("NewTLSClientConfig() = %+v, want %+v", got, tt.want)
 			}
 		})
 	}

@@ -2364,7 +2364,7 @@ func Test_createGetRoleTokenRequest(t *testing.T) {
 				domainRoleCache:       tt.fields.domainRoleCache,
 				expiry:                tt.fields.expiry,
 			}
-			got, err := r.createGetRoleTokenRequest(tt.args.domain, tt.args.role, tt.args.minExpiry, tt.args.maxExpiry, tt.args.proxyForPrincipal, tt.args.token)
+			got, err := r.createGetRoleTokenRequest(tt.args.domain, tt.args.role, tt.args.minExpiry, tt.args.maxExpiry, tt.args.proxyForPrincipal)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("createGetRoleTokenRequest(), got: %+v, want: %+v", got, tt.want)
 			}

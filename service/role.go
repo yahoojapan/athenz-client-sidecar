@@ -164,7 +164,6 @@ func NewRoleService(cfg config.RoleToken, token ntokend.TokenProvider) (RoleServ
 	}
 
 	var cp *x509.CertPool
-
 	if cfg.AthenzCAPath != "" {
 		var err error
 		caPath := config.GetActualValue(cfg.AthenzCAPath)
@@ -177,6 +176,7 @@ func NewRoleService(cfg config.RoleToken, token ntokend.TokenProvider) (RoleServ
 			return nil, errors.Wrap(ErrInvalidSetting, err.Error())
 		}
 	}
+
 	// verify client certificate config
 	if cfg.CertPath != "" {
 		cp := config.GetActualValue(cfg.CertPath)
@@ -334,24 +334,34 @@ func (r *roleService) updateRoleToken(ctx context.Context, domain, role, proxyFo
 func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) (*RoleToken, error) {
 	glg.Debugf("get role token, domain: %s, role: %s, proxyForPrincipal: %s, minExpiry: %d, maxExpiry: %d", domain, role, proxyForPrincipal, minExpiry, maxExpiry)
 
-	// get the N-token
-	var cred string
-	if r.token != nil {
-		var err error
-		cred, err = r.token()
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	// prepare request object
-	req, err := r.createGetRoleTokenRequest(domain, role, minExpiry, maxExpiry, proxyForPrincipal, cred)
+	req, err := r.createGetRoleTokenRequest(domain, role, minExpiry, maxExpiry, proxyForPrincipal)
 	if err != nil {
 		glg.Debugf("fail to create request object, error: %s", err)
 		return nil, err
 	}
 	glg.Debugf("request url: %v", req.URL)
 
+	// prepare Athenz credentials
+	if r.token != nil {
+		token, err := r.token()
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set(r.athenzPrincipleHeader, token)
+	} else if r.certPath != "" {
+		tcc, err := NewTLSClientConfig(r.rootCAs, r.certPath, r.certKeyPath)
+		if err != nil {
+			return nil, err
+		}
+		r.httpClient.Transport = &http.Transport{
+			TLSClientConfig: tcc,
+		}
+	} else {
+		return nil, errors.New("No credentials")
+	}
+
+	// send request
 	res, err := r.httpClient.Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
@@ -383,7 +393,7 @@ func (r *roleService) getCache(domain, role, principal string) (*RoleToken, bool
 	return val.(*cacheData).token, ok
 }
 
-func (r *roleService) createGetRoleTokenRequest(domain, role string, minExpiry, maxExpiry int64, proxyForPrincipal, token string) (*http.Request, error) {
+func (r *roleService) createGetRoleTokenRequest(domain, role string, minExpiry, maxExpiry int64, proxyForPrincipal string) (*http.Request, error) {
 	u := fmt.Sprintf("https://%s/domain/%s/token", strings.TrimPrefix(strings.TrimPrefix(r.athenzURL, "https://"), "http://"), domain)
 
 	req, err := http.NewRequest(http.MethodGet, u, nil)
@@ -421,9 +431,6 @@ func (r *roleService) createGetRoleTokenRequest(domain, role string, minExpiry, 
 	}
 
 	req.URL.RawQuery = q.Encode()
-
-	// set authentication token
-	req.Header.Set(r.athenzPrincipleHeader, token)
 
 	return req, nil
 }

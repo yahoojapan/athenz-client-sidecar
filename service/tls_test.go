@@ -19,6 +19,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"errors"
 	"fmt"
 	"os"
 	"reflect"
@@ -413,7 +414,7 @@ func TestNewX509CertPool(t *testing.T) {
 		{
 			name: "Missing CA file",
 			args: args{
-				path: "../test/data/non_exist.pem",
+				path: "../test/data/not_found.pem",
 			},
 			wantErr: fmt.Errorf("no such file or directory"),
 		},
@@ -511,25 +512,29 @@ func TestNewTLSClientConfig(t *testing.T) {
 				},
 			}
 		}(),
-		func() test {
-			certPath := "../test/data/dummyClient.crt"
-			certKeyPath := "../test/data/dummyClient.key"
-			cert, err := tls.LoadX509KeyPair(certPath, certKeyPath)
-			if err != nil {
-				panic(err)
-			}
-			return test{
-				name: "Client certificate set success",
-				args: args{
-					certPath:    "../test/data/dummyClient.crt",
-					certKeyPath: "../test/data/dummyClient.key",
-				},
-				want: &tls.Config{
-					MinVersion:   tls.VersionTLS12,
-					Certificates: []tls.Certificate{cert},
-				},
-			}
-		}(),
+		{
+			name: "Client certificate not found",
+			args: args{
+				certPath: "../test/data/not_found.crt",
+			},
+			wantErr: errors.New("client certificate not found"),
+		},
+		{
+			name: "Client certificate key not found",
+			args: args{
+				certPath:    "../test/data/dummyClient.crt",
+				certKeyPath: "../test/data/not_found.key",
+			},
+			wantErr: errors.New("client certificate key not found"),
+		},
+		{
+			name: "Invalid client certificate",
+			args: args{
+				certPath:    "../test/data/invalid_dummyServer.crt",
+				certKeyPath: "../test/data/invalid_dummyServer.key",
+			},
+			wantErr: errors.New("tls: failed to find any PEM data in certificate input"),
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

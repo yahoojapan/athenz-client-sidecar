@@ -413,7 +413,7 @@ func TestNewX509CertPool(t *testing.T) {
 		{
 			name: "Missing CA file",
 			args: args{
-				path: "/tmp/CAfilenotfound.pem",
+				path: "../test/data/non_exist.pem",
 			},
 			wantErr: fmt.Errorf("no such file or directory"),
 		},
@@ -489,6 +489,44 @@ func TestNewTLSClientConfig(t *testing.T) {
 				want: &tls.Config{
 					MinVersion: tls.VersionTLS12,
 					RootCAs:    rootCAs,
+				},
+			}
+		}(),
+		func() test {
+			certPath := "../test/data/dummyClient.crt"
+			certKeyPath := "../test/data/dummyClient.key"
+			cert, err := tls.LoadX509KeyPair(certPath, certKeyPath)
+			if err != nil {
+				panic(err)
+			}
+			return test{
+				name: "Client certificate set success",
+				args: args{
+					certPath:    "../test/data/dummyClient.crt",
+					certKeyPath: "../test/data/dummyClient.key",
+				},
+				want: &tls.Config{
+					MinVersion:   tls.VersionTLS12,
+					Certificates: []tls.Certificate{cert},
+				},
+			}
+		}(),
+		func() test {
+			certPath := "../test/data/dummyClient.crt"
+			certKeyPath := "../test/data/dummyClient.key"
+			cert, err := tls.LoadX509KeyPair(certPath, certKeyPath)
+			if err != nil {
+				panic(err)
+			}
+			return test{
+				name: "Client certificate set success",
+				args: args{
+					certPath:    "../test/data/dummyClient.crt",
+					certKeyPath: "../test/data/dummyClient.key",
+				},
+				want: &tls.Config{
+					MinVersion:   tls.VersionTLS12,
+					Certificates: []tls.Certificate{cert},
 				},
 			}
 		}(),

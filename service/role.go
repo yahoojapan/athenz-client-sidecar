@@ -342,6 +342,12 @@ func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyFor
 	}
 	glg.Debugf("request url: %v", req.URL)
 
+	// prepare TLS config (certificate file may refresh)
+	tcc, err := NewTLSClientConfig(r.rootCAs, r.certPath, r.certKeyPath)
+	if err != nil {
+		return nil, err
+	}
+
 	// prepare Athenz credentials
 	if r.token != nil {
 		token, err := r.token()
@@ -349,17 +355,13 @@ func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyFor
 			return nil, err
 		}
 		req.Header.Set(r.athenzPrincipleHeader, token)
-	} else if r.certPath != "" {
-		tcc, err := NewTLSClientConfig(r.rootCAs, r.certPath, r.certKeyPath)
-		if err != nil {
-			return nil, err
-		}
-		r.httpClient.Transport = &http.Transport{
-			TLSClientConfig: tcc,
-		}
-	} else {
+		// prevent using client certificate (ntoken has priority)
+		tcc.Certificates = nil
+	} else if r.certPath == "" {
 		return nil, errors.New("No credentials")
 	}
+
+	r.httpClient.Transport.(*http.Transport).TLSClientConfig = tcc
 
 	// send request
 	res, err := r.httpClient.Do(req.WithContext(ctx))

@@ -17,7 +17,6 @@ package service
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"math"
@@ -260,6 +259,10 @@ func TestNewRoleService(t *testing.T) {
 				},
 				token: dummyTokenProvider,
 			}
+			cp, err := NewX509CertPool(args.cfg.AthenzCAPath)
+			if err != nil {
+				panic(err)
+			}
 			return test{
 				name: "NewRoleService contains valid Athenz rootCA",
 				args: args,
@@ -272,16 +275,12 @@ func TestNewRoleService(t *testing.T) {
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
 						//!reflect.DeepEqual(gotS.domainRoleCache, wantS.domainRoleCache) ||
 						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
+						!reflect.DeepEqual(gotS.rootCAs, wantS.rootCAs) ||
 						!reflect.DeepEqual(gotS.refreshPeriod, wantS.refreshPeriod) ||
 						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
 						!reflect.DeepEqual(gotS.errRetryInterval, wantS.errRetryInterval) {
 
 						return fmt.Errorf("got: %+v, want: %+v", got, want)
-					}
-					cp, _ := NewX509CertPool(args.cfg.AthenzCAPath)
-					t := gotS.httpClient.Transport.(*http.Transport)
-					if !reflect.DeepEqual(t.TLSClientConfig.RootCAs, cp) {
-						return fmt.Errorf("cert not match, got: %+v, want: %+v", t, cp)
 					}
 
 					return nil
@@ -293,6 +292,7 @@ func TestNewRoleService(t *testing.T) {
 					athenzPrincipleHeader: args.cfg.PrincipalAuthHeader,
 					domainRoleCache:       gache.New(),
 					expiry:                0,
+					rootCAs:               cp,
 					errRetryInterval:      defaultErrRetryInterval,
 					errRetryMaxCount:      defaultErrRetryMaxCount,
 					refreshPeriod:         defaultRefreshPeriod,
@@ -322,22 +322,13 @@ func TestNewRoleService(t *testing.T) {
 						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
 						//!reflect.DeepEqual(gotS.domainRoleCache, wantS.domainRoleCache) ||
 						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
+						!reflect.DeepEqual(gotS.certPath, wantS.certPath) ||
+						!reflect.DeepEqual(gotS.certKeyPath, wantS.certKeyPath) ||
 						!reflect.DeepEqual(gotS.refreshPeriod, wantS.refreshPeriod) ||
 						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
 						!reflect.DeepEqual(gotS.errRetryInterval, wantS.errRetryInterval) {
 
 						return fmt.Errorf("got: %+v, want: %+v", got, want)
-					}
-					cert, err := tls.LoadX509KeyPair(args.cfg.CertPath, args.cfg.CertKeyPath)
-					if err != nil {
-						return err
-					}
-					t := gotS.httpClient.Transport.(*http.Transport)
-					if !reflect.DeepEqual(t.TLSClientConfig.Certificates[0], cert) {
-						return fmt.Errorf("client cert not match, got: %+v, want: %+v", t.TLSClientConfig, cert)
-					}
-					if gotS.token != nil {
-						return errors.New("ntoken is not overwrite by client cert")
 					}
 
 					return nil
@@ -349,6 +340,8 @@ func TestNewRoleService(t *testing.T) {
 					athenzPrincipleHeader: args.cfg.PrincipalAuthHeader,
 					domainRoleCache:       gache.New(),
 					expiry:                0,
+					certPath:              "../test/data/dummyClient.crt",
+					certKeyPath:           "../test/data/dummyClient.key",
 					errRetryInterval:      defaultErrRetryInterval,
 					errRetryMaxCount:      defaultErrRetryMaxCount,
 					refreshPeriod:         defaultRefreshPeriod,
@@ -416,18 +409,6 @@ func TestNewRoleService(t *testing.T) {
 				token: dummyTokenProvider,
 			},
 			wantErr: errors.Wrap(ErrInvalidSetting, "client certificate key not exist"),
-		},
-		{
-			name: "NewRoleService with invalid client certificate",
-			args: args{
-				cfg: config.RoleToken{
-					Enable:      true,
-					CertPath:    "../test/data/invalid_dummyServer.crt",
-					CertKeyPath: "../test/data/invalid_dummyServer.key",
-				},
-				token: dummyTokenProvider,
-			},
-			wantErr: errors.Wrap(ErrInvalidSetting, "tls: failed to find any PEM data in certificate input"),
 		},
 	}
 	for _, tt := range tests {

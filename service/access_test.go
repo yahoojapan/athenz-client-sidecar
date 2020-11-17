@@ -398,7 +398,7 @@ func TestNewAccessService(t *testing.T) {
 				},
 				token: dummyTokenProvider,
 			},
-			wantErr: errors.Wrap(ErrInvalidSetting, "client certificate not exist"),
+			wantErr: errors.Wrap(ErrInvalidSetting, "client certificate not found"),
 		},
 		{
 			name: "NewAccessService with non-existing client certificate key",
@@ -410,7 +410,7 @@ func TestNewAccessService(t *testing.T) {
 				},
 				token: dummyTokenProvider,
 			},
-			wantErr: errors.Wrap(ErrInvalidSetting, "client certificate key not exist"),
+			wantErr: errors.Wrap(ErrInvalidSetting, "client certificate key not found"),
 		},
 	}
 	for _, tt := range tests {

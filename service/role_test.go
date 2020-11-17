@@ -396,7 +396,7 @@ func TestNewRoleService(t *testing.T) {
 				},
 				token: dummyTokenProvider,
 			},
-			wantErr: errors.Wrap(ErrInvalidSetting, "client certificate not exist"),
+			wantErr: errors.Wrap(ErrInvalidSetting, "client certificate not found"),
 		},
 		{
 			name: "NewRoleService with non-existing client certificate key",
@@ -408,7 +408,7 @@ func TestNewRoleService(t *testing.T) {
 				},
 				token: dummyTokenProvider,
 			},
-			wantErr: errors.Wrap(ErrInvalidSetting, "client certificate key not exist"),
+			wantErr: errors.Wrap(ErrInvalidSetting, "client certificate key not found"),
 		},
 	}
 	for _, tt := range tests {

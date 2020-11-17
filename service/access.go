@@ -165,18 +165,15 @@ func NewAccessService(cfg config.AccessToken, token ntokend.TokenProvider) (Acce
 		}
 	}
 
-	// verify client certificate config
-	if cfg.CertPath != "" {
-		cp := config.GetActualValue(cfg.CertPath)
-		_, err := os.Stat(cp)
-		if os.IsNotExist(err) {
-			return nil, errors.Wrap(ErrInvalidSetting, "client certificate not exist")
-		}
-		ckp := config.GetActualValue(cfg.CertKeyPath)
-		_, err = os.Stat(ckp)
-		if os.IsNotExist(err) {
-			return nil, errors.Wrap(ErrInvalidSetting, "client certificate key not exist")
-		}
+	tlsConfig, err := NewTLSClientConfig(cp, cfg.CertPath, cfg.CertKeyPath)
+	if err != nil {
+		return nil, errors.Wrap(ErrInvalidSetting, err.Error())
+	}
+
+	httpClient := &http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
+		},
 	}
 
 	return &accessService{
@@ -186,10 +183,10 @@ func NewAccessService(cfg config.AccessToken, token ntokend.TokenProvider) (Acce
 		athenzPrincipleHeader: cfg.PrincipalAuthHeader,
 		tokenCache:            gache.New(),
 		expiry:                exp,
-		httpClient:            http.DefaultClient,
+		httpClient:            httpClient,
 		rootCAs:               cp,
-		certPath:              config.GetActualValue(cfg.CertPath),
-		certKeyPath:           config.GetActualValue(cfg.CertKeyPath),
+		certPath:              cfg.CertPath,
+		certKeyPath:           cfg.CertKeyPath,
 		refreshPeriod:         refreshPeriod,
 		errRetryMaxCount:      errRetryMaxCount,
 		errRetryInterval:      errRetryInterval,
@@ -332,12 +329,6 @@ func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, prox
 	}
 	glg.Debugf("request url: %v", req.URL)
 
-	// prepare TLS config (certificate file may refresh)
-	tcc, err := NewTLSClientConfig(a.rootCAs, a.certPath, a.certKeyPath)
-	if err != nil {
-		return nil, err
-	}
-
 	// prepare Athenz credentials
 	if a.token != nil {
 		token, err := a.token()
@@ -346,12 +337,16 @@ func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, prox
 		}
 		req.Header.Set(a.athenzPrincipleHeader, token)
 		// prevent using client certificate (ntoken has priority)
-		tcc.Certificates = nil
-	} else if a.certPath == "" {
+		a.httpClient.Transport.(*http.Transport).TLSClientConfig.Certificates = nil
+	} else if a.certPath != "" {
+		// prepare TLS config (certificate file may refresh)
+		tcc, err := NewTLSClientConfig(a.rootCAs, a.certPath, a.certKeyPath)
+		if err != nil {
+			return nil, err
+		}
+		a.httpClient.Transport.(*http.Transport).TLSClientConfig = tcc
 		return nil, errors.New("No credentials")
 	}
-
-	a.httpClient.Transport.(*http.Transport).TLSClientConfig = tcc
 
 	// send request
 	res, err := a.httpClient.Do(req.WithContext(ctx))

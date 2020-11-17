@@ -18,6 +18,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"net/http"
 	"net/http/httptest"
@@ -2179,14 +2180,14 @@ func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 				athenzPrincipleHeader: "dummyHeader",
 			},
 			want: func() *http.Request {
-				r, _ := http.NewRequest(http.MethodPost, "https://dummyAthenzURL/oauth2/token", strings.NewReader(url.Values{}.Encode()))
-				r.Form = url.Values{}
-				r.Form.Add("grant_type", "client_credentials")
-				r.Form.Add("scope", "dummyDomain:dummyRole")
-				r.Form.Add("proxy_for_principal", "dummyProxyForPrincipal")
-				r.Form.Add("expires_in", "1")
-				r.Header.Set("dummyHeader", "dummyToken")
+				q := url.Values{}
+				q.Add("grant_type", "client_credentials")
+				q.Add("scope", "dummyDomain:dummyRole")
+				q.Add("proxy_for_principal", "dummyProxyForPrincipal")
+				q.Add("expires_in", "1")
 
+				r, _ := http.NewRequest(http.MethodPost, "https://dummyAthenzURL/oauth2/token", strings.NewReader(q.Encode()))
+				r.Header.Set("Content-Type", "x-www-form-urlencoded")
 				return r
 			}(),
 		},
@@ -2203,14 +2204,14 @@ func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 				expiry:                time.Minute,
 			},
 			want: func() *http.Request {
-				r, _ := http.NewRequest(http.MethodPost, "https://dummyAthenzURL/oauth2/token", strings.NewReader(url.Values{}.Encode()))
-				r.Form = url.Values{}
-				r.Form.Add("grant_type", "client_credentials")
-				r.Form.Add("scope", "dummyDomain:dummyRole")
-				r.Form.Add("proxy_for_principal", "dummyProxyForPrincipal")
-				r.Form.Add("expires_in", "60")
-				r.Header.Set("dummyHeader", "dummyToken")
+				q := url.Values{}
+				q.Add("grant_type", "client_credentials")
+				q.Add("scope", "dummyDomain:dummyRole")
+				q.Add("proxy_for_principal", "dummyProxyForPrincipal")
+				q.Add("expires_in", "60")
 
+				r, _ := http.NewRequest(http.MethodPost, "https://dummyAthenzURL/oauth2/token", strings.NewReader(q.Encode()))
+				r.Header.Set("Content-Type", "x-www-form-urlencoded")
 				return r
 			}(),
 		},
@@ -2226,13 +2227,13 @@ func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 				athenzPrincipleHeader: "dummyHeader",
 			},
 			want: func() *http.Request {
-				r, _ := http.NewRequest(http.MethodPost, "https://dummyAthenzURL/oauth2/token", strings.NewReader(url.Values{}.Encode()))
-				r.Form = url.Values{}
-				r.Form.Add("grant_type", "client_credentials")
-				r.Form.Add("scope", "dummyDomain:dummyRole")
-				r.Form.Add("expires_in", "1")
-				r.Header.Set("dummyHeader", "dummyToken")
+				q := url.Values{}
+				q.Add("grant_type", "client_credentials")
+				q.Add("scope", "dummyDomain:dummyRole")
+				q.Add("expires_in", "1")
 
+				r, _ := http.NewRequest(http.MethodPost, "https://dummyAthenzURL/oauth2/token", strings.NewReader(q.Encode()))
+				r.Header.Set("Content-Type", "x-www-form-urlencoded")
 				return r
 			}(),
 		},
@@ -2248,9 +2249,17 @@ func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 				expiry:                tt.fields.expiry,
 			}
 			got, err := a.createPostAccessTokenRequest(tt.args.scope, tt.args.proxyForPrincipal, tt.args.expiry)
-			if got.URL.String() != tt.want.URL.String() &&
-				reflect.DeepEqual(got.PostForm, tt.want.PostForm) &&
-				reflect.DeepEqual(got.Header, tt.want.Header) {
+			gotBody, readErr := ioutil.ReadAll(got.Body)
+			if readErr != nil {
+				t.Errorf("createPostAccessTokenRequest() err: %v", err)
+			}
+			wantBody, readErr := ioutil.ReadAll(tt.want.Body)
+			if readErr != nil {
+				t.Errorf("createPostAccessTokenRequest() err: %v", err)
+			}
+			if got.URL.String() != tt.want.URL.String() ||
+				!reflect.DeepEqual(got.Header, tt.want.Header) ||
+				string(gotBody) != string(wantBody) {
 
 				t.Errorf("createPostAccessTokenRequest(), got: %+v, want: %+v", got, tt.want)
 			}

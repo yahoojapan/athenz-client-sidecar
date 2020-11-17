@@ -2248,7 +2248,6 @@ func Test_createGetRoleTokenRequest(t *testing.T) {
 			},
 			want: func() *http.Request {
 				r, _ := http.NewRequest(http.MethodGet, "https://dummyAthenzURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal&role=dummyRole", nil)
-				r.Header.Set("dummyHeader", "dummyToken")
 
 				return r
 			}(),
@@ -2269,7 +2268,6 @@ func Test_createGetRoleTokenRequest(t *testing.T) {
 			},
 			want: func() *http.Request {
 				r, _ := http.NewRequest(http.MethodGet, "https://dummyAthenzURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=60&proxyForPrincipal=dummyProxyForPrincipal&role=dummyRole", nil)
-				r.Header.Set("dummyHeader", "dummyToken")
 
 				return r
 			}(),
@@ -2290,7 +2288,6 @@ func Test_createGetRoleTokenRequest(t *testing.T) {
 			},
 			want: func() *http.Request {
 				r, _ := http.NewRequest(http.MethodGet, "https://dummyAthenzURL/domain/dummyDomain/token?minExpiryTime=1&proxyForPrincipal=dummyProxyForPrincipal&role=dummyRole", nil)
-				r.Header.Set("dummyHeader", "dummyToken")
 
 				return r
 			}(),
@@ -2310,7 +2307,6 @@ func Test_createGetRoleTokenRequest(t *testing.T) {
 			},
 			want: func() *http.Request {
 				r, _ := http.NewRequest(http.MethodGet, "https://dummyAthenzURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1&role=dummyRole", nil)
-				r.Header.Set("dummyHeader", "dummyToken")
 
 				return r
 			}(),
@@ -2329,7 +2325,6 @@ func Test_createGetRoleTokenRequest(t *testing.T) {
 			},
 			want: func() *http.Request {
 				r, _ := http.NewRequest(http.MethodGet, "https://dummyAthenzURL/domain/dummyDomain/token?maxExpiryTime=1&minExpiryTime=1", nil)
-				r.Header.Set("dummyHeader", "dummyToken")
 
 				return r
 			}(),

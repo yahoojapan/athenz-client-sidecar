@@ -17,6 +17,7 @@ package service
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 	"math"
@@ -1826,6 +1827,9 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 		tokenCache            gache.Gache
 		expiry                time.Duration
 		httpClient            *http.Client
+		rootCAs               *x509.CertPool
+		certPath              string
+		certKeyPath           string
 		refreshPeriod         time.Duration
 		errRetryMaxCount      int
 		errRetryInterval      time.Duration
@@ -1845,6 +1849,63 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 		wantErr error
 	}
 	tests := []test{
+		func() test {
+			dummyTok := "dummyToken"
+			dummyExpTime := int64(999999999)
+			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime)
+
+			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, dummyToken)
+				w.WriteHeader(http.StatusOK)
+			})
+			dummyServer := httptest.NewUnstartedServer(sampleHandler)
+			serverTLSCfg, err := NewTLSConfig(config.TLS{
+				CertPath: "../test/data/dummyServer.crt",
+				KeyPath:  "../test/data/dummyServer.key",
+				CAPath:   "../test/data/dummyClient.crt",
+			})
+			if err != nil {
+				panic(err)
+			}
+			clientCACp, err := NewX509CertPool("../test/data/dummyServer.crt")
+			if err != nil {
+				panic(err)
+			}
+
+			// dummyServer.TLS = dummyServer.Config.TLSConfig
+			dummyServer.TLS = serverTLSCfg
+
+			// tr := &http.Transport{TLSClientConfig: dummyServer.Config.TLSConfig}
+			// tr.TLSClientConfig.InsecureSkipVerify = true
+			dummyServer.StartTLS()
+			// defer dummyServer.Close()
+
+			// client := &http.Client{Transport: tr}
+			return test{
+				name: "tttttttttttttttttttt",
+				fields: fields{
+					athenzURL:             dummyServer.URL,
+					athenzPrincipleHeader: "dummy-header",
+					httpClient:            dummyServer.Client(),
+					rootCAs:               clientCACp,
+					certPath:              "../test/data/dummyClient.crt",
+					certKeyPath:           "../test/data/dummyClient.key",
+				},
+				args: args{
+					ctx:               context.Background(),
+					domain:            "dummyDomain",
+					role:              "dummyRole",
+					proxyForPrincipal: "dummyProxy",
+					expiry:            3600,
+				},
+				want: &AccessTokenResponse{
+					AccessToken: dummyTok,
+					TokenType:   "Bearer",
+					Scope:       "dummyDomain:dummyRole",
+					ExpiresIn:   dummyExpTime,
+				},
+			}
+		}(),
 		func() test {
 			dummyTok := "dummyToken"
 			dummyExpTime := int64(999999999)
@@ -1979,6 +2040,9 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 				tokenCache:            tt.fields.tokenCache,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
+				rootCAs:               tt.fields.rootCAs,
+				certPath:              tt.fields.certPath,
+				certKeyPath:           tt.fields.certKeyPath,
 				refreshPeriod:         tt.fields.refreshPeriod,
 				errRetryMaxCount:      tt.fields.errRetryMaxCount,
 				errRetryInterval:      tt.fields.errRetryInterval,

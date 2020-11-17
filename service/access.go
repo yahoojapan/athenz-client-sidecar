@@ -347,7 +347,12 @@ func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, prox
 		if err != nil {
 			return nil, err
 		}
-		a.httpClient.Transport.(*http.Transport).TLSClientConfig = tcc
+		// a.httpClient.Transport.(*http.Transport).TLSClientConfig = tcc
+		a.httpClient = &http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: tcc,
+			},
+		}
 	} else {
 		return nil, errors.New("No credentials")
 	}

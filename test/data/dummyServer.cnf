@@ -1,7 +1,8 @@
 # reference: https://github.com/openssl/openssl/blob/master/demos/certs/ca.cnf
 
-CN = "athenz.test.client"
-SAN = "syncer.athenz-test.dns"
+CN = "dummy-server"
+SAN = "localhost"
+IPSAN = "127.0.0.1"
 
 [ req ]
 default_bits = 4096
@@ -30,6 +31,7 @@ subjectAltName = @alt_names
 
 [ alt_names ]
 DNS.1 = ${ENV::SAN}
+IP.1 = ${ENV::IPSAN}
 
-# openssl req -x509 -nodes -newkey rsa:4096 -days 3650 -config "dummyClient.cnf" -keyout "dummyClient.key" -out "dummyClient.crt"
-# openssl rsa -in "dummyClient.key" -out "dummyClient.key"
+# openssl req -x509 -nodes -newkey rsa:4096 -days 3650 -config "dummyServer.cnf" -keyout "dummyServer.key" -out "dummyServer.crt"
+# openssl rsa -in "dummyServer.key" -out "dummyServer.key"

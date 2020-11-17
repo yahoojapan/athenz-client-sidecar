@@ -429,7 +429,7 @@ func (a *accessService) createPostAccessTokenRequest(scope, proxyForPrincipal st
 		glg.Debugf("fail to create request object, error: %s", err)
 		return nil, err
 	}
-	req.Header.Set("Content-Type", "x-www-form-urlencoded")
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	return req, nil
 }

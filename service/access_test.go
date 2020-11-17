@@ -2251,7 +2251,7 @@ func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 				q.Add("expires_in", "1")
 
 				r, _ := http.NewRequest(http.MethodPost, "https://dummyAthenzURL/oauth2/token", strings.NewReader(q.Encode()))
-				r.Header.Set("Content-Type", "x-www-form-urlencoded")
+				r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				return r
 			}(),
 		},
@@ -2275,7 +2275,7 @@ func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 				q.Add("expires_in", "60")
 
 				r, _ := http.NewRequest(http.MethodPost, "https://dummyAthenzURL/oauth2/token", strings.NewReader(q.Encode()))
-				r.Header.Set("Content-Type", "x-www-form-urlencoded")
+				r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				return r
 			}(),
 		},
@@ -2297,7 +2297,7 @@ func Test_accessService_createPostAccessTokenRequest(t *testing.T) {
 				q.Add("expires_in", "1")
 
 				r, _ := http.NewRequest(http.MethodPost, "https://dummyAthenzURL/oauth2/token", strings.NewReader(q.Encode()))
-				r.Header.Set("Content-Type", "x-www-form-urlencoded")
+				r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 				return r
 			}(),
 		},

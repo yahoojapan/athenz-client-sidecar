@@ -170,6 +170,11 @@ func NewAccessService(cfg config.AccessToken, token ntokend.TokenProvider) (Acce
 		return nil, errors.Wrap(ErrInvalidSetting, err.Error())
 	}
 
+	// prevent using client certificate (ntoken has priority)
+	if token != nil {
+		tlsConfig.Certificates = nil
+	}
+
 	httpClient := &http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: tlsConfig,
@@ -336,8 +341,6 @@ func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, prox
 			return nil, err
 		}
 		req.Header.Set(a.athenzPrincipleHeader, token)
-		// prevent using client certificate (ntoken has priority)
-		a.httpClient.Transport.(*http.Transport).TLSClientConfig.Certificates = nil
 	} else if a.certPath != "" {
 		// prepare TLS config (certificate file may refresh)
 		tcc, err := NewTLSClientConfig(a.rootCAs, a.certPath, a.certKeyPath)

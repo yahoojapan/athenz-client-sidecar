@@ -94,6 +94,9 @@ var (
 
 	// ErrDisabled represents an error when the service is disabled
 	ErrDisabled = errors.New("Disabled")
+
+	// ErrNoCredentials represents an error when there are no Athenz credentials are set
+	ErrNoCredentials = errors.New("No credentials")
 )
 
 const (
@@ -366,7 +369,7 @@ func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyFor
 			},
 		})
 	} else {
-		return nil, errors.New("No credentials")
+		return nil, ErrNoCredentials
 	}
 
 	// send request

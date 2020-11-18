@@ -356,7 +356,7 @@ func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, prox
 			},
 		})
 	} else {
-		return nil, errors.New("No credentials")
+		return nil, ErrNoCredentials
 	}
 
 	// send request

@@ -1568,11 +1568,10 @@ func Test_accessService_updateAccessToken(t *testing.T) {
 		func() test {
 			dummyErr := fmt.Errorf("Dummy error")
 
-			var httpClient atomic.Value
 			return test{
 				name: "updateAccessToken token returns error",
 				fields: fields{
-					httpClient: httpClient,
+					httpClient: atomic.Value{},
 					tokenCache: gache.New(),
 					token: func() (string, error) {
 						return "", dummyErr
@@ -1881,13 +1880,44 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 		expiry            int64
 	}
 	type test struct {
-		name    string
-		fields  fields
-		args    args
-		want    *AccessTokenResponse
-		wantErr error
+		name      string
+		fields    fields
+		args      args
+		want      *AccessTokenResponse
+		wantErr   error
+		afterFunc func() error
 	}
 	tests := []test{
+		{
+			name: "fetch access token error, invalid TLS",
+			fields: fields{
+				httpClient:  atomic.Value{},
+				certPath:    "../test/data/invalid_dummyServer.crt",
+				certKeyPath: "../test/data/invalid_dummyServer.key",
+			},
+			args: args{
+				ctx:               context.Background(),
+				domain:            "dummyDomain",
+				role:              "dummyRole",
+				proxyForPrincipal: "dummyProxy",
+				expiry:            3600,
+			},
+			wantErr: errors.New("tls: failed to find any PEM data in certificate input"),
+		},
+		{
+			name: "fetch access token error, no credentials",
+			fields: fields{
+				httpClient: atomic.Value{},
+			},
+			args: args{
+				ctx:               context.Background(),
+				domain:            "dummyDomain",
+				role:              "dummyRole",
+				proxyForPrincipal: "dummyProxy",
+				expiry:            3600,
+			},
+			wantErr: ErrNoCredentials,
+		},
 		func() test {
 			dummyTok := "dummyToken"
 			dummyExpTime := int64(999999999)
@@ -1921,7 +1951,7 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 			var httpClient atomic.Value
 			httpClient.Store(dummyServer.Client())
 			return test{
-				name: "Request with client certificate",
+				name: "fetch access token success with client certificate",
 				fields: fields{
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "dummy-header",
@@ -1943,6 +1973,10 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 					Scope:       "dummyDomain:dummyRole",
 					ExpiresIn:   dummyExpTime,
 				},
+				afterFunc: func() error {
+					dummyServer.Close()
+					return nil
+				},
 			}
 		}(),
 		func() test {
@@ -1959,7 +1993,7 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 			var httpClient atomic.Value
 			httpClient.Store(dummyServer.Client())
 			return test{
-				name: "fetch access token success",
+				name: "fetch access token success with ntoken",
 				fields: fields{
 					token: func() (string, error) {
 						return "dummyNtoken", nil
@@ -1980,6 +2014,10 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 					TokenType:   "Bearer",
 					Scope:       "dummyDomain:dummyRole",
 					ExpiresIn:   dummyExpTime,
+				},
+				afterFunc: func() error {
+					dummyServer.Close()
+					return nil
 				},
 			}
 		}(),
@@ -2015,6 +2053,10 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 					expiry:            3600,
 				},
 				wantErr: dummyErr,
+				afterFunc: func() error {
+					dummyServer.Close()
+					return nil
+				},
 			}
 		}(),
 		func() test {
@@ -2043,6 +2085,10 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 					expiry:            3600,
 				},
 				wantErr: ErrAccessTokenRequestFailed,
+				afterFunc: func() error {
+					dummyServer.Close()
+					return nil
+				},
 			}
 		}(),
 		func() test {
@@ -2074,11 +2120,23 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 					expiry:            3600,
 				},
 				wantErr: errors.New("invalid character 'd' looking for beginning of value"),
+				afterFunc: func() error {
+					dummyServer.Close()
+					return nil
+				},
 			}
 		}(),
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.afterFunc != nil {
+				defer func() {
+					err := tt.afterFunc()
+					if err != nil {
+						t.Errorf("Failed afterFunc %v", err)
+					}
+				}()
+			}
 			a := &accessService{
 				cfg:                   tt.fields.cfg,
 				token:                 tt.fields.token,

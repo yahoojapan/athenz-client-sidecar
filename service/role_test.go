@@ -1571,11 +1571,10 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 		}(),
 		func() test {
 			dummyErr := fmt.Errorf("Dummy error")
-			var httpClient atomic.Value
 			return test{
 				name: "updateRoleToken token returns error",
 				fields: fields{
-					httpClient:      httpClient,
+					httpClient:      atomic.Value{},
 					domainRoleCache: gache.New(),
 					token: func() (string, error) {
 						return "", dummyErr
@@ -1890,13 +1889,46 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 		maxExpiry         int64
 	}
 	type test struct {
-		name    string
-		fields  fields
-		args    args
-		want    *RoleToken
-		wantErr error
+		name      string
+		fields    fields
+		args      args
+		want      *RoleToken
+		wantErr   error
+		afterFunc func() error
 	}
 	tests := []test{
+		{
+			name: "fetch role token error, invalid TLS",
+			fields: fields{
+				httpClient:  atomic.Value{},
+				certPath:    "../test/data/invalid_dummyServer.crt",
+				certKeyPath: "../test/data/invalid_dummyServer.key",
+			},
+			args: args{
+				ctx:               context.Background(),
+				domain:            "dummyDomain",
+				role:              "dummyRole",
+				proxyForPrincipal: "dummyProxy",
+				minExpiry:         3600,
+				maxExpiry:         3600,
+			},
+			wantErr: errors.New("tls: failed to find any PEM data in certificate input"),
+		},
+		{
+			name: "fetch role token error, no credentials",
+			fields: fields{
+				httpClient: atomic.Value{},
+			},
+			args: args{
+				ctx:               context.Background(),
+				domain:            "dummyDomain",
+				role:              "dummyRole",
+				proxyForPrincipal: "dummyProxy",
+				minExpiry:         3600,
+				maxExpiry:         3600,
+			},
+			wantErr: ErrNoCredentials,
+		},
 		func() test {
 			dummyTok := "dummyToken"
 			dummyExpTime := int64(999999999)
@@ -1930,7 +1962,7 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 			var httpClient atomic.Value
 			httpClient.Store(dummyServer.Client())
 			return test{
-				name: "Request with client certificate",
+				name: "fetch role token success with client certificate",
 				fields: fields{
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "dummy-header",
@@ -1950,6 +1982,10 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 				want: &RoleToken{
 					Token:      dummyTok,
 					ExpiryTime: dummyExpTime,
+				},
+				afterFunc: func() error {
+					dummyServer.Close()
+					return nil
 				},
 			}
 		}(),
@@ -1988,6 +2024,10 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					Token:      dummyTok,
 					ExpiryTime: dummyExpTime,
 				},
+				afterFunc: func() error {
+					dummyServer.Close()
+					return nil
+				},
 			}
 		}(),
 		func() test {
@@ -2024,42 +2064,10 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					maxExpiry:         3600,
 				},
 				wantErr: dummyErr,
-			}
-		}(),
-		func() test {
-			dummyTok := "dummyToken"
-			dummyExpTime := int64(999999999)
-			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
-
-			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				fmt.Fprint(w, dummyToken)
-				w.WriteHeader(http.StatusOK)
-			})
-			dummyServer := httptest.NewTLSServer(sampleHandler)
-
-			dummyErr := errors.New("dummy error")
-
-			var httpClient atomic.Value
-			httpClient.Store(dummyServer.Client())
-			return test{
-				name: "N-token provider return error",
-				fields: fields{
-					token: func() (string, error) {
-						return "", dummyErr
-					},
-					athenzURL:             dummyServer.URL,
-					athenzPrincipleHeader: "dummy-header",
-					httpClient:            httpClient,
+				afterFunc: func() error {
+					dummyServer.Close()
+					return nil
 				},
-				args: args{
-					ctx:               context.Background(),
-					domain:            "dummyDomain",
-					role:              "dummyRole",
-					proxyForPrincipal: "dummyProxy",
-					minExpiry:         3600,
-					maxExpiry:         3600,
-				},
-				wantErr: dummyErr,
 			}
 		}(),
 		func() test {
@@ -2089,6 +2097,10 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					maxExpiry:         3600,
 				},
 				wantErr: ErrRoleTokenRequestFailed,
+				afterFunc: func() error {
+					dummyServer.Close()
+					return nil
+				},
 			}
 		}(),
 		func() test {
@@ -2121,11 +2133,23 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					maxExpiry:         3600,
 				},
 				wantErr: errors.New("invalid character 'd' looking for beginning of value"),
+				afterFunc: func() error {
+					dummyServer.Close()
+					return nil
+				},
 			}
 		}(),
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.afterFunc != nil {
+				defer func() {
+					err := tt.afterFunc()
+					if err != nil {
+						t.Errorf("Failed afterFunc %v", err)
+					}
+				}()
+			}
 			r := &roleService{
 				cfg:                   tt.fields.cfg,
 				token:                 tt.fields.token,

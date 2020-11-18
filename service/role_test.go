@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -441,7 +442,7 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
 		expiry                time.Duration
-		httpClient            *http.Client
+		httpClient            atomic.Value
 
 		refreshPeriod    time.Duration
 		errRetryMaxCount int
@@ -481,10 +482,12 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "StartRoleUpdater can update cache periodically",
 				fields: fields{
-					httpClient:            dummyServer.Client(),
+					httpClient:            httpClient,
 					domainRoleCache:       domainRoleCache,
 					expiry:                time.Second,
 					athenzURL:             dummyServer.URL,
@@ -551,10 +554,12 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 
 			ctx, cancel := context.WithCancel(context.Background())
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "RefreshRoleTokenCache success with retry",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
+					httpClient:      httpClient,
 					domainRoleCache: domainRoleCache,
 					token: func() (string, error) {
 						return "dummyToken", nil
@@ -628,10 +633,12 @@ func Test_roleService_StartRoleUpdater(t *testing.T) {
 
 			ctx, cancel := context.WithCancel(context.Background())
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "RefreshRoleTokenCache failed",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
+					httpClient:      httpClient,
 					domainRoleCache: domainRoleCache,
 					token: func() (string, error) {
 						return "dummyToken", nil
@@ -743,7 +750,7 @@ func Test_roleService_getRoleToken(t *testing.T) {
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
 		expiry                time.Duration
-		httpClient            *http.Client
+		httpClient            atomic.Value
 	}
 	type args struct {
 		ctx               context.Context
@@ -772,10 +779,12 @@ func Test_roleService_getRoleToken(t *testing.T) {
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "getRoleToken returns correct",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
+					httpClient:      httpClient,
 					domainRoleCache: gache.New(),
 					token: func() (string, error) {
 						return dummyToken, nil
@@ -807,10 +816,12 @@ func Test_roleService_getRoleToken(t *testing.T) {
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "getRoleToken returns error",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
+					httpClient:      httpClient,
 					domainRoleCache: gache.New(),
 					token: func() (string, error) {
 						return "", nil
@@ -905,7 +916,7 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
 		expiry                time.Duration
-		httpClient            *http.Client
+		httpClient            atomic.Value
 		refreshPeriod         time.Duration
 		errRetryMaxCount      int
 		errRetryInterval      time.Duration
@@ -939,6 +950,8 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 			}
 			roleCache.SetWithExpire("dummyDomain;dummyRole", data, time.Minute)
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "Refresh role token cache success",
 				fields: fields{
@@ -949,7 +962,7 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 					athenzPrincipleHeader: "dummy",
 					domainRoleCache:       roleCache,
 					expiry:                time.Minute,
-					httpClient:            dummyServer.Client(),
+					httpClient:            httpClient,
 					refreshPeriod:         time.Second,
 					errRetryMaxCount:      5,
 					errRetryInterval:      time.Second,
@@ -1007,6 +1020,8 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 			}
 			roleCache.SetWithExpire("dummyDomain1;dummyRole1", data1, time.Minute)
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "Refresh multiple role token cache success",
 				fields: fields{
@@ -1017,7 +1032,7 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 					athenzPrincipleHeader: "dummy",
 					domainRoleCache:       roleCache,
 					expiry:                time.Minute,
-					httpClient:            dummyServer.Client(),
+					httpClient:            httpClient,
 					refreshPeriod:         time.Second,
 					errRetryMaxCount:      5,
 					errRetryInterval:      time.Second,
@@ -1082,10 +1097,12 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 			}
 			domainRoleCache.SetWithExpire("dummyDomain;dummyRole;dummyProxy", data, time.Minute)
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "RefreshRoleTokenCache success with retry",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
+					httpClient:      httpClient,
 					domainRoleCache: domainRoleCache,
 					token: func() (string, error) {
 						return "dummyToken", nil
@@ -1153,10 +1170,12 @@ func Test_roleService_RefreshRoleTokenCache(t *testing.T) {
 			}
 			domainRoleCache.SetWithExpire("dummyDomain;dummyRole;dummyProxy", data, time.Minute)
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "RefreshRoleTokenCache failed",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
+					httpClient:      httpClient,
 					domainRoleCache: domainRoleCache,
 					token: func() (string, error) {
 						return "dummyToken", nil
@@ -1244,7 +1263,7 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
 		expiry                time.Duration
-		httpClient            *http.Client
+		httpClient            atomic.Value
 		refreshPeriod         time.Duration
 		errRetryMaxCount      int
 		errRetryInterval      time.Duration
@@ -1277,10 +1296,12 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 
 			domainRoleCache := gache.New()
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "updateRoleTokenWithRetry success",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
+					httpClient:      httpClient,
 					domainRoleCache: domainRoleCache,
 					token: func() (string, error) {
 						return dummyToken, nil
@@ -1335,10 +1356,12 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 
 			domainRoleCache := gache.New()
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "updateRoleTokenWithRetry success with retry",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
+					httpClient:      httpClient,
 					domainRoleCache: domainRoleCache,
 					token: func() (string, error) {
 						return dummyToken, nil
@@ -1398,10 +1421,12 @@ func Test_roleService_updateRoleTokenWithRetry(t *testing.T) {
 
 			domainRoleCache := gache.New()
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "updateRoleTokenWithRetry returns error",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
+					httpClient:      httpClient,
 					domainRoleCache: domainRoleCache,
 					token: func() (string, error) {
 						return dummyToken, nil
@@ -1482,7 +1507,7 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
 		expiry                time.Duration
-		httpClient            *http.Client
+		httpClient            atomic.Value
 	}
 	type args struct {
 		ctx               context.Context
@@ -1512,10 +1537,12 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "updateRoleToken returns correct",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
+					httpClient:      httpClient,
 					domainRoleCache: gache.New(),
 					token: func() (string, error) {
 						return dummyToken, nil
@@ -1543,10 +1570,11 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 		}(),
 		func() test {
 			dummyErr := fmt.Errorf("Dummy error")
+			var httpClient atomic.Value
 			return test{
 				name: "updateRoleToken token returns error",
 				fields: fields{
-					httpClient:      nil,
+					httpClient:      httpClient,
 					domainRoleCache: gache.New(),
 					token: func() (string, error) {
 						return "", dummyErr
@@ -1574,10 +1602,12 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "updateRoleToken new request returns error",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
+					httpClient:      httpClient,
 					domainRoleCache: gache.New(),
 					token: func() (string, error) {
 						return "", nil
@@ -1606,10 +1636,12 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "updateRoleToken get token error",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
+					httpClient:      httpClient,
 					domainRoleCache: gache.New(),
 					token: func() (string, error) {
 						return dummyToken, nil
@@ -1640,10 +1672,12 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "updateRoleToken decode token error",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
+					httpClient:      httpClient,
 					domainRoleCache: gache.New(),
 					token: func() (string, error) {
 						return dummyToken, nil
@@ -1678,10 +1712,12 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 
 			roleRoleCache := gache.New()
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "updateRoleToken set token in cache",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
+					httpClient:      httpClient,
 					domainRoleCache: roleRoleCache,
 					token: func() (string, error) {
 						return dummyToken, nil
@@ -1742,10 +1778,12 @@ func Test_roleService_updateRoleToken(t *testing.T) {
 				token: dummyRoleToke2,
 			}, time.Second)
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "updateRoleToken update token in cache",
 				fields: fields{
-					httpClient:      dummyServer.Client(),
+					httpClient:      httpClient,
 					domainRoleCache: domainRoleCache,
 					token: func() (string, error) {
 						return dummyToken, nil
@@ -1834,7 +1872,7 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 		athenzPrincipleHeader string
 		domainRoleCache       gache.Gache
 		expiry                time.Duration
-		httpClient            *http.Client
+		httpClient            atomic.Value
 		refreshPeriod         time.Duration
 		errRetryMaxCount      int
 		errRetryInterval      time.Duration
@@ -1866,6 +1904,8 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "fetch role token success",
 				fields: fields{
@@ -1874,7 +1914,7 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					},
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "dummy-header",
-					httpClient:            dummyServer.Client(),
+					httpClient:            httpClient,
 				},
 				args: args{
 					ctx:               context.Background(),
@@ -1902,6 +1942,9 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
 			dummyErr := errors.New("dummy error")
+
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "N-token provider return error",
 				fields: fields{
@@ -1910,7 +1953,7 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					},
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "dummy-header",
-					httpClient:            dummyServer.Client(),
+					httpClient:            httpClient,
 				},
 				args: args{
 					ctx:               context.Background(),
@@ -1929,6 +1972,8 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "Athenz server return error",
 				fields: fields{
@@ -1937,7 +1982,7 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					},
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "dummy-header",
-					httpClient:            dummyServer.Client(),
+					httpClient:            httpClient,
 				},
 				args: args{
 					ctx:               context.Background(),
@@ -1959,6 +2004,8 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 			})
 			dummyServer := httptest.NewTLSServer(sampleHandler)
 
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
 			return test{
 				name: "Athenz server return invalid role token",
 				fields: fields{
@@ -1967,7 +2014,7 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					},
 					athenzURL:             dummyServer.URL,
 					athenzPrincipleHeader: "dummy-header",
-					httpClient:            dummyServer.Client(),
+					httpClient:            httpClient,
 				},
 				args: args{
 					ctx:               context.Background(),

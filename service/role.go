@@ -29,6 +29,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/kpango/fastime"
@@ -56,7 +57,7 @@ type roleService struct {
 	domainRoleCache       gache.Gache
 	group                 singleflight.Group
 	expiry                time.Duration
-	httpClient            *http.Client
+	httpClient            atomic.Value
 	rootCAs               *x509.CertPool
 	certPath              string
 	certKeyPath           string
@@ -182,11 +183,17 @@ func NewRoleService(cfg config.RoleToken, token ntokend.TokenProvider) (RoleServ
 		return nil, errors.Wrap(ErrInvalidSetting, err.Error())
 	}
 
-	httpClient := &http.Client{
+	// prevent using client certificate (ntoken has priority)
+	if token != nil {
+		tlsConfig.Certificates = nil
+	}
+
+	var httpClient atomic.Value
+	httpClient.Store(&http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: tlsConfig,
 		},
-	}
+	})
 
 	return &roleService{
 		cfg:                   cfg,
@@ -346,21 +353,24 @@ func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyFor
 			return nil, err
 		}
 		req.Header.Set(r.athenzPrincipleHeader, token)
-		// prevent using client certificate (ntoken has priority)
-		r.httpClient.Transport.(*http.Transport).TLSClientConfig.Certificates = nil
 	} else if r.certPath != "" {
 		// prepare TLS config (certificate file may refresh)
 		tcc, err := NewTLSClientConfig(r.rootCAs, r.certPath, r.certKeyPath)
 		if err != nil {
 			return nil, err
 		}
-		r.httpClient.Transport.(*http.Transport).TLSClientConfig = tcc
+		// a.httpClient.Transport.(*http.Transport).TLSClientConfig = tcc
+		r.httpClient.Store(&http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: tcc,
+			},
+		})
 	} else {
 		return nil, errors.New("No credentials")
 	}
 
 	// send request
-	res, err := r.httpClient.Do(req.WithContext(ctx))
+	res, err := r.httpClient.Load().(*http.Client).Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}

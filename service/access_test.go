@@ -1894,6 +1894,10 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 			dummyToken := fmt.Sprintf(`{"access_token":"%v","token_type":"Bearer","expires_in":%v,"scope":"dummyDomain:dummyRole"}"`, dummyTok, dummyExpTime)
 
 			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.TLS.PeerCertificates == nil || r.TLS.PeerCertificates[0].Subject.CommonName != "athenz.test.syncer" {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
 				fmt.Fprint(w, dummyToken)
 				w.WriteHeader(http.StatusOK)
 			})

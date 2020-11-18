@@ -1915,15 +1915,9 @@ func Test_accessService_fetchAccessToken(t *testing.T) {
 				panic(err)
 			}
 
-			// dummyServer.TLS = dummyServer.Config.TLSConfig
 			dummyServer.TLS = serverTLSCfg
-
-			// tr := &http.Transport{TLSClientConfig: dummyServer.Config.TLSConfig}
-			// tr.TLSClientConfig.InsecureSkipVerify = true
 			dummyServer.StartTLS()
-			// defer dummyServer.Close()
 
-			// client := &http.Client{Transport: tr}
 			var httpClient atomic.Value
 			httpClient.Store(dummyServer.Client())
 			return test{

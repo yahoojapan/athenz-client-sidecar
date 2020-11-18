@@ -17,6 +17,7 @@ package service
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 	"io"
 	"math"
@@ -1873,6 +1874,9 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 		domainRoleCache       gache.Gache
 		expiry                time.Duration
 		httpClient            atomic.Value
+		rootCAs               *x509.CertPool
+		certPath              string
+		certKeyPath           string
 		refreshPeriod         time.Duration
 		errRetryMaxCount      int
 		errRetryInterval      time.Duration
@@ -1893,6 +1897,62 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 		wantErr error
 	}
 	tests := []test{
+		func() test {
+			dummyTok := "dummyToken"
+			dummyExpTime := int64(999999999)
+			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+
+			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.TLS.PeerCertificates == nil || r.TLS.PeerCertificates[0].Subject.CommonName != "athenz.test.syncer" {
+					w.WriteHeader(http.StatusInternalServerError)
+					return
+				}
+				fmt.Fprint(w, dummyToken)
+				w.WriteHeader(http.StatusOK)
+			})
+			dummyServer := httptest.NewUnstartedServer(sampleHandler)
+			serverTLSCfg, err := NewTLSConfig(config.TLS{
+				CertPath: "../test/data/dummyServer.crt",
+				KeyPath:  "../test/data/dummyServer.key",
+				CAPath:   "../test/data/dummyClient.crt",
+			})
+			if err != nil {
+				panic(err)
+			}
+			clientCACp, err := NewX509CertPool("../test/data/dummyServer.crt")
+			if err != nil {
+				panic(err)
+			}
+
+			dummyServer.TLS = serverTLSCfg
+			dummyServer.StartTLS()
+
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
+			return test{
+				name: "Request with client certificate",
+				fields: fields{
+					athenzURL:             dummyServer.URL,
+					athenzPrincipleHeader: "dummy-header",
+					httpClient:            httpClient,
+					rootCAs:               clientCACp,
+					certPath:              "../test/data/dummyClient.crt",
+					certKeyPath:           "../test/data/dummyClient.key",
+				},
+				args: args{
+					ctx:               context.Background(),
+					domain:            "dummyDomain",
+					role:              "dummyRole",
+					proxyForPrincipal: "dummyProxy",
+					minExpiry:         3600,
+					maxExpiry:         3600,
+				},
+				want: &RoleToken{
+					Token:      dummyTok,
+					ExpiryTime: dummyExpTime,
+				},
+			}
+		}(),
 		func() test {
 			dummyTok := "dummyToken"
 			dummyExpTime := int64(999999999)
@@ -1928,6 +1988,42 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 					Token:      dummyTok,
 					ExpiryTime: dummyExpTime,
 				},
+			}
+		}(),
+		func() test {
+			dummyTok := "dummyToken"
+			dummyExpTime := int64(999999999)
+			dummyToken := fmt.Sprintf(`{"token":"%v", "expiryTime": %v}`, dummyTok, dummyExpTime)
+
+			var sampleHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				fmt.Fprint(w, dummyToken)
+				w.WriteHeader(http.StatusOK)
+			})
+			dummyServer := httptest.NewTLSServer(sampleHandler)
+
+			dummyErr := errors.New("dummy error")
+
+			var httpClient atomic.Value
+			httpClient.Store(dummyServer.Client())
+			return test{
+				name: "N-token provider return error",
+				fields: fields{
+					token: func() (string, error) {
+						return "", dummyErr
+					},
+					athenzURL:             dummyServer.URL,
+					athenzPrincipleHeader: "dummy-header",
+					httpClient:            httpClient,
+				},
+				args: args{
+					ctx:               context.Background(),
+					domain:            "dummyDomain",
+					role:              "dummyRole",
+					proxyForPrincipal: "dummyProxy",
+					minExpiry:         3600,
+					maxExpiry:         3600,
+				},
+				wantErr: dummyErr,
 			}
 		}(),
 		func() test {
@@ -2038,6 +2134,9 @@ func Test_roleService_fetchRoleToken(t *testing.T) {
 				domainRoleCache:       tt.fields.domainRoleCache,
 				expiry:                tt.fields.expiry,
 				httpClient:            tt.fields.httpClient,
+				rootCAs:               tt.fields.rootCAs,
+				certPath:              tt.fields.certPath,
+				certKeyPath:           tt.fields.certKeyPath,
 				refreshPeriod:         tt.fields.refreshPeriod,
 				errRetryMaxCount:      tt.fields.errRetryMaxCount,
 				errRetryInterval:      tt.fields.errRetryInterval,

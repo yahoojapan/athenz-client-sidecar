@@ -27,6 +27,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/kpango/fastime"
@@ -54,7 +55,7 @@ type accessService struct {
 	tokenCache            gache.Gache
 	group                 singleflight.Group
 	expiry                time.Duration
-	httpClient            *http.Client
+	httpClient            atomic.Value
 	rootCAs               *x509.CertPool
 	certPath              string
 	certKeyPath           string
@@ -175,11 +176,12 @@ func NewAccessService(cfg config.AccessToken, token ntokend.TokenProvider) (Acce
 		tlsConfig.Certificates = nil
 	}
 
-	httpClient := &http.Client{
+	var httpClient atomic.Value
+	httpClient.Store(&http.Client{
 		Transport: &http.Transport{
 			TLSClientConfig: tlsConfig,
 		},
-	}
+	})
 
 	return &accessService{
 		cfg:                   cfg,
@@ -348,17 +350,17 @@ func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, prox
 			return nil, err
 		}
 		// a.httpClient.Transport.(*http.Transport).TLSClientConfig = tcc
-		a.httpClient = &http.Client{
+		a.httpClient.Store(&http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: tcc,
 			},
-		}
+		})
 	} else {
 		return nil, errors.New("No credentials")
 	}
 
 	// send request
-	res, err := a.httpClient.Do(req.WithContext(ctx))
+	res, err := a.httpClient.Load().(*http.Client).Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}

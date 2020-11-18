@@ -1,6 +1,6 @@
 # reference: https://github.com/openssl/openssl/blob/master/demos/certs/ca.cnf
 
-CN = "athenz.test.client"
+CN = "athenz.test.syncer"
 SAN = "syncer.athenz-test.dns"
 
 [ req ]

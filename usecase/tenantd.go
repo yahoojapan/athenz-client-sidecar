@@ -64,6 +64,9 @@ func New(cfg config.Config) (t Tenant, err error) {
 			return nil, err
 		}
 		tokenProvider = token.GetTokenProvider()
+		glg.Info("ntokend is enabled. we’re going to use ntoken to interact with Athenz server.")
+	} else {
+		glg.Info("ntokend is disabled.")
 	}
 
 	// create access service

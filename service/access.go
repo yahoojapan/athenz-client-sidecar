@@ -349,7 +349,6 @@ func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, prox
 		if err != nil {
 			return nil, err
 		}
-		// a.httpClient.Transport.(*http.Transport).TLSClientConfig = tcc
 		a.httpClient.Store(&http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: tcc,

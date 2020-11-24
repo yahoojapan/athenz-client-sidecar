@@ -362,7 +362,6 @@ func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyFor
 		if err != nil {
 			return nil, err
 		}
-		// a.httpClient.Transport.(*http.Transport).TLSClientConfig = tcc
 		r.httpClient.Store(&http.Client{
 			Transport: &http.Transport{
 				TLSClientConfig: tcc,

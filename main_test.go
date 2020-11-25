@@ -109,7 +109,7 @@ func Test_run(t *testing.T) {
 				},
 			},
 			checkFunc: func(gotErrs []error) error {
-				wantExitingErr := "usecase returned error: invalid token refresh period invalid, time: invalid duration invalid"
+				wantExitingErr := "tenant error: ntokend error: invalid token refresh period invalid, time: invalid duration invalid"
 				if gotErrs == nil || gotErrs[0].Error() != wantExitingErr {
 					return errors.Errorf("Unexpected exit: %v", gotErrs)
 				}
@@ -148,7 +148,7 @@ func Test_run(t *testing.T) {
 				},
 			},
 			checkFunc: func(gotErrs []error) error {
-				wantExitingErr := "usecase returned error: invalid token refresh period invalid, time: invalid duration invalid"
+				wantExitingErr := "tenant error: ntokend error: invalid token refresh period invalid, time: invalid duration invalid"
 				if gotErrs == nil || gotErrs[0].Error() != wantExitingErr {
 					return errors.Errorf("Unexpected exit: %v", gotErrs)
 				}
@@ -187,7 +187,7 @@ func Test_run(t *testing.T) {
 				},
 			},
 			checkFunc: func(gotErrs []error) error {
-				wantExitingErr := "usecase returned error: invalid token refresh period invalid, time: invalid duration invalid"
+				wantExitingErr := "tenant error: ntokend error: invalid token refresh period invalid, time: invalid duration invalid"
 				if gotErrs == nil || gotErrs[0].Error() != wantExitingErr {
 					return errors.Errorf("Unexpected exit: %v", gotErrs)
 				}
@@ -226,7 +226,7 @@ func Test_run(t *testing.T) {
 				},
 			},
 			checkFunc: func(gotErrs []error) error {
-				wantExitingErr := "usecase returned error: invalid token refresh period invalid, time: invalid duration invalid"
+				wantExitingErr := "tenant error: ntokend error: invalid token refresh period invalid, time: invalid duration invalid"
 				if gotErrs == nil || gotErrs[0].Error() != wantExitingErr {
 					return errors.Errorf("Unexpected exit: %v", gotErrs)
 				}
@@ -265,7 +265,7 @@ func Test_run(t *testing.T) {
 				},
 			},
 			checkFunc: func(gotErrs []error) error {
-				wantExitingErr := "usecase returned error: invalid token refresh period invalid, time: invalid duration invalid"
+				wantExitingErr := "tenant error: ntokend error: invalid token refresh period invalid, time: invalid duration invalid"
 				if gotErrs == nil || gotErrs[0].Error() != wantExitingErr {
 					return errors.Errorf("Unexpected exit: %v", gotErrs)
 				}
@@ -304,7 +304,7 @@ func Test_run(t *testing.T) {
 				},
 			},
 			checkFunc: func(gotErrs []error) error {
-				wantExitingErr := "usecase returned error: invalid token refresh period invalid, time: invalid duration invalid"
+				wantExitingErr := "tenant error: ntokend error: invalid token refresh period invalid, time: invalid duration invalid"
 				if gotErrs == nil || gotErrs[0].Error() != wantExitingErr {
 					return errors.Errorf("Unexpected exit: %v", gotErrs)
 				}
@@ -344,7 +344,7 @@ func Test_run(t *testing.T) {
 				},
 			},
 			checkFunc: func(gotErrs []error) error {
-				wantExitingErr := "usecase returned error: invalid token refresh period invalid, time: invalid duration invalid"
+				wantExitingErr := "tenant error: ntokend error: invalid token refresh period invalid, time: invalid duration invalid"
 				if gotErrs == nil || gotErrs[0].Error() != wantExitingErr {
 					return errors.Errorf("Unexpected exit: %v", gotErrs)
 				}
@@ -391,7 +391,7 @@ func Test_run(t *testing.T) {
 				},
 			},
 			checkFunc: func(gotErrs []error) error {
-				want := "usecase returned error: RefreshPeriod: time: invalid duration dummy: Invalid config"
+				want := "tenant error: role token service error: RefreshPeriod: time: invalid duration dummy: Invalid config"
 				if len(gotErrs) != 1 {
 					return errors.New("len(gotErrs) != 1")
 				}
@@ -411,7 +411,7 @@ func Test_run(t *testing.T) {
 				},
 			},
 			checkFunc: func(gotErrs []error) error {
-				want := "usecase returned error: invalid token refresh period dummy, time: invalid duration dummy"
+				want := "tenant error: ntokend error: invalid token refresh period dummy, time: invalid duration dummy"
 				if len(gotErrs) != 1 {
 					return errors.New("len(gotErrs) != 1")
 				}

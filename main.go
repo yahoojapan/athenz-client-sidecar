@@ -94,7 +94,7 @@ func run(cfg config.Config) []error {
 
 	daemon, err := usecase.New(cfg)
 	if err != nil {
-		return []error{errors.Wrap(err, "usecase returned error")}
+		return []error{errors.Wrap(err, "tenant error")}
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())

@@ -72,7 +72,7 @@ func TestNew(t *testing.T) {
 					},
 				},
 			},
-			wantErr: fmt.Errorf("invalid token refresh period , time: invalid duration "),
+			wantErr: fmt.Errorf("ntokend error: invalid token refresh period , time: invalid duration "),
 		},
 		{
 			name: "Check error when new access token service",
@@ -85,7 +85,7 @@ func TestNew(t *testing.T) {
 					},
 				},
 			},
-			wantErr: fmt.Errorf("Expiry: time: invalid duration invalid_at_exp: Invalid config"),
+			wantErr: fmt.Errorf("access token service error: Expiry: time: invalid duration invalid_at_exp: Invalid config"),
 		},
 		{
 			name: "Check error when new role token service",
@@ -98,7 +98,7 @@ func TestNew(t *testing.T) {
 					},
 				},
 			},
-			wantErr: fmt.Errorf("Expiry: time: invalid duration invalid_rt_exp: Invalid config"),
+			wantErr: fmt.Errorf("role token service error: Expiry: time: invalid duration invalid_rt_exp: Invalid config"),
 		},
 		func() test {
 			cfg := config.Config{
@@ -168,7 +168,7 @@ func TestNew(t *testing.T) {
 				args: args{
 					cfg: cfg,
 				},
-				wantErr: fmt.Errorf("Failed to initialize a service"),
+				wantErr: fmt.Errorf("service certificate service error: Failed to initialize a service"),
 			}
 		}(),
 		func() test {
@@ -457,7 +457,7 @@ func Test_createNtokend(t *testing.T) {
 					Enable: false,
 				},
 			},
-			wantErr: fmt.Errorf("ntokend disabled"),
+			wantErr: fmt.Errorf("Disabled"),
 		},
 		{
 			name: "refresh period invalid",

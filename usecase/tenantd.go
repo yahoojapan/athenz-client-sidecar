@@ -61,7 +61,7 @@ func New(cfg config.Config) (t Tenant, err error) {
 	if requireNtokend(cfg) {
 		token, err = createNtokend(cfg.NToken)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "ntokend error")
 		}
 		tokenProvider = token.GetTokenProvider()
 		glg.Info("ntokend is enabled. we’re going to use ntoken to interact with Athenz server.")
@@ -75,7 +75,7 @@ func New(cfg config.Config) (t Tenant, err error) {
 	if cfg.AccessToken.Enable {
 		access, err = service.NewAccessService(cfg.AccessToken, tokenProvider)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "access token service error")
 		}
 		accessProvider = access.GetAccessProvider()
 	}
@@ -86,7 +86,7 @@ func New(cfg config.Config) (t Tenant, err error) {
 	if cfg.RoleToken.Enable {
 		role, err = service.NewRoleService(cfg.RoleToken, tokenProvider)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "role token service error")
 		}
 		roleProvider = role.GetRoleProvider()
 	}
@@ -97,7 +97,7 @@ func New(cfg config.Config) (t Tenant, err error) {
 	if cfg.ServiceCert.Enable {
 		svccert, err = service.NewSvcCertService(cfg, tokenProvider)
 		if err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "service certificate service error")
 		}
 		svccertProvider = svccert.GetSvcCertProvider()
 	}
@@ -160,7 +160,7 @@ func (t *clientd) Start(ctx context.Context) chan []error {
 func createNtokend(cfg config.NToken) (ntokend.TokenService, error) {
 
 	if !cfg.Enable {
-		return nil, errors.New("ntokend disabled")
+		return nil, errors.New("Disabled")
 	}
 
 	dur, err := time.ParseDuration(cfg.RefreshPeriod)

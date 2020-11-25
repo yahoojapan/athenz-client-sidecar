@@ -338,6 +338,7 @@ func (r *roleService) updateRoleToken(ctx context.Context, domain, role, proxyFo
 }
 
 // fetchRoleToken fetch the role token from Athenz server, and return the decoded role token and any error if occurred.
+// P.S. Do not call fetchRoleToken() outside singleflight group, as behavior of concurrent request is not tested
 func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) (*RoleToken, error) {
 	glg.Debugf("get role token, domain: %s, role: %s, proxyForPrincipal: %s, minExpiry: %d, maxExpiry: %d", domain, role, proxyForPrincipal, minExpiry, maxExpiry)
 

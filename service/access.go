@@ -322,6 +322,7 @@ func (a *accessService) updateAccessToken(ctx context.Context, domain, role, pro
 }
 
 // fetchAccessToken fetches the access token from Athenz server, and returns the AccessTokenResponse or any error occurred.
+// P.S. Do not call fetchAccessToken() outside singleflight group, as behavior of concurrent request is not tested
 func (a *accessService) fetchAccessToken(ctx context.Context, domain, role, proxyForPrincipal string, expiry int64) (*AccessTokenResponse, error) {
 	glg.Debugf("get access token, domain: %s, role: %s, proxyForPrincipal: %s, expiry: %d", domain, role, proxyForPrincipal, expiry)
 

@@ -51,9 +51,9 @@ type clientd struct {
 func New(cfg config.Config) (t Tenant, err error) {
 
 	// hard-coded for backward compatibility
-	cfg.NToken.Enable = true
-	cfg.RoleToken.Enable = true
-	cfg.Proxy.Enable = true
+	// cfg.NToken.Enable = true
+	// cfg.RoleToken.Enable = true
+	// cfg.Proxy.Enable = true
 
 	// create token service
 	var token ntokend.TokenService

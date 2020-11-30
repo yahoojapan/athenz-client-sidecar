@@ -137,6 +137,41 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
+			name: "Read valid config file with enable = false",
+			args: args{
+				path: "../test/data/valid_config_false.yaml",
+			},
+			want: &Config{
+				NToken: NToken{
+					Enable: false,
+				},
+				RoleToken: RoleToken{
+					Enable: false,
+				},
+				Proxy: Proxy{
+					Enable: false,
+				},
+			},
+		},
+		{
+			name: "Read empty config file",
+			args: args{
+				path: "../test/data/empty.yaml",
+			},
+			want: &Config{
+				NToken: NToken{
+					Enable: true,
+				},
+				RoleToken: RoleToken{
+					Enable: true,
+				},
+				Proxy: Proxy{
+					Enable: true,
+				},
+				Version: "v2.0.0",
+			},
+		},
+		{
 			name: "Read invalid config file",
 			args: args{
 				path: "../test/data/invalid_config.yaml",

@@ -280,7 +280,17 @@ func New(path string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	cfg := new(Config)
+	cfg := &Config{
+		NToken: NToken{
+			Enable: true,
+		},
+		RoleToken: RoleToken{
+			Enable: true,
+		},
+		Proxy: Proxy{
+			Enable: true,
+		},
+	}
 	err = yaml.NewDecoder(f).Decode(&cfg)
 	if err != nil {
 		return nil, err

@@ -50,11 +50,6 @@ type clientd struct {
 // Client sidecar daemon contains token service, role token service, host certificate service, user database client and client sidecar service.
 func New(cfg config.Config) (t Tenant, err error) {
 
-	// hard-coded for backward compatibility
-	// cfg.NToken.Enable = true
-	// cfg.RoleToken.Enable = true
-	// cfg.Proxy.Enable = true
-
 	// create token service
 	var token ntokend.TokenService
 	var tokenProvider ntokend.TokenProvider

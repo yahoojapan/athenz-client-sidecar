@@ -143,11 +143,13 @@ func (t *clientd) Start(ctx context.Context) chan []error {
 		}()
 	}
 
-	go func() {
-		for err := range t.role.StartRoleUpdater(ctx) {
-			glg.Error(err)
-		}
-	}()
+	if t.role != nil {
+		go func() {
+			for err := range t.role.StartRoleUpdater(ctx) {
+				glg.Error(err)
+			}
+		}()
+	}
 	return t.server.ListenAndServe(ctx)
 }
 

@@ -85,6 +85,7 @@ func TestParseParams(t *testing.T) {
 	}
 }
 
+// invalid values are added to Config{} in each test case so that the test case can end with server error instead of running indefinitely
 func Test_run(t *testing.T) {
 	type args struct {
 		cfg config.Config
@@ -95,12 +96,12 @@ func Test_run(t *testing.T) {
 		checkFunc func([]error) error
 	}
 	tests := []test{
-
 		{
 			name: "run with log level, default",
 			args: args{
 				cfg: config.Config{
 					NToken: config.NToken{
+						Enable:        true,
 						RefreshPeriod: "invalid",
 					},
 					Log: config.Log{
@@ -140,6 +141,7 @@ func Test_run(t *testing.T) {
 			args: args{
 				cfg: config.Config{
 					NToken: config.NToken{
+						Enable:        true,
 						RefreshPeriod: "invalid",
 					},
 					Log: config.Log{
@@ -179,6 +181,7 @@ func Test_run(t *testing.T) {
 			args: args{
 				cfg: config.Config{
 					NToken: config.NToken{
+						Enable:        true,
 						RefreshPeriod: "invalid",
 					},
 					Log: config.Log{
@@ -218,6 +221,7 @@ func Test_run(t *testing.T) {
 			args: args{
 				cfg: config.Config{
 					NToken: config.NToken{
+						Enable:        true,
 						RefreshPeriod: "invalid",
 					},
 					Log: config.Log{
@@ -257,6 +261,7 @@ func Test_run(t *testing.T) {
 			args: args{
 				cfg: config.Config{
 					NToken: config.NToken{
+						Enable:        true,
 						RefreshPeriod: "invalid",
 					},
 					Log: config.Log{
@@ -296,6 +301,7 @@ func Test_run(t *testing.T) {
 			args: args{
 				cfg: config.Config{
 					NToken: config.NToken{
+						Enable:        true,
 						RefreshPeriod: "invalid",
 					},
 					Log: config.Log{
@@ -335,6 +341,7 @@ func Test_run(t *testing.T) {
 			args: args{
 				cfg: config.Config{
 					NToken: config.NToken{
+						Enable:        true,
 						RefreshPeriod: "invalid",
 					},
 					Log: config.Log{
@@ -378,6 +385,7 @@ func Test_run(t *testing.T) {
 			args: args{
 				cfg: config.Config{
 					NToken: config.NToken{
+						Enable:         true,
 						AthenzDomain:   "domain",
 						ServiceName:    "service",
 						RefreshPeriod:  "1h",
@@ -386,6 +394,7 @@ func Test_run(t *testing.T) {
 						PrivateKeyPath: "./test/data/dummyServer.key",
 					},
 					RoleToken: config.RoleToken{
+						Enable:        true,
 						RefreshPeriod: "dummy",
 					},
 				},
@@ -406,6 +415,7 @@ func Test_run(t *testing.T) {
 			args: args{
 				cfg: config.Config{
 					NToken: config.NToken{
+						Enable:        true,
 						RefreshPeriod: "dummy",
 					},
 				},

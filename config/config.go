@@ -102,7 +102,7 @@ type HealthCheck struct {
 
 // NToken represents the configuration to generate N-token for connecting to the Athenz server.
 type NToken struct {
-	// Enable represents whether to enable retrieving endpoint. (currently, hard-coded to always true)
+	// Enable represents whether to enable retrieving endpoint.
 	Enable bool `yaml:"enable"`
 
 	// AthenzDomain represents the Athenz domain.
@@ -162,7 +162,7 @@ type AccessToken struct {
 
 // RoleToken represents the configuration to retrieve role token from the Athenz server.
 type RoleToken struct {
-	// Enable represents whether to enable retrieving endpoint. (currently, hard-coded to always true)
+	// Enable represents whether to enable retrieving endpoint.
 	Enable bool `yaml:"enable"`
 
 	// PrincipalAuthHeader represents the HTTP header for injecting N-token.
@@ -243,7 +243,7 @@ type Subject struct {
 
 // Proxy represents the configuration of the forward proxy that automatically injects N-token or role token to the requests.
 type Proxy struct {
-	// Enable represents whether to enable retrieving endpoint. (currently, hard-coded to always true)
+	// Enable represents whether to enable retrieving endpoint.
 	Enable bool `yaml:"enable"`
 
 	// PrincipalAuthHeader represents the HTTP header for injecting N-token.

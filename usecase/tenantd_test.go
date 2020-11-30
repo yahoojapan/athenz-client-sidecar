@@ -129,31 +129,6 @@ func TestNew(t *testing.T) {
 			cfg := config.Config{
 				NToken: dummyNTokenConfig,
 				Server: dummyServerConfig,
-				RoleToken: config.RoleToken{
-					Enable: false,
-				},
-			}
-
-			return test{
-				name: "Check success when role token is disable (force-enable)",
-				args: args{
-					cfg: cfg,
-				},
-				checkFunc: func(got Tenant) error {
-					if got.(*clientd).role == nil ||
-						got.(*clientd).server == nil ||
-						got.(*clientd).token == nil {
-
-						return fmt.Errorf("Got: %v", got)
-					}
-					return nil
-				},
-			}
-		}(),
-		func() test {
-			cfg := config.Config{
-				NToken: dummyNTokenConfig,
-				Server: dummyServerConfig,
 				ServiceCert: config.ServiceCert{
 					Enable:        true,
 					AthenzCAPath:  "../test/data/non_exist.pem",

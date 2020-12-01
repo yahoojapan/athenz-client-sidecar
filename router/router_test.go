@@ -58,6 +58,9 @@ func TestNew(t *testing.T) {
 					Server: config.Server{
 						Timeout: "10s",
 					},
+					AccessToken: config.AccessToken{
+						Enable: true,
+					},
 				},
 				h: h,
 			},
@@ -69,6 +72,9 @@ func TestNew(t *testing.T) {
 				cfg: config.Config{
 					Server: config.Server{
 						Timeout: "10_WRONG!!!!!!!",
+					},
+					AccessToken: config.AccessToken{
+						Enable: true,
 					},
 				},
 				h: h,

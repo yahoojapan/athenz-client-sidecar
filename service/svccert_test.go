@@ -104,6 +104,7 @@ func TestNewSvcCertService(t *testing.T) {
 							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
+							Enable:        true,
 							AthenzCAPath:  "../test/data/dummyCa.pem",
 							RefreshPeriod: "30m",
 						},
@@ -112,6 +113,7 @@ func TestNewSvcCertService(t *testing.T) {
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
+						Enable:        true,
 						AthenzCAPath:  "../test/data/dummyCa.pem",
 						RefreshPeriod: "30m",
 					},
@@ -145,6 +147,7 @@ func TestNewSvcCertService(t *testing.T) {
 							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
+							Enable:        true,
 							AthenzCAPath:  "../test/data/dummyCa.pem",
 							RefreshPeriod: "30m",
 							Expiry:        fmt.Sprintf("%dh", largeExpiry),
@@ -154,6 +157,7 @@ func TestNewSvcCertService(t *testing.T) {
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
+						Enable:        true,
 						AthenzCAPath:  "../test/data/dummyCa.pem",
 						RefreshPeriod: "30m",
 						Expiry:        fmt.Sprintf("%dh", largeExpiry),
@@ -188,6 +192,7 @@ func TestNewSvcCertService(t *testing.T) {
 							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
+							Enable:        true,
 							AthenzCAPath:  "../test/data/dummyCa.pem",
 							RefreshPeriod: "30m",
 							Expiry:        fmt.Sprintf("%dh", exceedExpiry),
@@ -197,6 +202,7 @@ func TestNewSvcCertService(t *testing.T) {
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
+						Enable:        true,
 						AthenzCAPath:  "../test/data/dummyCa.pem",
 						RefreshPeriod: "30m",
 						Expiry:        fmt.Sprintf("%dh", exceedExpiry),
@@ -229,6 +235,7 @@ func TestNewSvcCertService(t *testing.T) {
 							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
+							Enable:        true,
 							AthenzCAPath:  "../test/data/dummyCa.pem",
 							RefreshPeriod: "30m",
 							ExpiryMargin:  "1h",
@@ -238,6 +245,7 @@ func TestNewSvcCertService(t *testing.T) {
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
+						Enable:        true,
 						AthenzCAPath:  "../test/data/dummyCa.pem",
 						RefreshPeriod: "30m",
 						ExpiryMargin:  "1h",
@@ -271,6 +279,7 @@ func TestNewSvcCertService(t *testing.T) {
 							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
+							Enable:        true,
 							AthenzCAPath:  "../test/data/dummyCa.pem",
 							RefreshPeriod: "30m",
 							Expiry:        fmt.Sprintf("%dm", expiry),
@@ -280,6 +289,7 @@ func TestNewSvcCertService(t *testing.T) {
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
+						Enable:        true,
 						AthenzCAPath:  "../test/data/dummyCa.pem",
 						RefreshPeriod: "30m",
 						Expiry:        fmt.Sprintf("%dm", expiry),
@@ -311,6 +321,7 @@ func TestNewSvcCertService(t *testing.T) {
 							PrivateKeyPath: "../test/data/dummyECServer.key",
 						},
 						ServiceCert: config.ServiceCert{
+							Enable:        true,
 							AthenzCAPath:  "../test/data/dummyCa.pem",
 							RefreshPeriod: "30m",
 						},
@@ -319,6 +330,7 @@ func TestNewSvcCertService(t *testing.T) {
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
+						Enable:        true,
 						AthenzCAPath:  "../test/data/dummyCa.pem",
 						RefreshPeriod: "30m",
 					},
@@ -349,6 +361,7 @@ func TestNewSvcCertService(t *testing.T) {
 							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
+							Enable:        true,
 							AthenzCAPath:  "../test/data/dummyCa.pem",
 							RefreshPeriod: "30m",
 							Spiffe:        true,
@@ -358,6 +371,7 @@ func TestNewSvcCertService(t *testing.T) {
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
+						Enable:        true,
 						AthenzCAPath:  "../test/data/dummyCa.pem",
 						RefreshPeriod: "30m",
 						Spiffe:        true,
@@ -388,6 +402,7 @@ func TestNewSvcCertService(t *testing.T) {
 							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
+							Enable:        true,
 							AthenzCAPath:  "../test/data/dummyCa.pem",
 							RefreshPeriod: "",
 						},
@@ -396,6 +411,7 @@ func TestNewSvcCertService(t *testing.T) {
 				},
 				want: &svcCertService{
 					cfg: config.ServiceCert{
+						Enable:        true,
 						AthenzCAPath:  "../test/data/dummyCa.pem",
 						RefreshPeriod: "",
 					},
@@ -426,6 +442,7 @@ func TestNewSvcCertService(t *testing.T) {
 							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
+							Enable:        true,
 							AthenzCAPath:  "../test/data/dummyCa.pem",
 							RefreshPeriod: "30m",
 							ExpiryMargin:  "error",
@@ -436,6 +453,7 @@ func TestNewSvcCertService(t *testing.T) {
 
 				want: &svcCertService{
 					cfg: config.ServiceCert{
+						Enable:        true,
 						AthenzCAPath:  "../test/data/dummyCa.pem",
 						RefreshPeriod: "30m",
 						ExpiryMargin:  "error",
@@ -464,9 +482,10 @@ func TestNewSvcCertService(t *testing.T) {
 					cfg: config.Config{
 						NToken: config.NToken{
 							AthenzDomain:   "test.domain",
-							PrivateKeyPath: "/not/exist.key",
+							PrivateKeyPath: "../test/data/non_exist.key",
 						},
 						ServiceCert: config.ServiceCert{
+							Enable:        true,
 							AthenzCAPath:  "../test/data/dummyCa.pem",
 							RefreshPeriod: "30m",
 						},
@@ -492,6 +511,7 @@ func TestNewSvcCertService(t *testing.T) {
 							PrivateKeyPath: "../test/data/invalid_dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
+							Enable:        true,
 							AthenzCAPath:  "../test/data/dummyCa.pem",
 							RefreshPeriod: "30m",
 						},
@@ -517,7 +537,8 @@ func TestNewSvcCertService(t *testing.T) {
 							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
-							AthenzCAPath:  "/not/exist.pem",
+							Enable:        true,
+							AthenzCAPath:  "../test/data/non_exist.pem",
 							RefreshPeriod: "30m",
 						},
 					},
@@ -542,6 +563,7 @@ func TestNewSvcCertService(t *testing.T) {
 							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
+							Enable:        true,
 							AthenzCAPath:  "../test/data/dummyCa.pem",
 							AthenzURL:     "%2This is not URL",
 							RefreshPeriod: "30m",
@@ -568,6 +590,7 @@ func TestNewSvcCertService(t *testing.T) {
 							PrivateKeyPath: "../test/data/dummyServer.key",
 						},
 						ServiceCert: config.ServiceCert{
+							Enable:        true,
 							AthenzCAPath:  "../test/data/dummyCa.pem",
 							RefreshPeriod: "30m",
 						},
@@ -576,6 +599,21 @@ func TestNewSvcCertService(t *testing.T) {
 				},
 				want:    &svcCertService{},
 				wantErr: ErrInvalidParameter,
+				checkfunc: func(actual, expected *svcCertService) bool {
+					return true
+				},
+			}
+		}(),
+		func() test {
+			return test{
+				name: "SvcCertService disabled",
+				args: args{
+					cfg: config.Config{
+						ServiceCert: config.ServiceCert{},
+					},
+				},
+				want:    nil,
+				wantErr: ErrDisabled,
 				checkfunc: func(actual, expected *svcCertService) bool {
 					return true
 				},
@@ -632,6 +670,7 @@ func TestSvcCertService_GetSvcCertProvider(t *testing.T) {
 				PrivateKeyPath: "../test/data/dummyServer.key",
 			},
 			ServiceCert: config.ServiceCert{
+				Enable:        true,
 				AthenzCAPath:  "../test/data/dummyCa.pem",
 				RefreshPeriod: "30m",
 			},

@@ -14,6 +14,7 @@ server:
     port: 80
     endpoint: "/healthz"
 nToken:
+  enable: true
   athenzDomain: _athenz_domain_
   serviceName: _service_name_
   privateKeyPath: _athenz_private_key_
@@ -26,16 +27,21 @@ accessToken:
   enable: true
   principalAuthHeader: Athenz-Principal
   athenzURL: https://www.athenz.com:4443/zts/v1
-  athenzCAPath: ""
+  athenzCAPath: _athenz_root_ca_
+  certPath: _client_cert_path_
+  certKeyPath: _client_cert_key_path_
   expiry: "30m"
   refreshPeriod: ""
   retry:
     attempts: 0
     delay: ""
 roleToken:
+  enable: true
   principalAuthHeader: Athenz-Principal
   athenzURL: https://www.athenz.com:4443/zts/v1
-  athenzCAPath: ""
+  athenzCAPath: _athenz_root_ca_
+  certPath: _client_cert_path_
+  certKeyPath: _client_cert_key_path_
   expiry: "30m"
   refreshPeriod: ""
   retry:
@@ -58,6 +64,7 @@ serviceCert:
     organization: "Oath Inc."
     organizationalUnit: Athenz
 proxy:
+  enable: true
   principalAuthHeader: Athenz-Principal
   roleAuthHeader: Athenz-Role-Auth
   bufferSize: 1024

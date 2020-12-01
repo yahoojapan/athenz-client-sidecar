@@ -1,0 +1,37 @@
+# reference: https://github.com/openssl/openssl/blob/master/demos/certs/ca.cnf
+
+CN = "dummy-server"
+SAN = "localhost"
+IPSAN = "127.0.0.1"
+
+[ req ]
+default_bits = 4096
+prompt = no
+default_md = sha256
+distinguished_name = dn
+x509_extensions	= svc_cert
+req_extensions = v3_req
+string_mask = utf8only
+
+[ dn ]
+countryName = US
+organizationName = Athenz
+commonName = ${ENV::CN}
+
+[ svc_cert ]
+basicConstraints = critical, CA:FALSE
+keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth, clientAuth
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid
+subjectAltName = @alt_names
+
+[ v3_req ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1 = ${ENV::SAN}
+IP.1 = ${ENV::IPSAN}
+
+# openssl req -x509 -nodes -newkey rsa:4096 -days 3650 -config "dummyServer.cnf" -keyout "dummyServer.key" -out "dummyServer.crt"
+# openssl rsa -in "dummyServer.key" -out "dummyServer.key"

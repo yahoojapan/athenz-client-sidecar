@@ -1,0 +1,7 @@
+---
+nToken:
+  enable: false
+roleToken:
+  enable: false
+proxy:
+  enable: false

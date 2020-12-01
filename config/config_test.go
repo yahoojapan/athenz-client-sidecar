@@ -78,6 +78,7 @@ func TestNew(t *testing.T) {
 					},
 				},
 				NToken: NToken{
+					Enable:            true,
 					AthenzDomain:      "_athenz_domain_",
 					ServiceName:       "_service_name_",
 					ExistingTokenPath: "/tmp/ntoken",
@@ -91,14 +92,22 @@ func TestNew(t *testing.T) {
 					Enable:              true,
 					PrincipalAuthHeader: "Athenz-Principal",
 					AthenzURL:           "https://www.athenz.com:4443/zts/v1",
+					AthenzCAPath:        "_athenz_root_ca_",
+					CertPath:            "_client_cert_path_",
+					CertKeyPath:         "_client_cert_key_path_",
 					Expiry:              "30m",
 				},
 				RoleToken: RoleToken{
+					Enable:              true,
 					PrincipalAuthHeader: "Athenz-Principal",
 					AthenzURL:           "https://www.athenz.com:4443/zts/v1",
+					AthenzCAPath:        "_athenz_root_ca_",
+					CertPath:            "_client_cert_path_",
+					CertKeyPath:         "_client_cert_key_path_",
 					Expiry:              "30m",
 				},
 				Proxy: Proxy{
+					Enable:              true,
 					PrincipalAuthHeader: "Athenz-Principal",
 					RoleAuthHeader:      "Athenz-Role-Auth",
 					BufferSize:          1024,
@@ -128,11 +137,53 @@ func TestNew(t *testing.T) {
 			},
 		},
 		{
+			name: "Read valid config file with enable = false",
+			args: args{
+				path: "../test/data/valid_config_false.yaml",
+			},
+			want: &Config{
+				NToken: NToken{
+					Enable: false,
+				},
+				RoleToken: RoleToken{
+					Enable: false,
+				},
+				Proxy: Proxy{
+					Enable: false,
+				},
+			},
+		},
+		{
+			name: "Read empty config file",
+			args: args{
+				path: "../test/data/empty.yaml",
+			},
+			want: &Config{
+				NToken: NToken{
+					Enable: true,
+				},
+				RoleToken: RoleToken{
+					Enable: true,
+				},
+				Proxy: Proxy{
+					Enable: true,
+				},
+				Version: "v2.0.0",
+			},
+		},
+		{
 			name: "Read invalid config file",
 			args: args{
 				path: "../test/data/invalid_config.yaml",
 			},
 			wantErr: fmt.Errorf("yaml: line "),
+		},
+		{
+			name: "Read non-existing config file",
+			args: args{
+				path: "../test/data/non_exist.yaml",
+			},
+			wantErr: fmt.Errorf("open ../test/data/non_exist.yaml: no such file or directory"),
 		},
 	}
 

@@ -102,6 +102,9 @@ type HealthCheck struct {
 
 // NToken represents the configuration to generate N-token for connecting to the Athenz server.
 type NToken struct {
+	// Enable represents whether to enable retrieving endpoint.
+	Enable bool `yaml:"enable"`
+
 	// AthenzDomain represents the Athenz domain.
 	AthenzDomain string `yaml:"athenzDomain"`
 
@@ -141,6 +144,12 @@ type AccessToken struct {
 	// AthenzCAPath represents the Athenz CA certificate chain file path.
 	AthenzCAPath string `yaml:"athenzCAPath"`
 
+	// CertPath represents the client certificate file path.
+	CertPath string `yaml:"certPath"`
+
+	// CertKeyPath represents the client certificate's private key file path.
+	CertKeyPath string `yaml:"certKeyPath"`
+
 	// Expiry represents the duration before expires.
 	Expiry string `yaml:"expiry"`
 
@@ -153,6 +162,9 @@ type AccessToken struct {
 
 // RoleToken represents the configuration to retrieve role token from the Athenz server.
 type RoleToken struct {
+	// Enable represents whether to enable retrieving endpoint.
+	Enable bool `yaml:"enable"`
+
 	// PrincipalAuthHeader represents the HTTP header for injecting N-token.
 	PrincipalAuthHeader string `yaml:"principalAuthHeader"`
 
@@ -161,6 +173,12 @@ type RoleToken struct {
 
 	// AthenzCAPath represents the Athenz CA certificate chain file path.
 	AthenzCAPath string `yaml:"athenzCAPath"`
+
+	// CertPath represents the client certificate file path.
+	CertPath string `yaml:"certPath"`
+
+	// CertKeyPath represents the client certificate's private key file path.
+	CertKeyPath string `yaml:"certKeyPath"`
 
 	// Expiry represents the duration before expires.
 	Expiry string `yaml:"expiry"`
@@ -225,6 +243,9 @@ type Subject struct {
 
 // Proxy represents the configuration of the forward proxy that automatically injects N-token or role token to the requests.
 type Proxy struct {
+	// Enable represents whether to enable retrieving endpoint.
+	Enable bool `yaml:"enable"`
+
 	// PrincipalAuthHeader represents the HTTP header for injecting N-token.
 	PrincipalAuthHeader string `yaml:"principalAuthHeader"`
 
@@ -255,11 +276,21 @@ type Retry struct {
 
 // New returns *Config or error when decode the configuration file to actually *Config struct.
 func New(path string) (*Config, error) {
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_RDONLY, 0600)
+	f, err := os.OpenFile(path, os.O_RDONLY, 0600)
 	if err != nil {
 		return nil, err
 	}
-	cfg := new(Config)
+	cfg := &Config{
+		NToken: NToken{
+			Enable: true,
+		},
+		RoleToken: RoleToken{
+			Enable: true,
+		},
+		Proxy: Proxy{
+			Enable: true,
+		},
+	}
 	err = yaml.NewDecoder(f).Decode(&cfg)
 	if err != nil {
 		return nil, err

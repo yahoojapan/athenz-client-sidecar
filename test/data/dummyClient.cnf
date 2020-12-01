@@ -1,0 +1,35 @@
+# reference: https://github.com/openssl/openssl/blob/master/demos/certs/ca.cnf
+
+CN = "athenz.test.syncer"
+SAN = "syncer.athenz-test.dns"
+
+[ req ]
+default_bits = 4096
+prompt = no
+default_md = sha256
+distinguished_name = dn
+x509_extensions	= svc_cert
+req_extensions = v3_req
+string_mask = utf8only
+
+[ dn ]
+countryName = US
+organizationName = Athenz
+commonName = ${ENV::CN}
+
+[ svc_cert ]
+basicConstraints = critical, CA:FALSE
+keyUsage = critical, nonRepudiation, digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth, clientAuth
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid
+subjectAltName = @alt_names
+
+[ v3_req ]
+subjectAltName = @alt_names
+
+[ alt_names ]
+DNS.1 = ${ENV::SAN}
+
+# openssl req -x509 -nodes -newkey rsa:4096 -days 3650 -config "dummyClient.cnf" -keyout "dummyClient.key" -out "dummyClient.crt"
+# openssl rsa -in "dummyClient.key" -out "dummyClient.key"

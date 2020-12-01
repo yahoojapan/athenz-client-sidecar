@@ -19,7 +19,6 @@ package service
 import (
 	"bytes"
 	"context"
-	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
 	"fmt"
@@ -30,6 +29,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/kpango/fastime"
@@ -57,7 +57,10 @@ type roleService struct {
 	domainRoleCache       gache.Gache
 	group                 singleflight.Group
 	expiry                time.Duration
-	httpClient            *http.Client
+	httpClient            atomic.Value
+	rootCAs               *x509.CertPool
+	certPath              string
+	certKeyPath           string
 
 	refreshPeriod    time.Duration
 	errRetryMaxCount int
@@ -88,6 +91,12 @@ var (
 
 	// ErrInvalidSetting represents an error when the config file is invalid.
 	ErrInvalidSetting = errors.New("Invalid config")
+
+	// ErrDisabled represents an error when the service is disabled
+	ErrDisabled = errors.New("Disabled")
+
+	// ErrNoCredentials represents an error when there are no Athenz credentials are set
+	ErrNoCredentials = errors.New("No credentials")
 )
 
 const (
@@ -122,6 +131,10 @@ func NewRoleService(cfg config.RoleToken, token ntokend.TokenProvider) (RoleServ
 		errRetryInterval = defaultErrRetryInterval
 	)
 
+	if !cfg.Enable {
+		return nil, ErrDisabled
+	}
+
 	if cfg.Expiry != "" {
 		if exp, err = time.ParseDuration(cfg.Expiry); err != nil {
 			return nil, errors.Wrap(ErrInvalidSetting, "Expiry: "+err.Error())
@@ -150,29 +163,43 @@ func NewRoleService(cfg config.RoleToken, token ntokend.TokenProvider) (RoleServ
 		return nil, errors.Wrap(ErrInvalidSetting, "ErrRetryMaxCount < 0")
 	}
 
+	if token == nil && cfg.CertPath == "" {
+		return nil, errors.Wrap(ErrInvalidSetting, "Neither NToken nor client certificate is set.")
+	}
+
 	var cp *x509.CertPool
-	var httpClient *http.Client
-	if len(cfg.AthenzCAPath) > 0 {
-		certPath := config.GetActualValue(cfg.AthenzCAPath)
-		_, err := os.Stat(certPath)
-		if !os.IsNotExist(err) {
-			cp, err = NewX509CertPool(certPath)
-			if err != nil {
-				cp = nil
-			}
+	if cfg.AthenzCAPath != "" {
+		var err error
+		caPath := config.GetActualValue(cfg.AthenzCAPath)
+		_, err = os.Stat(caPath)
+		if os.IsNotExist(err) {
+			return nil, errors.Wrap(ErrInvalidSetting, "Athenz CA not exist")
+		}
+		cp, err = NewX509CertPool(caPath)
+		if err != nil {
+			return nil, errors.Wrap(ErrInvalidSetting, err.Error())
 		}
 	}
-	if cp != nil {
-		httpClient = &http.Client{
-			Transport: &http.Transport{
-				TLSClientConfig: &tls.Config{
-					RootCAs: cp,
-				},
-			},
-		}
-	} else {
-		httpClient = http.DefaultClient
+
+	certPath := cfg.CertPath
+	certKeyPath := cfg.CertKeyPath
+	// prevent using client certificate (ntoken has priority)
+	if token != nil {
+		certPath = ""
+		certKeyPath = ""
 	}
+
+	tlsConfig, err := NewTLSClientConfig(cp, certPath, certKeyPath)
+	if err != nil {
+		return nil, errors.Wrap(ErrInvalidSetting, err.Error())
+	}
+
+	var httpClient atomic.Value
+	httpClient.Store(&http.Client{
+		Transport: &http.Transport{
+			TLSClientConfig: tlsConfig,
+		},
+	})
 
 	return &roleService{
 		cfg:                   cfg,
@@ -182,6 +209,9 @@ func NewRoleService(cfg config.RoleToken, token ntokend.TokenProvider) (RoleServ
 		domainRoleCache:       gache.New(),
 		expiry:                exp,
 		httpClient:            httpClient,
+		rootCAs:               cp,
+		certPath:              certPath,
+		certKeyPath:           certKeyPath,
 		refreshPeriod:         refreshPeriod,
 		errRetryMaxCount:      errRetryMaxCount,
 		errRetryInterval:      errRetryInterval,
@@ -311,24 +341,42 @@ func (r *roleService) updateRoleToken(ctx context.Context, domain, role, proxyFo
 }
 
 // fetchRoleToken fetch the role token from Athenz server, and return the decoded role token and any error if occurred.
+// P.S. Do not call fetchRoleToken() outside singleflight group, as behavior of concurrent request is not tested
 func (r *roleService) fetchRoleToken(ctx context.Context, domain, role, proxyForPrincipal string, minExpiry, maxExpiry int64) (*RoleToken, error) {
 	glg.Debugf("get role token, domain: %s, role: %s, proxyForPrincipal: %s, minExpiry: %d, maxExpiry: %d", domain, role, proxyForPrincipal, minExpiry, maxExpiry)
 
-	// get the N-token
-	tok, err := r.token()
-	if err != nil {
-		return nil, err
-	}
-
 	// prepare request object
-	req, err := r.createGetRoleTokenRequest(domain, role, minExpiry, maxExpiry, proxyForPrincipal, tok)
+	req, err := r.createGetRoleTokenRequest(domain, role, minExpiry, maxExpiry, proxyForPrincipal)
 	if err != nil {
 		glg.Debugf("fail to create request object, error: %s", err)
 		return nil, err
 	}
 	glg.Debugf("request url: %v", req.URL)
 
-	res, err := r.httpClient.Do(req.WithContext(ctx))
+	// prepare Athenz credentials
+	if r.token != nil {
+		token, err := r.token()
+		if err != nil {
+			return nil, err
+		}
+		req.Header.Set(r.athenzPrincipleHeader, token)
+	} else if r.certPath != "" {
+		// prepare TLS config (certificate file may refresh)
+		tcc, err := NewTLSClientConfig(r.rootCAs, r.certPath, r.certKeyPath)
+		if err != nil {
+			return nil, err
+		}
+		r.httpClient.Store(&http.Client{
+			Transport: &http.Transport{
+				TLSClientConfig: tcc,
+			},
+		})
+	} else {
+		return nil, ErrNoCredentials
+	}
+
+	// send request
+	res, err := r.httpClient.Load().(*http.Client).Do(req.WithContext(ctx))
 	if err != nil {
 		return nil, err
 	}
@@ -359,7 +407,7 @@ func (r *roleService) getCache(domain, role, principal string) (*RoleToken, bool
 	return val.(*cacheData).token, ok
 }
 
-func (r *roleService) createGetRoleTokenRequest(domain, role string, minExpiry, maxExpiry int64, proxyForPrincipal, token string) (*http.Request, error) {
+func (r *roleService) createGetRoleTokenRequest(domain, role string, minExpiry, maxExpiry int64, proxyForPrincipal string) (*http.Request, error) {
 	u := fmt.Sprintf("https://%s/domain/%s/token", strings.TrimPrefix(strings.TrimPrefix(r.athenzURL, "https://"), "http://"), domain)
 
 	req, err := http.NewRequest(http.MethodGet, u, nil)
@@ -397,9 +445,6 @@ func (r *roleService) createGetRoleTokenRequest(domain, role string, minExpiry, 
 	}
 
 	req.URL.RawQuery = q.Encode()
-
-	// set authentication token
-	req.Header.Set(r.athenzPrincipleHeader, token)
 
 	return req, nil
 }

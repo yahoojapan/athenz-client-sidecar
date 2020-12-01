@@ -33,39 +33,17 @@ type Route struct {
 
 // NewRoutes returns Route slice.
 func NewRoutes(cfg config.Config, h handler.Handler) []Route {
-	r := []Route{
-		{
+	var r []Route
+
+	if cfg.NToken.Enable {
+		r = append(r, Route{
 			"NToken Handler",
 			[]string{
 				http.MethodGet,
 			},
 			"/ntoken",
 			h.NToken,
-		},
-		{
-			"RoleToken Handler",
-			[]string{
-				http.MethodPost,
-			},
-			"/roletoken",
-			h.RoleToken,
-		},
-		{
-			"RoleToken proxy Handler",
-			[]string{
-				"*",
-			},
-			"/proxy/roletoken",
-			h.RoleTokenProxy,
-		},
-		{
-			"NToken proxy Handler",
-			[]string{
-				"*",
-			},
-			"/proxy/ntoken",
-			h.NTokenProxy,
-		},
+		})
 	}
 
 	if cfg.AccessToken.Enable {
@@ -79,6 +57,17 @@ func NewRoutes(cfg config.Config, h handler.Handler) []Route {
 		})
 	}
 
+	if cfg.RoleToken.Enable {
+		r = append(r, Route{
+			"RoleToken Handler",
+			[]string{
+				http.MethodPost,
+			},
+			"/roletoken",
+			h.RoleToken,
+		})
+	}
+
 	if cfg.ServiceCert.Enable {
 		r = append(r, Route{
 			"Service Cert Handler",
@@ -87,6 +76,24 @@ func NewRoutes(cfg config.Config, h handler.Handler) []Route {
 			},
 			"/svccert",
 			h.ServiceCert,
+		})
+	}
+
+	if cfg.Proxy.Enable {
+		r = append(r, Route{
+			"RoleToken proxy Handler",
+			[]string{
+				"*",
+			},
+			"/proxy/roletoken",
+			h.RoleTokenProxy,
+		}, Route{
+			"NToken proxy Handler",
+			[]string{
+				"*",
+			},
+			"/proxy/ntoken",
+			h.NTokenProxy,
 		})
 	}
 

@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"io/ioutil"
+	"os"
 
 	"github.com/pkg/errors"
 	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
@@ -89,4 +90,33 @@ func NewX509CertPool(path string) (*x509.CertPool, error) {
 		}
 	}
 	return pool, err
+}
+
+// NewTLSClientConfig returns a client *tls.Config struct or error.
+func NewTLSClientConfig(rootCAs *x509.CertPool, certPath, certKeyPath string) (*tls.Config, error) {
+	t := &tls.Config{
+		MinVersion: tls.VersionTLS12,
+		RootCAs:    rootCAs,
+	}
+
+	if certPath != "" {
+		cp := config.GetActualValue(certPath)
+		_, err := os.Stat(cp)
+		if os.IsNotExist(err) {
+			return nil, errors.New("client certificate not found")
+		}
+		ckp := config.GetActualValue(certKeyPath)
+		_, err = os.Stat(ckp)
+		if os.IsNotExist(err) {
+			return nil, errors.New("client certificate key not found")
+		}
+
+		cert, err := tls.LoadX509KeyPair(cp, ckp)
+		if err != nil {
+			return nil, err
+		}
+		t.Certificates = []tls.Certificate{cert}
+	}
+
+	return t, nil
 }

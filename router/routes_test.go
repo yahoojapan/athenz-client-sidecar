@@ -49,10 +49,19 @@ func TestNewRoutes(t *testing.T) {
 				name: "Run NewRoutes successfully",
 				args: args{
 					cfg: config.Config{
-						ServiceCert: config.ServiceCert{
+						NToken: config.NToken{
 							Enable: true,
 						},
 						AccessToken: config.AccessToken{
+							Enable: true,
+						},
+						RoleToken: config.RoleToken{
+							Enable: true,
+						},
+						ServiceCert: config.ServiceCert{
+							Enable: true,
+						},
+						Proxy: config.Proxy{
 							Enable: true,
 						},
 					},
@@ -68,12 +77,28 @@ func TestNewRoutes(t *testing.T) {
 						h.NToken,
 					},
 					{
+						"Access Token Handler",
+						[]string{
+							http.MethodPost,
+						},
+						"/accesstoken",
+						h.AccessToken,
+					},
+					{
 						"RoleToken Handler",
 						[]string{
 							http.MethodPost,
 						},
 						"/roletoken",
 						h.RoleToken,
+					},
+					{
+						"Service Cert Handler",
+						[]string{
+							http.MethodGet,
+						},
+						"/svccert",
+						h.ServiceCert,
 					},
 					{
 						"RoleToken proxy Handler",
@@ -90,22 +115,6 @@ func TestNewRoutes(t *testing.T) {
 						},
 						"/proxy/ntoken",
 						h.NTokenProxy,
-					},
-					{
-						"Access Token Handler",
-						[]string{
-							http.MethodPost,
-						},
-						"/accesstoken",
-						h.AccessToken,
-					},
-					{
-						"Service Cert Handler",
-						[]string{
-							http.MethodGet,
-						},
-						"/svccert",
-						h.ServiceCert,
 					},
 				},
 			}
@@ -120,52 +129,28 @@ func TestNewRoutes(t *testing.T) {
 			h := handler.New(proxyConfig, nil, nil, nil, nil, nil)
 
 			return test{
-				name: "Run NewRoutes successfully without ServiceCert and AccessToken",
+				name: "Run NewRoutes successfully with all routes disabled",
 				args: args{
 					cfg: config.Config{
-						ServiceCert: config.ServiceCert{
+						NToken: config.NToken{
 							Enable: false,
 						},
 						AccessToken: config.AccessToken{
 							Enable: false,
 						},
+						RoleToken: config.RoleToken{
+							Enable: false,
+						},
+						ServiceCert: config.ServiceCert{
+							Enable: false,
+						},
+						Proxy: config.Proxy{
+							Enable: false,
+						},
 					},
 					h: h,
 				},
-				want: []Route{
-					{
-						"NToken Handler",
-						[]string{
-							http.MethodGet,
-						},
-						"/ntoken",
-						h.NToken,
-					},
-					{
-						"RoleToken Handler",
-						[]string{
-							http.MethodPost,
-						},
-						"/roletoken",
-						h.RoleToken,
-					},
-					{
-						"RoleToken proxy Handler",
-						[]string{
-							"*",
-						},
-						"/proxy/roletoken",
-						h.RoleTokenProxy,
-					},
-					{
-						"NToken proxy Handler",
-						[]string{
-							"*",
-						},
-						"/proxy/ntoken",
-						h.NTokenProxy,
-					},
-				},
+				want: nil,
 			}
 		}(),
 	}
@@ -173,7 +158,7 @@ func TestNewRoutes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := NewRoutes(tt.args.cfg, tt.args.h)
-			if got == nil {
+			if got == nil && tt.want != nil {
 				t.Errorf("NewRoutes() = %v, want %v", got, tt.want)
 				return
 			}

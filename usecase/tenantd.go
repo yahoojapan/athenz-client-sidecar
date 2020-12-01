@@ -198,9 +198,26 @@ func createNtokend(cfg config.NToken) (ntokend.TokenService, error) {
 }
 
 func requireNtokend(cfg config.Config) bool {
-	return cfg.NToken.Enable ||
-		(cfg.AccessToken.Enable && cfg.AccessToken.CertPath == "") ||
-		(cfg.RoleToken.Enable && cfg.RoleToken.CertPath == "") ||
-		cfg.ServiceCert.Enable ||
-		cfg.Proxy.Enable
+	if cfg.NToken.Enable {
+		glg.Info("Requires ntokend as ntoken endpoint is enabled")
+		return true
+	}
+	if cfg.AccessToken.Enable && cfg.AccessToken.CertPath == "" {
+		glg.Info("Requires ntokend as access token endpoint is enabled, and client certificate is not set")
+		return true
+	}
+	if cfg.RoleToken.Enable && cfg.RoleToken.CertPath == "" {
+		glg.Info("Requires ntokend as role token endpoint is enabled, and client certificate is not set")
+		return true
+	}
+	if cfg.ServiceCert.Enable {
+		glg.Info("Requires ntokend as service certificate endpoint is enabled")
+		return true
+	}
+	if cfg.Proxy.Enable {
+		glg.Info("Requires ntokend as proxy endpoint is enabled")
+		return true
+	}
+
+	return false
 }

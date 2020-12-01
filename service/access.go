@@ -166,14 +166,17 @@ func NewAccessService(cfg config.AccessToken, token ntokend.TokenProvider) (Acce
 		}
 	}
 
-	tlsConfig, err := NewTLSClientConfig(cp, cfg.CertPath, cfg.CertKeyPath)
-	if err != nil {
-		return nil, errors.Wrap(ErrInvalidSetting, err.Error())
-	}
-
+	certPath := cfg.CertPath
+	certKeyPath := cfg.CertKeyPath
 	// prevent using client certificate (ntoken has priority)
 	if token != nil {
-		tlsConfig.Certificates = nil
+		certPath = ""
+		certKeyPath = ""
+	}
+
+	tlsConfig, err := NewTLSClientConfig(cp, certPath, certKeyPath)
+	if err != nil {
+		return nil, errors.Wrap(ErrInvalidSetting, err.Error())
 	}
 
 	var httpClient atomic.Value
@@ -192,8 +195,8 @@ func NewAccessService(cfg config.AccessToken, token ntokend.TokenProvider) (Acce
 		expiry:                exp,
 		httpClient:            httpClient,
 		rootCAs:               cp,
-		certPath:              cfg.CertPath,
-		certKeyPath:           cfg.CertKeyPath,
+		certPath:              certPath,
+		certKeyPath:           certKeyPath,
 		refreshPeriod:         refreshPeriod,
 		errRetryMaxCount:      errRetryMaxCount,
 		errRetryInterval:      errRetryInterval,

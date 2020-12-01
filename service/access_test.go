@@ -312,7 +312,7 @@ func TestNewAccessService(t *testing.T) {
 					CertPath:            "../test/data/dummyClient.crt",
 					CertKeyPath:         "../test/data/dummyClient.key",
 				},
-				token: dummyTokenProvider,
+				token: nil,
 			}
 			return test{
 				name: "NewAccessService contains valid client certificate",
@@ -346,6 +346,61 @@ func TestNewAccessService(t *testing.T) {
 					expiry:                0,
 					certPath:              "../test/data/dummyClient.crt",
 					certKeyPath:           "../test/data/dummyClient.key",
+					errRetryInterval:      defaultErrRetryInterval,
+					errRetryMaxCount:      defaultErrRetryMaxCount,
+					refreshPeriod:         defaultRefreshPeriod,
+				},
+			}
+		}(),
+		func() test {
+			args := args{
+				cfg: config.AccessToken{
+					Enable:              true,
+					AthenzURL:           "dummy",
+					PrincipalAuthHeader: "dummyAuthHeader",
+					CertPath:            "../test/data/dummyClient.crt",
+					CertKeyPath:         "../test/data/dummyClient.key",
+				},
+				token: dummyTokenProvider,
+			}
+			return test{
+				name: "NewAccessService that ntokend takes priority over client certificate",
+				args: args,
+				checkFunc: func(got, want AccessService) error {
+					gotS := got.(*accessService)
+					wantS := want.(*accessService)
+					if !reflect.DeepEqual(gotS.cfg, wantS.cfg) ||
+						// reflect.ValueOf(gotS.token).Pointer() != reflect.ValueOf(wantS.token).Pointer() ||
+						!reflect.DeepEqual(gotS.athenzURL, wantS.athenzURL) ||
+						!reflect.DeepEqual(gotS.athenzPrincipleHeader, wantS.athenzPrincipleHeader) ||
+						//!reflect.DeepEqual(gotS.tokenCache, wantS.tokenCache) ||
+						!reflect.DeepEqual(gotS.expiry, wantS.expiry) ||
+						!reflect.DeepEqual(gotS.certPath, wantS.certPath) ||
+						!reflect.DeepEqual(gotS.certKeyPath, wantS.certKeyPath) ||
+						!reflect.DeepEqual(gotS.refreshPeriod, wantS.refreshPeriod) ||
+						!reflect.DeepEqual(gotS.errRetryMaxCount, wantS.errRetryMaxCount) ||
+						!reflect.DeepEqual(gotS.errRetryInterval, wantS.errRetryInterval) {
+
+						return fmt.Errorf("got: %+v, want: %+v", got, want)
+					}
+
+					// check client certificate in TLS client config
+					gotClient := gotS.httpClient.Load().(*http.Client)
+					if gotClient.Transport.(*http.Transport).TLSClientConfig.Certificates != nil {
+						return errors.New("Unexpected client certificate is set.")
+					}
+
+					return nil
+				},
+				want: &accessService{
+					cfg:                   args.cfg,
+					token:                 args.token,
+					athenzURL:             args.cfg.AthenzURL,
+					athenzPrincipleHeader: args.cfg.PrincipalAuthHeader,
+					tokenCache:            gache.New(),
+					expiry:                0,
+					certPath:              "",
+					certKeyPath:           "",
 					errRetryInterval:      defaultErrRetryInterval,
 					errRetryMaxCount:      defaultErrRetryMaxCount,
 					refreshPeriod:         defaultRefreshPeriod,
@@ -398,7 +453,7 @@ func TestNewAccessService(t *testing.T) {
 					Enable:   true,
 					CertPath: "../test/data/non_exist.pem",
 				},
-				token: dummyTokenProvider,
+				token: nil,
 			},
 			wantErr: errors.Wrap(ErrInvalidSetting, "client certificate not found"),
 		},
@@ -410,7 +465,7 @@ func TestNewAccessService(t *testing.T) {
 					CertPath:    "../test/data/dummyClient.crt",
 					CertKeyPath: "../test/data/non_exist.key",
 				},
-				token: dummyTokenProvider,
+				token: nil,
 			},
 			wantErr: errors.Wrap(ErrInvalidSetting, "client certificate key not found"),
 		},

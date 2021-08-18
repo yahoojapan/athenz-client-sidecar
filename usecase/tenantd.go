@@ -156,10 +156,6 @@ func (t *clientd) Start(ctx context.Context) chan []error {
 // createNtokend returns a TokenService object or any error
 func createNtokend(cfg config.NToken) (ntokend.TokenService, error) {
 
-	if !cfg.Enable {
-		return nil, errors.New("Disabled")
-	}
-
 	dur, err := time.ParseDuration(cfg.RefreshPeriod)
 	if err != nil {
 		return nil, fmt.Errorf("invalid token refresh period %s, %v", cfg.RefreshPeriod, err)

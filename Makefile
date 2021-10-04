@@ -44,3 +44,6 @@ coverage:
 	rm -f coverage.outdocker-push:
 	sudo docker build --pull=true --file=Dockerfile -t yahoojapan/athenz-client-sidecar:latest .
 	sudo docker push yahoojapan/athenz-client-sidecar:latest
+
+scan:
+	srcclr scan --no-upload .

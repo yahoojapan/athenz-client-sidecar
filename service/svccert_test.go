@@ -29,7 +29,7 @@ import (
 	"github.com/kpango/fastime"
 	"github.com/kpango/glg"
 	"github.com/kpango/ntokend"
-	"github.com/yahoo/athenz/clients/go/zts"
+	"github.com/AthenZ/athenz/clients/go/zts"
 	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
 )
 

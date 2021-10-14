@@ -555,7 +555,7 @@ func Test_createNtokend(t *testing.T) {
 					defer cancel()
 					got.StartTokenUpdater(ctx)
 					want.StartTokenUpdater(ctx)
-					time.Sleep(time.Millisecond * 50)
+					time.Sleep(time.Millisecond * 200)
 
 					g, err := got.GetTokenProvider()()
 					if err != nil {

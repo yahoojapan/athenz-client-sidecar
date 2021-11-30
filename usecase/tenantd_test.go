@@ -426,19 +426,9 @@ func Test_createNtokend(t *testing.T) {
 	}
 	tests := []test{
 		{
-			name: "disabled",
-			args: args{
-				cfg: config.NToken{
-					Enable: false,
-				},
-			},
-			wantErr: fmt.Errorf("Disabled"),
-		},
-		{
 			name: "refresh period invalid",
 			args: args{
 				cfg: config.NToken{
-					Enable:        true,
 					RefreshPeriod: "dummy",
 				},
 			},
@@ -448,7 +438,6 @@ func Test_createNtokend(t *testing.T) {
 			name: "token expiry invalid",
 			args: args{
 				cfg: config.NToken{
-					Enable:        true,
 					RefreshPeriod: "1s",
 					Expiry:        "dummy",
 				},
@@ -464,7 +453,6 @@ func Test_createNtokend(t *testing.T) {
 				args: func() args {
 					return args{
 						cfg: config.NToken{
-							Enable:         true,
 							RefreshPeriod:  "1m",
 							Expiry:         "1m",
 							PrivateKeyPath: keyKey,
@@ -490,7 +478,6 @@ func Test_createNtokend(t *testing.T) {
 
 					return args{
 						cfg: config.NToken{
-							Enable:            true,
 							RefreshPeriod:     "1m",
 							Expiry:            "1m",
 							PrivateKeyPath:    keyKey,
@@ -511,7 +498,6 @@ func Test_createNtokend(t *testing.T) {
 			keyKey := "_dummyKey_"
 			key := "../test/data/dummyServer.key"
 			cfg := config.NToken{
-				Enable:            true,
 				AthenzDomain:      strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
 				ServiceName:       strings.TrimPrefix(strings.TrimSuffix(keyKey, "_"), "_"),
 				ExistingTokenPath: "",

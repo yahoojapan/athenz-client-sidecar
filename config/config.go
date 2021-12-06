@@ -57,6 +57,9 @@ type Config struct {
 
 // Server represents the client sidecar and the health check server configuration.
 type Server struct {
+	// Address represents the listening address. Used as the host part of http.Server.Addr.
+	Address string `yaml:"address"`
+
 	// Port represents the server listening port.
 	Port int `yaml:"port"`
 
@@ -93,7 +96,10 @@ type TLS struct {
 
 // HealthCheck represents the health check server configuration.
 type HealthCheck struct {
-	// Port represents the server listening port.
+	// Address represents the health check server listening address. Used as the host part of http.Server.Addr.
+	Address string `yaml:"address"`
+
+	// Port represents the health check server listening port.
 	Port int `yaml:"port"`
 
 	// Endpoint represents the health check endpoint (pattern).

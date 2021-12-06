@@ -26,10 +26,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/AthenZ/athenz/clients/go/zts"
 	"github.com/kpango/fastime"
 	"github.com/kpango/glg"
 	"github.com/kpango/ntokend"
-	"github.com/AthenZ/athenz/clients/go/zts"
 	"github.com/yahoojapan/athenz-client-sidecar/v2/config"
 )
 
@@ -696,15 +696,21 @@ type mockTransporter struct {
 // RoundTrip is used to create a mock http response
 func (m *mockTransporter) RoundTrip(req *http.Request) (*http.Response, error) {
 	m.Counter = m.Counter + 1
-	return &http.Response{
+	res := &http.Response{
 		Status:     fmt.Sprintf("%d %s", m.StatusCode, http.StatusText(m.StatusCode)),
 		StatusCode: m.StatusCode,
-		Body:       ioutil.NopCloser(bytes.NewBuffer(m.Body[m.Counter-1])),
+		Body:       ioutil.NopCloser(bytes.NewBuffer(nil)),
 		Request: &http.Request{
 			URL:    m.URL,
 			Method: m.Method,
 		},
-	}, m.Error
+	}
+	if m.Counter > len(m.Body) {
+		// prevent extra update request causing array index panic
+		return res, nil
+	}
+	res.Body = ioutil.NopCloser(bytes.NewBuffer(m.Body[m.Counter-1]))
+	return res, m.Error
 }
 
 func TestSvcCertService_GetSvcCert(t *testing.T) {

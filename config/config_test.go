@@ -62,6 +62,7 @@ func TestNew(t *testing.T) {
 			want: &Config{
 				Version: "v2.0.0",
 				Server: Server{
+					Address:         "127.0.0.1",
 					Port:            8080,
 					Timeout:         "10s",
 					ShutdownTimeout: "10s",
@@ -73,6 +74,7 @@ func TestNew(t *testing.T) {
 						CAPath:   "ca",
 					},
 					HealthCheck: HealthCheck{
+						Address:  "127.0.0.1",
 						Port:     80,
 						Endpoint: "/healthz",
 					},

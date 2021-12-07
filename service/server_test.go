@@ -45,6 +45,7 @@ func TestNewServer(t *testing.T) {
 				opts: []Option{
 					WithServerConfig(config.Server{
 						HealthCheck: config.HealthCheck{
+							Address:  "48.48.48.48",
 							Port:     8080,
 							Endpoint: "/healthz",
 						},
@@ -56,7 +57,7 @@ func TestNewServer(t *testing.T) {
 			},
 			want: &server{
 				hcsrv: &http.Server{
-					Addr: fmt.Sprintf(":%d", 8080),
+					Addr: fmt.Sprintf("%s:%d", "48.48.48.48", 8080),
 				},
 			},
 			checkFunc: func(got, want Server) error {
@@ -71,7 +72,8 @@ func TestNewServer(t *testing.T) {
 			args: args{
 				opts: []Option{
 					WithServerConfig(config.Server{
-						Port: 8081,
+						Address: "75.75.75.75",
+						Port:    8081,
 						HealthCheck: config.HealthCheck{
 							Port:     8080,
 							Endpoint: "/healthz",
@@ -84,7 +86,7 @@ func TestNewServer(t *testing.T) {
 			},
 			want: &server{
 				srv: &http.Server{
-					Addr: fmt.Sprintf(":%d", 8081),
+					Addr: fmt.Sprintf("%s:%d", "75.75.75.75", 8081),
 				},
 			},
 			checkFunc: func(got, want Server) error {
@@ -159,7 +161,7 @@ func Test_server_ListenAndServe(t *testing.T) {
 				fields: fields{
 					srv: func() *http.Server {
 						s := &http.Server{
-							Addr:    fmt.Sprintf(":%d", apiSrvPort),
+							Addr:    fmt.Sprintf("localhost:%d", apiSrvPort),
 							Handler: handler,
 						}
 						s.SetKeepAlivesEnabled(true)
@@ -167,7 +169,7 @@ func Test_server_ListenAndServe(t *testing.T) {
 					}(),
 					hcsrv: func() *http.Server {
 						s := &http.Server{
-							Addr:    fmt.Sprintf(":%d", hcSrvPort),
+							Addr:    fmt.Sprintf("localhost:%d", hcSrvPort),
 							Handler: handler,
 						}
 						s.SetKeepAlivesEnabled(true)
@@ -252,7 +254,7 @@ func Test_server_ListenAndServe(t *testing.T) {
 				fields: fields{
 					srv: func() *http.Server {
 						srv := &http.Server{
-							Addr:    fmt.Sprintf(":%d", apiSrvPort),
+							Addr:    fmt.Sprintf("localhost:%d", apiSrvPort),
 							Handler: handler,
 						}
 
@@ -261,7 +263,7 @@ func Test_server_ListenAndServe(t *testing.T) {
 					}(),
 					hcsrv: func() *http.Server {
 						srv := &http.Server{
-							Addr:    fmt.Sprintf(":%d", hcSrvPort),
+							Addr:    fmt.Sprintf("localhost:%d", hcSrvPort),
 							Handler: handler,
 						}
 
@@ -347,7 +349,7 @@ func Test_server_ListenAndServe(t *testing.T) {
 				fields: fields{
 					srv: func() *http.Server {
 						srv := &http.Server{
-							Addr:    fmt.Sprintf(":%d", apiSrvPort),
+							Addr:    fmt.Sprintf("localhost:%d", apiSrvPort),
 							Handler: handler,
 						}
 
@@ -356,7 +358,7 @@ func Test_server_ListenAndServe(t *testing.T) {
 					}(),
 					hcsrv: func() *http.Server {
 						srv := &http.Server{
-							Addr:    fmt.Sprintf(":%d", hcSrvPort),
+							Addr:    fmt.Sprintf("localhost:%d", hcSrvPort),
 							Handler: handler,
 						}
 
@@ -440,7 +442,7 @@ func Test_server_ListenAndServe(t *testing.T) {
 				fields: fields{
 					srv: func() *http.Server {
 						srv := &http.Server{
-							Addr:    fmt.Sprintf(":%d", apiSrvPort),
+							Addr:    fmt.Sprintf("localhost:%d", apiSrvPort),
 							Handler: handler,
 						}
 
@@ -449,7 +451,7 @@ func Test_server_ListenAndServe(t *testing.T) {
 					}(),
 					hcsrv: func() *http.Server {
 						srv := &http.Server{
-							Addr:    fmt.Sprintf(":%d", hcSrvPort),
+							Addr:    fmt.Sprintf("localhost:%d", hcSrvPort),
 							Handler: handler,
 						}
 
@@ -672,7 +674,7 @@ func Test_server_listenAndServeAPI(t *testing.T) {
 						Handler: func() http.Handler {
 							return nil
 						}(),
-						Addr: fmt.Sprintf(":%d", 9999),
+						Addr: fmt.Sprintf("localhost:%d", 9999),
 					},
 					cfg: config.Server{
 						Port: 9999,

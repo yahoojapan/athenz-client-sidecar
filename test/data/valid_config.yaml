@@ -1,6 +1,7 @@
 ---
 version: v2.0.0
 server:
+  address: "127.0.0.1"
   port: 8080
   timeout: 10s
   shutdownTimeout: 10s
@@ -11,6 +12,7 @@ server:
     keyPath: key
     caPath: ca
   healthCheck:
+    address: "127.0.0.1"
     port: 80
     endpoint: "/healthz"
 nToken:

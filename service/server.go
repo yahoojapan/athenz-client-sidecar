@@ -86,14 +86,14 @@ func NewServer(opts ...Option) Server {
 	}
 
 	s.srv = &http.Server{
-		Addr:    fmt.Sprintf(":%d", s.cfg.Port),
+		Addr:    fmt.Sprintf("%s:%d", s.cfg.Address, s.cfg.Port),
 		Handler: s.srvHandler,
 	}
 	s.srv.SetKeepAlivesEnabled(true)
 
 	if s.hcSrvEnable() {
 		s.hcsrv = &http.Server{
-			Addr:    fmt.Sprintf(":%d", s.cfg.HealthCheck.Port),
+			Addr:    fmt.Sprintf("%s:%d", s.cfg.HealthCheck.Address, s.cfg.HealthCheck.Port),
 			Handler: createHealthCheckServiceMux(s.cfg.HealthCheck.Endpoint),
 		}
 		s.hcsrv.SetKeepAlivesEnabled(true)

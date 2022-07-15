@@ -42,6 +42,6 @@ coverage:
 	go test -v -race -covermode=atomic -coverprofile=coverage.out ./...
 	go tool cover -html=coverage.out -o coverage.html
 	rm -f coverage.outdocker-push:
-	sudo docker build --pull=true --file=Dockerfile -t yahoojapan/athenz-client-sidecar:latest .
-	sudo docker push yahoojapan/athenz-client-sidecar:latest
+	sudo docker build --pull=true --file=Dockerfile -t docker.io/yahoojapan/athenz-client-sidecar:latest .
+	sudo docker push docker.io/yahoojapan/athenz-client-sidecar:latest
 

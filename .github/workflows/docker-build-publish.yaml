@@ -25,7 +25,7 @@ on:
 
 env:
   DOCKER_BUILDX_PLATFORM: linux/amd64
-  DOCKER_REGISTRY_OWNER: tatyano
+  DOCKER_REGISTRY_OWNER: wzyahoo
   # DOCKER_BUILD_ARGS: |
 
 jobs:

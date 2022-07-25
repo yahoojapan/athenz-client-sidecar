@@ -72,7 +72,7 @@ func TestNew(t *testing.T) {
 					},
 				},
 			},
-			wantErr: fmt.Errorf("ntokend error: invalid token refresh period , time: invalid duration "),
+			wantErr: fmt.Errorf(`ntokend error: invalid token refresh period , time: invalid duration ""`),
 		},
 		{
 			name: "Check error when new access token service",
@@ -85,7 +85,7 @@ func TestNew(t *testing.T) {
 					},
 				},
 			},
-			wantErr: fmt.Errorf("access token service error: Expiry: time: invalid duration invalid_at_exp: Invalid config"),
+			wantErr: fmt.Errorf(`access token service error: Expiry: time: invalid duration "invalid_at_exp": Invalid config`),
 		},
 		{
 			name: "Check error when new role token service",
@@ -98,7 +98,7 @@ func TestNew(t *testing.T) {
 					},
 				},
 			},
-			wantErr: fmt.Errorf("role token service error: Expiry: time: invalid duration invalid_rt_exp: Invalid config"),
+			wantErr: fmt.Errorf(`role token service error: Expiry: time: invalid duration "invalid_rt_exp": Invalid config`),
 		},
 		func() test {
 			cfg := config.Config{
@@ -304,6 +304,8 @@ func Test_clientd_Start(t *testing.T) {
 					Enable: true,
 				},
 				Server: config.Server{
+					ShutdownTimeout: "1s",
+					ShutdownDelay:   "1s",
 					TLS: config.TLS{
 						Enable:   true,
 						CertPath: certKey,
@@ -432,7 +434,7 @@ func Test_createNtokend(t *testing.T) {
 					RefreshPeriod: "dummy",
 				},
 			},
-			wantErr: fmt.Errorf("invalid token refresh period %s, %v", "dummy", "time: invalid duration dummy"),
+			wantErr: fmt.Errorf("invalid token refresh period %s, %v", "dummy", `time: invalid duration "dummy"`),
 		},
 		{
 			name: "token expiry invalid",
@@ -442,7 +444,7 @@ func Test_createNtokend(t *testing.T) {
 					Expiry:        "dummy",
 				},
 			},
-			wantErr: fmt.Errorf("invalid token expiry %s, %v", "dummy", "time: invalid duration dummy"),
+			wantErr: fmt.Errorf("invalid token expiry %s, %v", "dummy", `time: invalid duration "dummy"`),
 		},
 		func() test {
 			keyKey := "_dummyKey_"

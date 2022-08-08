@@ -5,7 +5,7 @@ RUN set -eux \
     && apk --no-cache add ca-certificates \
     && apk --no-cache add --virtual build-dependencies cmake g++ make unzip curl upx git
 
-WORKDIR ${GOPATH}/src/github.com/yahoojapan/athenz-client-sidecar
+WORKDIR ${GOPATH}/src/github.com/AthenZ/athenz-client-sidecar
 
 COPY go.mod .
 COPY go.sum .

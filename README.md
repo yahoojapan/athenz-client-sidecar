@@ -653,3 +653,4 @@ Note that only for contributions to the `athenz-client-sidecar` repository on th
 - [TakuyaMatsu](https://github.com/TakuyaMatsu)
 - [tatyano](https://github.com/tatyano)
 - [WindzCUHK](https://github.com/WindzCUHK)
+
